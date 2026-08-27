@@ -1,6 +1,5 @@
-```mermaid
 graph TB
-    User["<img src='https://cf-icons.pages.dev/internet-browser.svg' width='48'><br/>User"]
+User["<img src='https://cf-icons.pages.dev/internet-browser.svg' width='48'><br/>User"]
 
     subgraph Cloudflare["Cloudflare"]
         DNS["<img src='https://cf-icons.pages.dev/dns.svg' width='48'><br/>DNS"]
@@ -20,4 +19,3 @@ graph TB
     Worker --->|"Object Storage"| R2
     Worker --->|"Key-Value"| KV
     CRON --->|"Scheduled Event"| Worker
-```

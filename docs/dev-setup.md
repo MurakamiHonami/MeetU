@@ -109,6 +109,24 @@ Authentication error [code: 10000]
 
 Worker 本体のアップロードは成功しているがルート設定で失敗している状態です。上記 Zone 権限（Workers Routes Edit）が不足していることがほとんどです。
 
+```
+Authentication failed (status: 400) [code: 9106]
+```
+
+`wrangler secret put` や `wrangler whoami` で出る場合、**Repository secrets の `CLOUDFLARE_API_TOKEN` が空・無効・未設定** です。Environment secrets にだけ入れていると参照されません（workflow は Repository secrets のみ使用）。
+
+確認手順:
+
+1. GitHub → **Settings → Secrets and variables → Actions → Repository secrets**
+2. `CLOUDFLARE_API_TOKEN` と `JWT_SECRET` の両方が存在するか
+3. ローカルで検証:
+
+```bash
+curl -s "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+  -H "Authorization: Bearer （トークン）" | jq .
+# "success": true なら OK
+```
+
 **Environments（未使用）**
 
 デプロイ workflow は GitHub Environments を使わず、上記 **Repository secrets** のみ参照します。本番デプロイの承認フローが必要になったら `environment: production` を workflow に戻して Environments を設定してください。

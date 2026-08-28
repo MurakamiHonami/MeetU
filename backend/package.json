@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration",
+    "test:staging": "vitest run --project staging",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

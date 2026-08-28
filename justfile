@@ -40,6 +40,10 @@ test:
 test-backend-ci:
     bash scripts/test-backend-ci.sh
 
+# Live staging API integration tests (network required)
+test-staging-integration:
+    bash scripts/test-staging-integration.sh
+
 # Run TypeScript type checks (no production build)
 typecheck:
     npm run typecheck

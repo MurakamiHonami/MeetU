@@ -100,6 +100,9 @@ git checkout -b dev && git push -u origin dev
 | Secret | 用途 |
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
+| `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
+
+`JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
 
 トークン確認:
 
@@ -113,13 +116,23 @@ curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
 | 環境 | 設定方法 |
 |------|----------|
 | Local | `backend/.dev.vars` |
-| Staging | `wrangler secret put JWT_SECRET --env staging`（初回のみ） |
-| Production | `wrangler secret put JWT_SECRET --env production`（初回のみ） |
+| Staging | `JWT_SECRET` GitHub Secret（deploy-staging で自動設定） |
+| Production | `JWT_SECRET` GitHub Secret（deploy-production で自動設定） |
 
 ```bash
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
 ```
+
+### Staging integration tests
+
+本番デプロイ前・staging デプロイ後に、live API へ HTTP で疎通確認します。
+
+```bash
+just test-staging-integration   # https://api-meetu-staging.ruxel.net
+```
+
+CI: `deploy-staging` 完了後 / `deploy-production` の release 前に実行。
 
 ---
 

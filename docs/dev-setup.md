@@ -82,9 +82,14 @@ feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan�
 
 `CLOUDFLARE_ACCOUNT_ID` は workflow に直書き（公開情報）。API URL も同様。
 
-Cloudflare API Token の権限例: テンプレート **Edit Cloudflare Workers**（Account: Workers Scripts / D1 / KV / R2）。
+Cloudflare API Token の権限例: テンプレート **Edit Cloudflare Workers**（Account: Workers Scripts / D1 / KV / R2、Zone `ruxel.net`: Workers Routes + DNS）。`wrangler.json` の routes には `zone_id` を明示しています。
 
-カスタムドメインは `wrangler.json` の `routes` ではなく、デプロイ後に `scripts/ensure-worker-domains.mjs` で Workers Script Domains API 経由で付与します。Wrangler が `routes` 付きで deploy すると、カスタムドメインだけの設定でも **Zone Workers Routes 一覧 API**（`GET /zones/{id}/workers/routes`）を呼ぶため、Zone 限定トークンでは worker アップロード成功後に auth error 10000 になる既知の挙動があります。
+GitHub Secret の `CLOUDFLARE_API_TOKEN` は、Dashboard で発行した値と**完全一致**させてください（改行なし）。デプロイ前に次で確認できます:
+
+```bash
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  "https://api.cloudflare.com/client/v4/zones/bdbf7e30ed6987f1a240291681d33ca7/workers/routes" | jq .success
+```
 
 ローカル開発の `JWT_SECRET` は `backend/.dev.vars` に置きます（`.dev.vars.example` をコピー）。
 
@@ -161,7 +166,7 @@ just d1-migrate        # 本番 D1 に適用 (wrangler d1 migrations apply)
 API は `api.meetu.ruxel.net`（`meetu.api.ruxel.net` ではなくこちらを採用）。
 
 1. `ruxel.net` を Cloudflare で管理
-2. デプロイ後 `just sync-staging-domains` / `just sync-production-domains`（`release-*` に含まれる）でカスタムドメインを Workers に紐付け
+2. `wrangler.json` の `custom_domain` で DNS を自動作成
 3. フロントは Worker 静的アセット（staging / production それぞれ別 Worker）
 
 URL の一覧はルートの `domains.env` を参照。

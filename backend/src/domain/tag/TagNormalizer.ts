@@ -1,8 +1,8 @@
 export class TagNormalizer {
   static normalize(input: string): string {
     return input
-      .normalize('NFKC')
+      .normalize("NFKC")
       .toLowerCase()
-      .replace(/[\s\t\n\r_,\-./#＃!！?？]/g, '');
+      .replace(/[\s\t\n\r_,\-./#＃!！?？]/g, "");
   }
 }

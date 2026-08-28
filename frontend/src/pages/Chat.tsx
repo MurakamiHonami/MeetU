@@ -5,10 +5,5 @@ export default function Chat() {
   const { matchId = "" } = useParams();
   const navigate = useNavigate();
 
-  return (
-    <MatchChatThread
-      matchId={matchId}
-      onBack={() => navigate(`/matches/${matchId}`)}
-    />
-  );
+  return <MatchChatThread matchId={matchId} onBack={() => navigate(`/matches/${matchId}`)} />;
 }

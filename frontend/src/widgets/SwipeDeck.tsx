@@ -11,7 +11,7 @@ type Props = {
   onOpen: (card: Card) => void;
 };
 
-const SWIPE_THRESHOLD = 90;   // これ以上動かしたら確定
+const SWIPE_THRESHOLD = 90; // これ以上動かしたら確定
 
 /**
  * 新着カードを 1 枚ずつ見せて、右に振ると保存・左に振ると見送り。
@@ -56,7 +56,7 @@ export default function SwipeDeck({ cards, onSave, onSkip, onOpen }: Props) {
 
     if (moved > SWIPE_THRESHOLD) finish("save");
     else if (moved < -SWIPE_THRESHOLD) finish("skip");
-    else setDrag({ x: 0, y: 0 });   // 戻す
+    else setDrag({ x: 0, y: 0 }); // 戻す
   }
 
   if (!card) {
@@ -154,9 +154,7 @@ export default function SwipeDeck({ cards, onSave, onSkip, onOpen }: Props) {
         <button className="deck-skip" onClick={() => finish("skip")} title="スキップ">
           <CloseRoundedIcon />
         </button>
-        <span className="deck-count">
-          残り {cards.length - index} 件
-        </span>
+        <span className="deck-count">残り {cards.length - index} 件</span>
         <button className="deck-save" onClick={() => finish("save")} title="保存">
           <FavoriteRoundedIcon />
         </button>

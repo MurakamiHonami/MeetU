@@ -33,9 +33,7 @@ export function SavedList() {
       <h2>保存したカード</h2>
 
       {cards.length === 0 && (
-        <p className="hint">
-          まだありません。ホームの新着を右にスワイプすると保存できます。
-        </p>
+        <p className="hint">まだありません。ホームの新着を右にスワイプすると保存できます。</p>
       )}
 
       {cards.map((card) => (
@@ -47,7 +45,7 @@ export function SavedList() {
             <div className="card-actions">
               <button
                 onClick={(e) => {
-                  e.stopPropagation();   // カード全体のタップと二重に反応させない
+                  e.stopPropagation(); // カード全体のタップと二重に反応させない
                   void remove(card.cardId);
                 }}
               >

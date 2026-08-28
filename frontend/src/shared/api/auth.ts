@@ -72,11 +72,7 @@ export const authenticatedFetch: typeof fetch = async (input, init) => {
     const res = await fetch(input, { ...init, headers, credentials: "include" });
 
     if (res.status === 401 && !retried) {
-      const url = typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input.url;
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (!isAuthEndpoint(url)) {
         const ok = await refreshSession();
         if (ok) return execute(true);

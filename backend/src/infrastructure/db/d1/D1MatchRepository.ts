@@ -1,8 +1,8 @@
-import { and, desc, eq, or, sql } from 'drizzle-orm';
-import { IMatchRepository } from '../../../domain/match/IMatchRepository';
-import { Match, MatchProps } from '../../../domain/match/Match';
-import { AppDatabase, parseJson } from '../database';
-import { matchReads, matches } from '../schema';
+import { and, desc, eq, or, sql } from "drizzle-orm";
+import { IMatchRepository } from "../../../domain/match/IMatchRepository";
+import { Match, MatchProps } from "../../../domain/match/Match";
+import { AppDatabase, parseJson } from "../database";
+import { matchReads, matches } from "../schema";
 
 export class D1MatchRepository implements IMatchRepository {
   constructor(private db: AppDatabase) {}
@@ -23,7 +23,7 @@ export class D1MatchRepository implements IMatchRepository {
       lastMessageAt: row.lastMessageAt ?? undefined,
       lastMessageBy: row.lastMessageBy ?? undefined,
       lastMessagePreview: row.lastMessagePreview ?? undefined,
-      status: row.status as MatchProps['status'],
+      status: row.status as MatchProps["status"],
       createdAt: row.createdAt,
     };
     return new Match(props);
@@ -79,7 +79,7 @@ export class D1MatchRepository implements IMatchRepository {
       });
   }
 
-  async updateStatus(id: string, status: Match['status']): Promise<void> {
+  async updateStatus(id: string, status: Match["status"]): Promise<void> {
     await this.db.update(matches).set({ status }).where(eq(matches.id, id));
   }
 

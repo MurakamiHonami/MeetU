@@ -1,4 +1,4 @@
-import { TagNormalizer } from './TagNormalizer';
+import { TagNormalizer } from "./TagNormalizer";
 
 export interface TagProps {
   id: string;
@@ -10,10 +10,18 @@ export interface TagProps {
 export class Tag {
   constructor(private props: TagProps) {}
 
-  get id(): string { return this.props.id; }
-  get displayName(): string { return this.props.displayName; }
-  get category(): string { return this.props.category; }
-  get useCount(): number { return this.props.useCount; }
+  get id(): string {
+    return this.props.id;
+  }
+  get displayName(): string {
+    return this.props.displayName;
+  }
+  get category(): string {
+    return this.props.category;
+  }
+  get useCount(): number {
+    return this.props.useCount;
+  }
 
   incrementUseCount(): void {
     this.props.useCount += 1;
@@ -23,7 +31,7 @@ export class Tag {
     return { ...this.props };
   }
 
-  static create(displayName: string, category: string = 'other'): Tag {
+  static create(displayName: string, category: string = "other"): Tag {
     const id = TagNormalizer.normalize(displayName);
     return new Tag({
       id,

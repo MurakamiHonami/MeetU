@@ -1,17 +1,24 @@
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public code?: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string,
+  ) {
     super(message);
   }
 }
 
-export async function unwrap<T>(
-  res: { ok: boolean; status: number; json(): Promise<unknown> },
-): Promise<T> {
+export async function unwrap<T>(res: {
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+}): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = (body as { message?: string; error?: string }).message
-      ?? (body as { error?: string }).error
-      ?? `リクエストに失敗しました (${res.status})`;
+    const msg =
+      (body as { message?: string; error?: string }).message ??
+      (body as { error?: string }).error ??
+      `リクエストに失敗しました (${res.status})`;
     throw new ApiError(res.status, msg, (body as { code?: string }).code);
   }
   return body as T;

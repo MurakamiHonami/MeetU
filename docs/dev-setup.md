@@ -1,218 +1,150 @@
 # MeetU 開発環境 ＆ デプロイガイド
 
-本プロジェクトは **TypeScript (Cloudflare Workers / D1 / KV / R2) + React (Cloudflare Pages)** の構成で構築されています。
-ドメイン駆動設計 (DDD) および クリーンアーキテクチャ に基づいて設計されています。
+本プロジェクトは **TypeScript (Cloudflare Workers / D1 / KV / R2) + React (Workers Static Assets)** の npm workspaces モノレポです。
+ドメイン駆動設計 (DDD) およびクリーンアーキテクチャに基づいて設計されています。
 
 ---
 
 ## 1. 前提条件
 
-- **Node.js**: v20 以上推奨 (npm v10 以上)
-- **just**: タスクランナー (推奨: `brew install just`)
+- **Node.js**: v22（`.nvmrc` 参照）
+- **just**: タスクランナー (`brew install just`)
 - **Cloudflare アカウント**
 
 ---
 
-## 2. タスクランナー (`just`)
+## 2. 初回セットアップ
 
 ```bash
-just               # コマンド一覧
-just check         # db:verify + 型チェック + テスト
-just dev-backend   # localhost:8787
-just dev-frontend  # localhost:5173
+just setup          # npm ci（workspaces で backend + frontend 一括）
+cp backend/.dev.vars.example backend/.dev.vars   # JWT_SECRET を設定
+just dev            # backend:8787 + frontend:5173 を同時起動
 ```
 
-### デプロイ（よく使う）
+### よく使う just コマンド
 
 | コマンド | 内容 |
 |----------|------|
-| `just deploy-staging` | staging API + Web をデプロイ |
-| `just deploy-production` | 本番 API + Web をデプロイ（seed なし） |
+| `just setup` | 依存関係インストール |
+| `just dev` | バックエンド + フロント同時起動 |
+| `just ci` | format + oxlint + secretlint + db:verify + typecheck + test |
+| `just check` | db:verify + typecheck + test（lint なし） |
+| `just format` | oxfmt で整形 |
+| `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
+
+個別起動: `just dev-backend` / `just dev-frontend`
+
+### デプロイ
+
+| コマンド | 内容 |
+|----------|------|
+| `just deploy-staging` | staging API + Web |
+| `just deploy-production` | 本番 API + Web |
 | `just release-staging` | staging API + D1 migrate + Web |
 | `just release-production` | 本番 API + D1 migrate + Web |
-| `just staging-setup` | release-staging + デモ seed 投入 |
 
 | 環境 | Web | API |
 |------|-----|-----|
 | Staging | https://meetu.staging.ruxel.net | https://api-meetu-staging.ruxel.net |
 | Production | https://meetu.ruxel.net | https://api.meetu.ruxel.net |
 
-個別デプロイ: `deploy-staging-backend`, `deploy-staging-frontend`, `deploy-production-backend`, `deploy-production-frontend`
-
 ### データベース
 
 ```bash
-just db-generate          # schema.ts → SQL 生成
-just db-migrate-local     # ローカル SQLite
-just d1-migrate-staging   # staging D1
+just db-generate
+just db-migrate-local
+just db-verify
+just d1-migrate-staging
 just d1-migrate-production
-just d1-seed-staging      # staging にデモデータ（本番には入れない）
+just d1-seed-staging      # staging のみ（本番 seed なし）
 ```
 
 ---
 
 ## 3. CI/CD（GitHub Actions）
 
-### ブランチとデプロイ先
-
 ```
-feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan）
+feature/*  →  PR  →  just ci
        ↓ merge
-     stg      →  staging へ自動デプロイ
+     stg      →  just ci → release-staging
        ↓ merge
-     main     →  production へ自動デプロイ（seed なし）
+     main     →  just ci → release-production
 ```
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
-| `ci.yml` | PR | `just ci`（oxlint + secret scan + db:verify + typecheck + test） |
+| `ci.yml` | PR | `just setup` → `just ci` |
+| `deploy-staging.yml` | `stg` push | verify job → `release-staging` |
+| `deploy-production.yml` | `main` push | verify job → `release-production` |
 
-push 前に **husky pre-push** で同じ `just ci` が走ります。commit 時は **lint-staged** で staged ファイルに oxlint + secretlint が走ります。
-| `deploy-staging.yml` | `stg` への push | `just release-staging` |
-| `deploy-production.yml` | `main` への push | `just release-production` |
+**husky**
 
-手動実行も可能（Actions → Run workflow）。
+- pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）
+- pre-push: `just ci`
 
-### GitHub 設定（初回のみ）
+### GitHub Secrets
 
-**Repository secrets**（CI / デプロイはここだけ見る）
+| Secret | 用途 |
+|--------|------|
+| `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
 
-| Secret | 必須 | 用途 |
-|--------|------|------|
-| `CLOUDFLARE_API_TOKEN` | ✅ | Wrangler デプロイ |
-
-`CLOUDFLARE_ACCOUNT_ID` は workflow に直書き（公開情報）。API URL も同様。
-
-Cloudflare API Token の権限例: テンプレート **Edit Cloudflare Workers**（Account: Workers Scripts / D1 / KV / R2、Zone `ruxel.net`: Workers Routes + DNS）。`wrangler.json` の routes には `zone_id` を明示しています。
-
-GitHub Secret の `CLOUDFLARE_API_TOKEN` は、Dashboard で発行した値と**完全一致**させてください（改行なし）。デプロイ前に次で確認できます:
+トークン確認:
 
 ```bash
 curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  "https://api.cloudflare.com/client/v4/zones/bdbf7e30ed6987f1a240291681d33ca7/workers/routes" | jq .success
+  "https://api.cloudflare.com/client/v4/user/tokens/verify" | jq .success
 ```
 
-ローカル開発の `JWT_SECRET` は `backend/.dev.vars` に置きます（`.dev.vars.example` をコピー）。
+### JWT Secret
 
-**本番 `JWT_SECRET`（初回のみ）**
-
-本番 Worker の secret は deploy ごとに更新しません。初回またはローテーション時にローカルから設定します:
+| 環境 | 設定方法 |
+|------|----------|
+| Local | `backend/.dev.vars` |
+| Staging | `wrangler secret put JWT_SECRET --env staging`（初回のみ） |
+| Production | `wrangler secret put JWT_SECRET --env production`（初回のみ） |
 
 ```bash
+echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
-```
-
-（Dashboard → Workers → meetu-backend → Settings → Variables から設定しても可）
-
-**Environments（未使用）**
-
-デプロイ workflow は GitHub Environments を使わず、上記 **Repository secrets** のみ参照します。本番デプロイの承認フローが必要になったら `environment: production` を workflow に戻して Environments を設定してください。
-
-**`stg` ブランチ**
-
-```bash
-git checkout -b stg && git push -u origin stg
 ```
 
 ---
 
-## 4. Cloudflare デプロイ手順
+## 4. ローカル開発メモ
 
-### ステップ 1: Cloudflare CLI ログイン
+- フロント API クライアント: `frontend/src/shared/api/client.ts`（`@meetu/backend` から `AppType` を import）
+- モック認証: `Authorization: Bearer mock_<userId>` は **local のみ** 有効
+- Vite proxy: `/api` → `http://127.0.0.1:8787`
+
+---
+
+## 5. Cloudflare 初回セットアップ
 
 ```bash
 just login
-```
-
-### ステップ 2: クラウドコンポーネント（D1, KV, R2）の作成
-
-初回デプロイ時、以下のリソースを作成します：
-
-```bash
 cd backend && npx wrangler d1 create meetu-db
 cd backend && npx wrangler kv namespace create CACHE_KV
 cd backend && npx wrangler r2 bucket create meetu-uploads
 ```
 
-発行された `database_id` および KV `id` を `backend/wrangler.json` のバインディング情報に設定します。
-
-### ステップ 3: データベーススキーマ（Drizzle）
-
-スキーマの正は `backend/src/infrastructure/db/schema.ts` です。
+`database_id` / KV `id` を `backend/wrangler.json` に反映後:
 
 ```bash
-just db-generate       # schema.ts 変更後に SQL を生成
-just db-migrate-local  # ローカル SQLite に適用
-just db-verify         # CI と同じ検証
-just d1-migrate        # 本番 D1 に適用 (wrangler d1 migrations apply)
-```
-
-**ワークフロー**
-
-1. `schema.ts` を編集
-2. `just db-generate` → `drizzle/NNNN_*.sql` が生成される
-3. `just db-verify`
-4. `just d1-migrate`
-5. `just deploy-staging-backend`
-
-### 環境構成 (staging / production)
-
-| | Staging | Production |
-|---|---|---|
-| Frontend | `https://meetu.staging.ruxel.net` | `https://meetu.ruxel.net` |
-| API | `https://api-meetu-staging.ruxel.net` | `https://api.meetu.ruxel.net` |
-| Worker (API) | `meetu-backend-staging` | `meetu-backend` |
-| Worker (Web) | `meetu-web-staging` | `meetu-web` |
-| D1 | `meetu-db-staging` | `meetu-db` |
-
-**ドメイン (ruxel.net)**
-
-| 用途 | URL |
-|------|-----|
-| Staging フロント | `https://meetu.staging.ruxel.net` |
-| Staging API | `https://api-meetu-staging.ruxel.net` |
-| 本番フロント | `https://meetu.ruxel.net` |
-| 本番 API | `https://api.meetu.ruxel.net` |
-
-API は `api.meetu.ruxel.net`（`meetu.api.ruxel.net` ではなくこちらを採用）。
-
-1. `ruxel.net` を Cloudflare で管理
-2. `wrangler.json` の `custom_domain` で DNS を自動作成
-3. フロントは Worker 静的アセット（staging / production それぞれ別 Worker）
-
-URL の一覧はルートの `domains.env` を参照。
-
-### デモデータ (シード)
-
-D1 をリセットしたあとなど、スワイプ用のサンプルカードが空になることがあります。
-
-```bash
-just dev-backend   # 別ターミナル
-just db-seed       # ローカル
-
-just d1-seed-staging   # staging API へ投入
-```
-
-デモアカウント例: `seed-yuki@meetu.local` / `seedpass123`
-
-### ステップ 4: バックエンド (Workers) のデプロイ
-
-```bash
-just deploy-staging-backend
+just db-generate
+just db-migrate-local
+just db-verify
 just d1-migrate-staging
-just d1-seed-staging
+just deploy-staging-backend
 ```
 
-### ステップ 5: フロントエンド (Cloudflare Pages) のデプロイ
+デモデータ: `just dev-backend` → `just db-seed`（`seed-yuki@meetu.local` / `seedpass123`）
 
-`frontend/.env.staging` で `VITE_API_BASE_URL` を staging API に設定済みです。
+---
 
-```bash
-just deploy-staging-frontend
-```
+## 6. 関連 ADR
 
-または一式:
+- [ADR-001](./ADR-001.md) — アーキテクチャ
+- [ADR-002](./ADR-002.md) — 認証
+- [ADR-003](./ADR-003.md) — フロント配信
 
-```bash
-just staging-setup
-```
+旧設計書: [archive/design-legacy.md](./archive/design-legacy.md)

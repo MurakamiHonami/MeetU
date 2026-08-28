@@ -1,4 +1,4 @@
-import ngeohash from 'ngeohash';
+import ngeohash from "ngeohash";
 
 const EARTH_RADIUS_KM = 6371.0;
 
@@ -18,16 +18,22 @@ export interface LocationProps {
 export class Location {
   constructor(private props: LocationProps) {
     if (!Number.isFinite(props.lat) || !Number.isFinite(props.lon)) {
-      throw new Error('緯度経度が数値ではありません');
+      throw new Error("緯度経度が数値ではありません");
     }
     if (props.lat < -90 || props.lat > 90 || props.lon < -180 || props.lon > 180) {
-      throw new Error('緯度経度の範囲が不正です');
+      throw new Error("緯度経度の範囲が不正です");
     }
   }
 
-  get lat(): number { return this.props.lat; }
-  get lon(): number { return this.props.lon; }
-  get name(): string | undefined { return this.props.name; }
+  get lat(): number {
+    return this.props.lat;
+  }
+  get lon(): number {
+    return this.props.lon;
+  }
+  get name(): string | undefined {
+    return this.props.name;
+  }
 
   geohash(precision = 6): string {
     return Location.encode(this.props.lat, this.props.lon, precision);
@@ -42,7 +48,11 @@ export class Location {
   }
 
   toJSON(): LocationProps {
-    return { lat: this.props.lat, lon: this.props.lon, ...(this.props.name ? { name: this.props.name } : {}) };
+    return {
+      lat: this.props.lat,
+      lon: this.props.lon,
+      ...(this.props.name ? { name: this.props.name } : {}),
+    };
   }
 
   static encode(lat: number, lon: number, precision = DEFAULT_GEOHASH_PRECISION): string {
@@ -72,8 +82,7 @@ export class Location {
     const dLambda = toRad(lon2 - lon1);
 
     const a =
-      Math.sin(dPhi / 2) ** 2 +
-      Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+      Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
     return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
   }
 
@@ -85,12 +94,12 @@ export class Location {
   }
 
   static tryParse(raw: unknown): Location | null {
-    if (!raw || typeof raw !== 'object') return null;
+    if (!raw || typeof raw !== "object") return null;
     const obj = raw as Record<string, unknown>;
     if (obj.lat === undefined || obj.lon === undefined) return null;
     const lat = Number(obj.lat);
     const lon = Number(obj.lon);
-    const name = typeof obj.name === 'string' ? obj.name.trim().slice(0, 60) : undefined;
+    const name = typeof obj.name === "string" ? obj.name.trim().slice(0, 60) : undefined;
     return new Location({ lat, lon, ...(name ? { name } : {}) });
   }
 }

@@ -1,22 +1,22 @@
-import { Card } from '../../domain/card/Card';
-import { Match, MatchStatus } from '../../domain/match/Match';
-import { TradeGroup } from '../../domain/group/TradeGroup';
-import { Message } from '../../domain/message/Message';
-import { User } from '../../domain/user/User';
-import { TradeStep } from '../../domain/group/TradeGroup';
+import { Card } from "../../domain/card/Card";
+import { Match, MatchStatus } from "../../domain/match/Match";
+import { TradeGroup } from "../../domain/group/TradeGroup";
+import { Message } from "../../domain/message/Message";
+import { User } from "../../domain/user/User";
+import { TradeStep } from "../../domain/group/TradeGroup";
 
 export const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
-  PENDING: '提案中',
-  ACCEPTED: '成立',
-  DECLINED: '辞退',
-  COMPLETED: '交換完了',
+  PENDING: "提案中",
+  ACCEPTED: "成立",
+  DECLINED: "辞退",
+  COMPLETED: "交換完了",
 };
 
 export const GROUP_STATUS_LABEL: Record<string, string> = {
-  NEW: '提案中',
-  ACCEPTED: '成立',
-  DECLINED: '解散',
-  COMPLETED: '交換完了',
+  NEW: "提案中",
+  ACCEPTED: "成立",
+  DECLINED: "解散",
+  COMPLETED: "交換完了",
 };
 
 export function ownerView(user: User) {
@@ -41,7 +41,7 @@ export function cardView(
   card: Card,
   owner?: User,
   matchedTags?: string[],
-  extras?: { score?: number; reasonTags?: string[]; distanceKm?: number; distanceLabel?: string }
+  extras?: { score?: number; reasonTags?: string[]; distanceKm?: number; distanceLabel?: string },
 ) {
   const labels = card.tagLabels;
   const view: Record<string, unknown> = {
@@ -79,16 +79,16 @@ export function matchView(
   myCard: Card | null,
   iGive: Card | null,
   iReceive: Card | null,
-  lastReadAt: string | null
+  lastReadAt: string | null,
 ) {
   const isA = match.userAId === userId;
   const acceptedByMe = isA ? match.acceptedA : match.acceptedB;
   const acceptedByPartner = isA ? match.acceptedB : match.acceptedA;
-  const canChat = match.status === 'ACCEPTED' || match.status === 'COMPLETED';
+  const canChat = match.status === "ACCEPTED" || match.status === "COMPLETED";
   const hasUnread = !!(
     match.lastMessageAt &&
     match.lastMessageBy !== userId &&
-    String(match.lastMessageAt) > String(lastReadAt ?? '')
+    String(match.lastMessageAt) > String(lastReadAt ?? "")
   );
 
   return {
@@ -118,11 +118,20 @@ export function groupView(
   userId: string,
   users: Map<string, User>,
   cards: Map<string, Card>,
-  lastReadAt: string | null
+  lastReadAt: string | null,
 ) {
   const userOf = (uid: string) => {
     const u = users.get(uid);
-    return u ? ownerView(u) : { userId: uid, displayName: '不明', ratingAvg: null, ratingCount: 0, tradeCount: 0, isNew: true };
+    return u
+      ? ownerView(u)
+      : {
+          userId: uid,
+          displayName: "不明",
+          ratingAvg: null,
+          ratingCount: 0,
+          tradeCount: 0,
+          isNew: true,
+        };
   };
   const cardOf = (cid: string) => cards.get(cid) ?? null;
 
@@ -144,7 +153,7 @@ export function groupView(
   const hasUnread = !!(
     group.lastMessageAt &&
     group.lastMessageBy !== userId &&
-    String(group.lastMessageAt) > String(lastReadAt ?? '')
+    String(group.lastMessageAt) > String(lastReadAt ?? "")
   );
 
   return {
@@ -159,7 +168,10 @@ export function groupView(
     acceptedCount: group.acceptedCount(),
     iGive: giveStep && cardOf(giveStep.giveCardId) ? cardView(cardOf(giveStep.giveCardId)!) : null,
     iGiveTo: giveStep ? userOf(giveStep.toUserId) : null,
-    iReceive: receiveStep && cardOf(receiveStep.giveCardId) ? cardView(cardOf(receiveStep.giveCardId)!) : null,
+    iReceive:
+      receiveStep && cardOf(receiveStep.giveCardId)
+        ? cardView(cardOf(receiveStep.giveCardId)!)
+        : null,
     iReceiveFrom: receiveStep ? userOf(receiveStep.fromUserId) : null,
     canChat,
     lastMessagePreview: group.lastMessagePreview,
@@ -170,11 +182,11 @@ export function groupView(
 export async function messageView(
   message: Message,
   userId: string,
-  getImageUrl: (key: string) => Promise<string | null>
+  getImageUrl: (key: string) => Promise<string | null>,
 ) {
   const view: Record<string, unknown> = {
     messageId: message.id,
-    text: message.text ?? '',
+    text: message.text ?? "",
     createdAt: message.createdAt,
     mine: message.senderId === userId,
     kind: message.kind,

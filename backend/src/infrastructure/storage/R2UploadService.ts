@@ -1,4 +1,4 @@
-import { BY_EXTENSION, GET_EXPIRES_SEC, PUT_EXPIRES_SEC } from '../../domain/upload/UploadPolicy';
+import { BY_EXTENSION, GET_EXPIRES_SEC, PUT_EXPIRES_SEC } from "../../domain/upload/UploadPolicy";
 
 interface UploadTicket {
   key: string;
@@ -13,10 +13,13 @@ export class R2UploadService {
   constructor(
     private bucket: R2Bucket,
     private kv: KVNamespace,
-    private baseUrl: string
+    private baseUrl: string,
   ) {}
 
-  async createUploadTicket(key: string, contentType: string): Promise<{
+  async createUploadTicket(
+    key: string,
+    contentType: string,
+  ): Promise<{
     uploadUrl: string;
     imageKey: string;
     contentType: string;
@@ -24,7 +27,9 @@ export class R2UploadService {
   }> {
     const token = crypto.randomUUID();
     const ticket: UploadTicket = { key, contentType };
-    await this.kv.put(`upload:${token}`, JSON.stringify(ticket), { expirationTtl: PUT_EXPIRES_SEC });
+    await this.kv.put(`upload:${token}`, JSON.stringify(ticket), {
+      expirationTtl: PUT_EXPIRES_SEC,
+    });
 
     return {
       uploadUrl: `${this.baseUrl}/api/uploads/put?token=${token}`,
@@ -36,10 +41,10 @@ export class R2UploadService {
 
   async handlePut(token: string, body: ReadableStream | ArrayBuffer | null): Promise<void> {
     const raw = await this.kv.get(`upload:${token}`);
-    if (!raw) throw new Error('アップロードの有効期限が切れています');
+    if (!raw) throw new Error("アップロードの有効期限が切れています");
 
     const ticket = JSON.parse(raw) as UploadTicket;
-    if (!body) throw new Error('画像データがありません');
+    if (!body) throw new Error("画像データがありません");
 
     await this.bucket.put(ticket.key, body, {
       httpMetadata: { contentType: ticket.contentType },
@@ -67,8 +72,9 @@ export class R2UploadService {
     const obj = await this.bucket.get(key);
     if (!obj) return null;
 
-    const ext = key.split('.').pop()?.toLowerCase() ?? '';
-    const contentType = obj.httpMetadata?.contentType ?? BY_EXTENSION[ext] ?? 'application/octet-stream';
+    const ext = key.split(".").pop()?.toLowerCase() ?? "";
+    const contentType =
+      obj.httpMetadata?.contentType ?? BY_EXTENSION[ext] ?? "application/octet-stream";
     return { body: obj.body, contentType };
   }
 }

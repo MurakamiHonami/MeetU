@@ -156,7 +156,9 @@ export function CardNewForm() {
           className="input"
           value={title}
           maxLength={60}
-          placeholder={type === "GIVE" ? "天馬司のアクスタ譲ります" : "天馬司のアクスタ探しています"}
+          placeholder={
+            type === "GIVE" ? "天馬司のアクスタ譲ります" : "天馬司のアクスタ探しています"
+          }
           onChange={(e) => setTitle(e.target.value)}
         />
       </label>
@@ -240,8 +242,7 @@ export function CardNewForm() {
                 .finally(() => setLocating(false));
             }}
           >
-            <PlaceRoundedIcon fontSize="small" />{" "}
-            {locating ? "取得中…" : "現在地を設定する"}
+            <PlaceRoundedIcon fontSize="small" /> {locating ? "取得中…" : "現在地を設定する"}
           </button>
         )}
         <p className="hint">

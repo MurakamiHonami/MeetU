@@ -1,15 +1,15 @@
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { ICardRepository } from '../domain/card/ICardRepository';
-import { IReviewRepository } from '../domain/review/IReviewRepository';
-import { User } from '../domain/user/User';
-import { Location, LocationProps } from '../domain/shared/Location';
-import { TagNormalizer } from '../domain/tag/TagNormalizer';
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { ICardRepository } from "../domain/card/ICardRepository";
+import { IReviewRepository } from "../domain/review/IReviewRepository";
+import { User } from "../domain/user/User";
+import { Location, LocationProps } from "../domain/shared/Location";
+import { TagNormalizer } from "../domain/tag/TagNormalizer";
 
 export class UserUseCase {
   constructor(
     private userRepo: IUserRepository,
     private cardRepo: ICardRepository,
-    private reviewRepo: IReviewRepository
+    private reviewRepo: IReviewRepository,
   ) {}
 
   async getUserById(id: string): Promise<User | null> {

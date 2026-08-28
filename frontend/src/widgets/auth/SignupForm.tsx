@@ -42,7 +42,9 @@ export function SignupForm() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
-            <label><PersonOutlinedIcon fontSize="small" /> お名前 (表示名)</label>
+            <label>
+              <PersonOutlinedIcon fontSize="small" /> お名前 (表示名)
+            </label>
             <input
               type="text"
               placeholder="例: たかし@推し活中"
@@ -53,7 +55,9 @@ export function SignupForm() {
           </div>
 
           <div className="input-group">
-            <label><EmailOutlinedIcon fontSize="small" /> メールアドレス</label>
+            <label>
+              <EmailOutlinedIcon fontSize="small" /> メールアドレス
+            </label>
             <input
               type="email"
               placeholder="example@meetu.staging.ruxel.net"
@@ -64,7 +68,9 @@ export function SignupForm() {
           </div>
 
           <div className="input-group">
-            <label><LockOutlinedIcon fontSize="small" /> パスワード</label>
+            <label>
+              <LockOutlinedIcon fontSize="small" /> パスワード
+            </label>
             <input
               type="password"
               placeholder="8文字以上推奨"

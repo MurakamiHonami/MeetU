@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
-import { IUserRepository } from '../../../domain/user/IUserRepository';
-import { User, UserProps } from '../../../domain/user/User';
-import { AppDatabase, parseJson } from '../database';
-import { users } from '../schema';
+import { eq } from "drizzle-orm";
+import { IUserRepository } from "../../../domain/user/IUserRepository";
+import { User, UserProps } from "../../../domain/user/User";
+import { AppDatabase, parseJson } from "../database";
+import { users } from "../schema";
 
 export class D1UserRepository implements IUserRepository {
   constructor(private db: AppDatabase) {}
@@ -25,7 +25,7 @@ export class D1UserRepository implements IUserRepository {
         row.homeLat != null && row.homeLon != null
           ? { lat: row.homeLat, lon: row.homeLon, ...(row.homeName ? { name: row.homeName } : {}) }
           : undefined,
-      status: row.status as UserProps['status'],
+      status: row.status as UserProps["status"],
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

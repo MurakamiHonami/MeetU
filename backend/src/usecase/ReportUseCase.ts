@@ -1,11 +1,11 @@
-import { IReportRepository } from '../domain/report/IReportRepository';
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { Report, ReportReason } from '../domain/report/Report';
+import { IReportRepository } from "../domain/report/IReportRepository";
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { Report, ReportReason } from "../domain/report/Report";
 
 export class ReportUseCase {
   constructor(
     private reportRepo: IReportRepository,
-    private userRepo: IUserRepository
+    private userRepo: IUserRepository,
   ) {}
 
   async createReport(input: {

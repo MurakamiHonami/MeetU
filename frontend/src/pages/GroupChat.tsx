@@ -5,10 +5,5 @@ export default function GroupChat() {
   const { groupId = "" } = useParams();
   const navigate = useNavigate();
 
-  return (
-    <GroupChatThread
-      groupId={groupId}
-      onBack={() => navigate(`/groups/${groupId}`)}
-    />
-  );
+  return <GroupChatThread groupId={groupId} onBack={() => navigate(`/groups/${groupId}`)} />;
 }

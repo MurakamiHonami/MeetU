@@ -1,8 +1,8 @@
-import { count, eq } from 'drizzle-orm';
-import { IReportRepository } from '../../../domain/report/IReportRepository';
-import { Report } from '../../../domain/report/Report';
-import { AppDatabase } from '../database';
-import { reports } from '../schema';
+import { count, eq } from "drizzle-orm";
+import { IReportRepository } from "../../../domain/report/IReportRepository";
+import { Report } from "../../../domain/report/Report";
+import { AppDatabase } from "../database";
+import { reports } from "../schema";
 
 export class D1ReportRepository implements IReportRepository {
   constructor(private db: AppDatabase) {}

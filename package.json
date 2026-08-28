@@ -1,25 +1,39 @@
 {
   "name": "meetu-monorepo",
   "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "prepare": "husky",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "test:backend": "cd backend && npm run test",
-    "typecheck:backend": "cd backend && npm run typecheck",
-    "typecheck:frontend": "cd frontend && npm run build",
+    "setup": "npm ci",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev -w meetu-backend\" \"npm run dev -w meetu-web\"",
+    "dev:backend": "npm run dev -w meetu-backend",
+    "dev:frontend": "npm run dev -w meetu-web",
+    "test": "npm run test -w meetu-backend && npm run test -w meetu-web",
+    "test:backend": "npm run test -w meetu-backend",
+    "test:frontend": "npm run test -w meetu-web",
+    "typecheck": "npm run typecheck -w meetu-backend && npm run typecheck -w meetu-web",
+    "format": "oxfmt backend/src backend/tests frontend/src",
+    "format:check": "oxfmt --check backend/src backend/tests frontend/src",
     "lint:secrets": "secretlint \"**/*\"",
     "lint": "oxlint --deny-warnings backend/src backend/tests frontend/src",
     "lint:fix": "oxlint --fix --deny-warnings backend/src backend/tests frontend/src"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,mjs,cjs}": "oxlint --fix --deny-warnings",
-    "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,sql,sh,py,toml}": "secretlint"
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "oxfmt",
+      "oxlint --fix --deny-warnings"
+    ],
+    "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,sql,sh,toml}": "secretlint"
   },
   "devDependencies": {
     "@secretlint/secretlint-rule-preset-recommend": "^11.0.0",
+    "concurrently": "^9.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
+    "oxfmt": "^0.16.0",
     "oxlint": "^1.80.0",
     "secretlint": "^11.0.0"
   }

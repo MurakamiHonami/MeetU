@@ -1,14 +1,14 @@
-import { IMessageRepository } from '../domain/message/IMessageRepository';
-import { IMatchRepository } from '../domain/match/IMatchRepository';
-import { IGroupRepository } from '../domain/group/IGroupRepository';
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { Message } from '../domain/message/Message';
-import { Location, LocationProps } from '../domain/shared/Location';
-import { UploadPolicy } from '../domain/upload/UploadPolicy';
-import { R2UploadService } from '../infrastructure/storage/R2UploadService';
-import { User } from '../domain/user/User';
+import { IMessageRepository } from "../domain/message/IMessageRepository";
+import { IMatchRepository } from "../domain/match/IMatchRepository";
+import { IGroupRepository } from "../domain/group/IGroupRepository";
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { Message } from "../domain/message/Message";
+import { Location, LocationProps } from "../domain/shared/Location";
+import { UploadPolicy } from "../domain/upload/UploadPolicy";
+import { R2UploadService } from "../infrastructure/storage/R2UploadService";
+import { User } from "../domain/user/User";
 
-const CHATTABLE = new Set(['ACCEPTED', 'COMPLETED']);
+const CHATTABLE = new Set(["ACCEPTED", "COMPLETED"]);
 
 export class MessageUseCase {
   constructor(
@@ -16,22 +16,22 @@ export class MessageUseCase {
     private matchRepo: IMatchRepository,
     private groupRepo: IGroupRepository,
     private userRepo: IUserRepository,
-    private uploadService: R2UploadService
+    private uploadService: R2UploadService,
   ) {}
 
   private async assertNotSuspended(userId: string): Promise<User> {
     const user = await this.userRepo.findById(userId);
-    if (!user) throw new Error('ユーザーが見つかりません');
-    if (user.isSuspended()) throw new Error('通報が重なったため現在ご利用いただけません');
+    if (!user) throw new Error("ユーザーが見つかりません");
+    if (user.isSuspended()) throw new Error("通報が重なったため現在ご利用いただけません");
     return user;
   }
 
   async listMatchMessages(matchId: string, userId: string, after?: string) {
     const match = await this.matchRepo.findById(matchId);
-    if (!match) throw new Error('マッチが見つかりません');
-    if (!match.isParty(userId)) throw new Error('このマッチの当事者ではありません');
+    if (!match) throw new Error("マッチが見つかりません");
+    if (!match.isParty(userId)) throw new Error("このマッチの当事者ではありません");
 
-    const messages = await this.messageRepo.findByThread('MATCH', matchId, after);
+    const messages = await this.messageRepo.findByThread("MATCH", matchId, after);
     const now = new Date().toISOString();
     await this.matchRepo.markRead(matchId, userId, now);
 
@@ -49,18 +49,18 @@ export class MessageUseCase {
   async sendMatchMessage(
     matchId: string,
     userId: string,
-    input: { text?: string; imageKey?: string; location?: LocationProps }
+    input: { text?: string; imageKey?: string; location?: LocationProps },
   ) {
     await this.assertNotSuspended(userId);
     const match = await this.matchRepo.findById(matchId);
-    if (!match) throw new Error('マッチが見つかりません');
-    if (!match.isParty(userId)) throw new Error('このマッチの当事者ではありません');
-    if (!CHATTABLE.has(match.status)) throw new Error('双方が承諾するとトークを始められます');
+    if (!match) throw new Error("マッチが見つかりません");
+    if (!match.isParty(userId)) throw new Error("このマッチの当事者ではありません");
+    if (!CHATTABLE.has(match.status)) throw new Error("双方が承諾するとトークを始められます");
 
     if (input.imageKey) UploadPolicy.assertKeyBelongsToThread(input.imageKey, matchId);
 
     const message = Message.create({
-      threadType: 'MATCH',
+      threadType: "MATCH",
       threadId: matchId,
       senderId: userId,
       text: input.text,
@@ -78,10 +78,10 @@ export class MessageUseCase {
 
   async listGroupMessages(groupId: string, userId: string, after?: string) {
     const group = await this.groupRepo.findById(groupId);
-    if (!group) throw new Error('グループが見つかりません');
-    if (!group.isMember(userId)) throw new Error('このグループの参加者ではありません');
+    if (!group) throw new Error("グループが見つかりません");
+    if (!group.isMember(userId)) throw new Error("このグループの参加者ではありません");
 
-    const messages = await this.messageRepo.findByThread('GROUP', groupId, after);
+    const messages = await this.messageRepo.findByThread("GROUP", groupId, after);
     const now = new Date().toISOString();
     await this.groupRepo.markRead(groupId, userId, now);
 
@@ -102,18 +102,18 @@ export class MessageUseCase {
   async sendGroupMessage(
     groupId: string,
     userId: string,
-    input: { text?: string; imageKey?: string; location?: LocationProps }
+    input: { text?: string; imageKey?: string; location?: LocationProps },
   ) {
     await this.assertNotSuspended(userId);
     const group = await this.groupRepo.findById(groupId);
-    if (!group) throw new Error('グループが見つかりません');
-    if (!group.isMember(userId)) throw new Error('このグループの参加者ではありません');
-    if (!group.isChattable()) throw new Error('成立したグループでのみトークできます');
+    if (!group) throw new Error("グループが見つかりません");
+    if (!group.isMember(userId)) throw new Error("このグループの参加者ではありません");
+    if (!group.isChattable()) throw new Error("成立したグループでのみトークできます");
 
     if (input.imageKey) UploadPolicy.assertKeyBelongsToThread(input.imageKey, groupId);
 
     const message = Message.create({
-      threadType: 'GROUP',
+      threadType: "GROUP",
       threadId: groupId,
       senderId: userId,
       text: input.text,

@@ -50,7 +50,11 @@ export const groupApi = {
   ) => {
     const res = await authenticatedFetch(
       client.api.groups[":id"].messages.$url({ param: { id: groupId } }),
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
     );
     return unwrap<{ message: Message }>({
       ok: res.ok,

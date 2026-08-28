@@ -1,4 +1,4 @@
-import { TradeGroup } from './TradeGroup';
+import { TradeGroup } from "./TradeGroup";
 
 export interface IGroupRepository {
   findById(id: string): Promise<TradeGroup | null>;

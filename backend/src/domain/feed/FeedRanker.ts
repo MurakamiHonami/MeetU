@@ -1,5 +1,5 @@
-import { Card } from '../card/Card';
-import { Tag } from '../tag/Tag';
+import { Card } from "../card/Card";
+import { Tag } from "../tag/Tag";
 
 const FAVORITE_WEIGHT = 1.0;
 const OWN_CARD_WEIGHT = 0.5;
@@ -30,7 +30,7 @@ export interface RelatedTag {
 export class FeedRanker {
   constructor(
     private getTag: (tagId: string) => Promise<Tag | null>,
-    private getRelatedTags: (tagId: string, limit: number) => Promise<RelatedTag[]>
+    private getRelatedTags: (tagId: string, limit: number) => Promise<RelatedTag[]>,
   ) {}
 
   private tagWeightCache = new Map<string, number>();
@@ -75,7 +75,7 @@ export class FeedRanker {
   async scoreCard(
     profile: Record<string, number>,
     card: Card,
-    freshness = 0
+    freshness = 0,
   ): Promise<{ score: number; reasonTags: string[] }> {
     const cardTags = card.tags;
     if (cardTags.length === 0 || Object.keys(profile).length === 0) {
@@ -110,14 +110,14 @@ export class FeedRanker {
     cards: Card[],
     profile: FeedProfile,
     limit: number,
-    newestAt?: string
+    newestAt?: string,
   ): Promise<RankedCard[]> {
     const base = this.buildProfile(profile);
     const expanded = await this.expandProfile(base);
     const newestMs = newestAt ? new Date(newestAt).getTime() : Date.now();
     const oldestMs = cards.reduce(
       (min, c) => Math.min(min, new Date(c.createdAt).getTime()),
-      newestMs
+      newestMs,
     );
     const span = Math.max(newestMs - oldestMs, 1);
 

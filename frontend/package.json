@@ -1,5 +1,5 @@
 {
-  "name": "otaku-match-web",
+  "name": "meetu-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,9 +8,12 @@
     "build": "tsc -b && vite build",
     "build:staging": "tsc -b && vite build --mode staging",
     "build:production": "tsc -b && vite build --mode production",
-    "deploy:staging": "npm run build:staging && rm -f dist/_redirects && npx --prefix ../backend wrangler deploy --config wrangler.staging.json",
-    "deploy:production": "npm run build:production && rm -f dist/_redirects && npx --prefix ../backend wrangler deploy --config wrangler.production.json",
-    "preview": "vite preview"
+    "typecheck": "tsc -b",
+    "deploy:staging": "npm run build:staging && npx --prefix ../backend wrangler deploy --config wrangler.staging.json",
+    "deploy:production": "npm run build:production && npx --prefix ../backend wrangler deploy --config wrangler.production.json",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -26,10 +29,14 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260827.1",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.2",
+    "jsdom": "^26.1.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.9"
+    "vite": "^5.4.9",
+    "vitest": "^4.1.11"
   }
 }

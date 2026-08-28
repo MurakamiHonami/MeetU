@@ -1,9 +1,9 @@
-import { ICardRepository } from '../domain/card/ICardRepository';
-import { ITagRepository } from '../domain/tag/ITagRepository';
-import { ISwipeRepository } from '../domain/feed/ISwipeRepository';
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { FeedRanker } from '../domain/feed/FeedRanker';
-import { Card } from '../domain/card/Card';
+import { ICardRepository } from "../domain/card/ICardRepository";
+import { ITagRepository } from "../domain/tag/ITagRepository";
+import { ISwipeRepository } from "../domain/feed/ISwipeRepository";
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { FeedRanker } from "../domain/feed/FeedRanker";
+import { Card } from "../domain/card/Card";
 
 const FEED_LIMIT = 30;
 const FEED_DAYS = 7;
@@ -15,21 +15,21 @@ export class FeedUseCase {
     private cardRepo: ICardRepository,
     private tagRepo: ITagRepository,
     private swipeRepo: ISwipeRepository,
-    private userRepo: IUserRepository
+    private userRepo: IUserRepository,
   ) {
     this.ranker = new FeedRanker(
       (id) => this.tagRepo.findById(id),
-      (id, limit) => this.tagRepo.findRelatedTags(id, limit)
+      (id, limit) => this.tagRepo.findRelatedTags(id, limit),
     );
   }
 
   async getFeed(userId: string) {
     const user = await this.userRepo.findById(userId);
-    if (!user) throw new Error('ユーザーが見つかりません');
+    if (!user) throw new Error("ユーザーが見つかりません");
 
     const swiped = await this.swipeRepo.findSwipedCardIds(userId);
     const candidates = (await this.cardRepo.findRecentOpen(FEED_DAYS, 200)).filter(
-      (c) => c.isOpen() && c.ownerId !== userId && !swiped.has(c.id)
+      (c) => c.isOpen() && c.ownerId !== userId && !swiped.has(c.id),
     );
 
     const ownCards = await this.cardRepo.findByOwnerId(userId);
@@ -38,7 +38,7 @@ export class FeedUseCase {
     const ranked = await this.ranker.rank(
       candidates,
       { favoriteTags: user.favoriteTags, ownCardTags },
-      FEED_LIMIT
+      FEED_LIMIT,
     );
 
     return {
@@ -49,16 +49,16 @@ export class FeedUseCase {
 
   async saveCard(userId: string, cardId: string): Promise<void> {
     const card = await this.cardRepo.findById(cardId);
-    if (!card) throw new Error('カードが見つかりません');
-    if (card.ownerId === userId) throw new Error('自分のカードは操作できません');
-    await this.swipeRepo.record(userId, cardId, 'save');
+    if (!card) throw new Error("カードが見つかりません");
+    if (card.ownerId === userId) throw new Error("自分のカードは操作できません");
+    await this.swipeRepo.record(userId, cardId, "save");
   }
 
   async skipCard(userId: string, cardId: string): Promise<void> {
     const card = await this.cardRepo.findById(cardId);
-    if (!card) throw new Error('カードが見つかりません');
-    if (card.ownerId === userId) throw new Error('自分のカードは操作できません');
-    await this.swipeRepo.record(userId, cardId, 'skip');
+    if (!card) throw new Error("カードが見つかりません");
+    if (card.ownerId === userId) throw new Error("自分のカードは操作できません");
+    await this.swipeRepo.record(userId, cardId, "skip");
   }
 
   async getSavedCards(userId: string): Promise<Card[]> {

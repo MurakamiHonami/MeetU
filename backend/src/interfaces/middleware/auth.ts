@@ -1,5 +1,6 @@
-import { Context, Next } from 'hono';
-import { AuthService } from '../../infrastructure/auth/AuthService';
+import { Context, Next } from "hono";
+import { AuthService } from "../../infrastructure/auth/AuthService";
+import { tryMockAuth } from "./mockAuth";
 
 export interface Env {
   Bindings: {
@@ -18,26 +19,21 @@ export interface Env {
 }
 
 export async function authMiddleware(c: Context<Env>, next: Next) {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ error: 'Unauthorized: Missing or invalid token format' }, 401);
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ error: "Unauthorized: Missing or invalid token format" }, 401);
   }
 
   const token = authHeader.substring(7);
 
-  // テスト・開発用モック
-  if (token.startsWith('mock_')) {
-    c.set('userId', token.replace('mock_', ''));
-    c.set('email', `${token}@example.com`);
-    return next();
-  }
+  if (tryMockAuth(c, token)) return next();
 
   const payload = await AuthService.verifyAccessToken(token, c.env.JWT_SECRET);
   if (!payload) {
-    return c.json({ error: 'Unauthorized: Invalid or expired access token' }, 401);
+    return c.json({ error: "Unauthorized: Invalid or expired access token" }, 401);
   }
 
-  c.set('userId', payload.userId);
-  c.set('email', payload.email);
+  c.set("userId", payload.userId);
+  c.set("email", payload.email);
   return next();
 }

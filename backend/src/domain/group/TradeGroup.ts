@@ -1,5 +1,5 @@
-export type TradeGroupStatus = 'NEW' | 'ACCEPTED' | 'DECLINED' | 'COMPLETED';
-export type GroupResponse = 'accept' | 'decline';
+export type TradeGroupStatus = "NEW" | "ACCEPTED" | "DECLINED" | "COMPLETED";
+export type GroupResponse = "accept" | "decline";
 
 export interface TradeStep {
   fromUserId: string;
@@ -33,52 +33,76 @@ export interface TradeGroupProps {
 export class TradeGroup {
   constructor(private props: TradeGroupProps) {}
 
-  get id(): string { return this.props.id; }
-  get length(): number { return this.props.length; }
-  get steps(): TradeStep[] { return [...this.props.steps]; }
-  get members(): string[] { return [...this.props.members]; }
-  get responses(): Record<string, GroupResponse> { return { ...this.props.responses }; }
-  get foundBy(): string | undefined { return this.props.foundBy; }
-  get lastMessageAt(): string | undefined { return this.props.lastMessageAt; }
-  get lastMessageBy(): string | undefined { return this.props.lastMessageBy; }
-  get lastMessagePreview(): string | undefined { return this.props.lastMessagePreview; }
-  get status(): TradeGroupStatus { return this.props.status; }
-  get createdAt(): string { return this.props.createdAt; }
-  get updatedAt(): string | undefined { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get length(): number {
+    return this.props.length;
+  }
+  get steps(): TradeStep[] {
+    return [...this.props.steps];
+  }
+  get members(): string[] {
+    return [...this.props.members];
+  }
+  get responses(): Record<string, GroupResponse> {
+    return { ...this.props.responses };
+  }
+  get foundBy(): string | undefined {
+    return this.props.foundBy;
+  }
+  get lastMessageAt(): string | undefined {
+    return this.props.lastMessageAt;
+  }
+  get lastMessageBy(): string | undefined {
+    return this.props.lastMessageBy;
+  }
+  get lastMessagePreview(): string | undefined {
+    return this.props.lastMessagePreview;
+  }
+  get status(): TradeGroupStatus {
+    return this.props.status;
+  }
+  get createdAt(): string {
+    return this.props.createdAt;
+  }
+  get updatedAt(): string | undefined {
+    return this.props.updatedAt;
+  }
 
   isMember(userId: string): boolean {
     return this.props.members.includes(userId);
   }
 
   isChattable(): boolean {
-    return this.props.status === 'ACCEPTED' || this.props.status === 'COMPLETED';
+    return this.props.status === "ACCEPTED" || this.props.status === "COMPLETED";
   }
 
   acceptedCount(): number {
-    return Object.values(this.props.responses).filter((r) => r === 'accept').length;
+    return Object.values(this.props.responses).filter((r) => r === "accept").length;
   }
 
   /** 誰かの応答を記録する。全員が accept なら成立、1人でも decline なら即解散。 */
   respond(userId: string, answer: GroupResponse): void {
-    if (!this.isMember(userId)) throw new Error('このグループの参加者ではありません');
-    if (this.props.status === 'DECLINED') throw new Error('このグループは解散済みです');
+    if (!this.isMember(userId)) throw new Error("このグループの参加者ではありません");
+    if (this.props.status === "DECLINED") throw new Error("このグループは解散済みです");
 
     this.props.responses = { ...this.props.responses, [userId]: answer };
     this.props.updatedAt = new Date().toISOString();
 
-    if (answer === 'decline') {
-      this.props.status = 'DECLINED';
+    if (answer === "decline") {
+      this.props.status = "DECLINED";
       return;
     }
-    const allAccepted = this.props.members.every((m) => this.props.responses[m] === 'accept');
-    if (allAccepted) this.props.status = 'ACCEPTED';
+    const allAccepted = this.props.members.every((m) => this.props.responses[m] === "accept");
+    if (allAccepted) this.props.status = "ACCEPTED";
   }
 
   complete(): void {
-    if (this.props.status !== 'ACCEPTED' && this.props.status !== 'COMPLETED') {
-      throw new Error('成立したグループのみ完了にできます');
+    if (this.props.status !== "ACCEPTED" && this.props.status !== "COMPLETED") {
+      throw new Error("成立したグループのみ完了にできます");
     }
-    this.props.status = 'COMPLETED';
+    this.props.status = "COMPLETED";
     this.props.updatedAt = new Date().toISOString();
   }
 
@@ -109,7 +133,7 @@ export class TradeGroup {
 
   /** 参加カードの組で決まる ID。同じ輪を何度も作らない冪等キー。 */
   static idFor(giveCardIds: string[]): string {
-    const joined = [...giveCardIds].sort().join('_');
+    const joined = [...giveCardIds].sort().join("_");
     // 環境非依存の軽量ハッシュ（衝突許容度は十分：登録カードIDの組み合わせの識別用途）
     let hash = 0;
     for (let i = 0; i < joined.length; i++) {
@@ -128,7 +152,7 @@ export class TradeGroup {
       members,
       responses: {},
       foundBy,
-      status: 'NEW',
+      status: "NEW",
       createdAt: new Date().toISOString(),
     });
   }

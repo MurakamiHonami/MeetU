@@ -1,12 +1,9 @@
 /**
  * 端末まわりの処理。
- *
- * LIFF SDK に位置情報の API は無いので、現在地はブラウザ標準の
- * navigator.geolocation を使う。LIFF は HTTPS なのでそのまま動き、
- * LINE アプリ内で開いた場合は LINE の位置情報権限が適用される。
+ * 現在地はブラウザ標準の navigator.geolocation を使う。
  */
 
-import type { GeoPoint } from "./api";
+import type { GeoPoint } from "../../entities/user/geo";
 
 const GEO_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
@@ -24,7 +21,6 @@ export function currentPosition(): Promise<GeoPoint> {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       (err) => {
-        // 何が起きたか分かる文言にしておく（権限拒否が一番多い）
         const messages: Record<number, string> = {
           1: "位置情報の利用が許可されていません。端末の設定を確認してください。",
           2: "現在地を取得できませんでした。電波状況を確認してください。",
@@ -40,10 +36,6 @@ export function currentPosition(): Promise<GeoPoint> {
 const MAX_EDGE = 1600;
 const JPEG_QUALITY = 0.82;
 
-/**
- * 送信前に画像を縮小する。スマホの写真はそのままだと数MBあり、
- * 回線にもストレージにも重いため。
- */
 export function shrinkImage(file: File): Promise<File> {
   return new Promise((resolve) => {
     if (!file.type.startsWith("image/")) {
@@ -87,7 +79,6 @@ export function shrinkImage(file: File): Promise<File> {
       );
     };
 
-    // 読めない画像はそのまま送る（サーバ側で弾かれる）
     img.onerror = () => {
       URL.revokeObjectURL(url);
       resolve(file);

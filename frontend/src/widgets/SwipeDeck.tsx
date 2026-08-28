@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
-import { TYPE_LABEL, type Card } from "../lib/api";
+import { TYPE_LABEL, type Card } from "../entities/card/model";
 
 type Props = {
   cards: Card[];

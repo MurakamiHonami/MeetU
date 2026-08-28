@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CardItem from "../components/CardItem";
-import TagInput, { type PickedTag } from "../components/TagInput";
-import ThresholdSlider from "../components/ThresholdSlider";
+import CardItem from "../widgets/CardItem";
+import TagInput, { type PickedTag } from "../widgets/TagInput";
+import ThresholdSlider from "../widgets/ThresholdSlider";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
-import { api, TYPE_LABEL, type Card, type CardType, type GeoPoint } from "../lib/api";
-import { currentPosition } from "../lib/device";
+import { api } from "../features/api";
+import { TYPE_LABEL, type Card, type CardType } from "../entities/card/model";
+import type { GeoPoint } from "../entities/user/geo";
+import { currentPosition } from "../shared/lib/device";
 
 const TYPE_HELP: Record<CardType, string> = {
   GIVE: "持っているグッズを譲ります。【求】のカードとマッチします。",
@@ -16,7 +18,7 @@ const TYPE_HELP: Record<CardType, string> = {
 type Result = {
   card: Card;
   newMatches: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[];
-  newGroups: import("../lib/api").Group[];
+  newGroups: import("../entities/group/model").Group[];
 };
 
 export default function CardNew() {

@@ -4,8 +4,10 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import { api, type Message, type Owner } from "../lib/api";
-import { currentPosition, mapLink, shrinkImage } from "../lib/device";
+import { api } from "../features/api";
+import type { Message } from "../entities/message/model";
+import type { Owner } from "../entities/user/model";
+import { currentPosition, mapLink, shrinkImage } from "../shared/lib/device";
 
 const POLL_MS = 4000;
 

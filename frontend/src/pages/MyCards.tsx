@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CardItem from "../components/CardItem";
-import { api, type Card } from "../lib/api";
+import CardItem from "../widgets/CardItem";
+import { api } from "../features/api";
+import type { Card } from "../entities/card/model";
 
 export default function MyCards() {
   const navigate = useNavigate();

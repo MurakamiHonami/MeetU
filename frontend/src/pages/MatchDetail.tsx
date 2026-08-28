@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ChatBubbleRoundedIcon from "@mui/icons-material/ChatBubbleRounded";
-import CardItem from "../components/CardItem";
-import { api, type Match } from "../lib/api";
+import CardItem from "../widgets/CardItem";
+import { api } from "../features/api";
+import type { Match } from "../entities/match/model";
 
 const REPORT_REASONS: { value: string; label: string }[] = [
   { value: "NOT_DELIVERED", label: "商品が届かない" },

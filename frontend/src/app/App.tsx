@@ -14,22 +14,23 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
-import { getAccessToken, ensureSession, signOut } from "./lib/api";
-import CardDetail from "./pages/CardDetail";
-import CardNew from "./pages/CardNew";
-import Chat from "./pages/Chat";
-import GroupChat from "./pages/GroupChat";
-import GroupDetail from "./pages/GroupDetail";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import MatchDetail from "./pages/MatchDetail";
-import Matches from "./pages/Matches";
-import MyCards from "./pages/MyCards";
-import Saved from "./pages/Saved";
-import Search from "./pages/Search";
-import Signup from "./pages/Signup";
+import { getAccessToken, ensureSession } from "../shared/api";
+import { signOut } from "../features/auth/api";
+import CardDetail from "../pages/CardDetail";
+import CardNew from "../pages/CardNew";
+import Chat from "../pages/Chat";
+import GroupChat from "../pages/GroupChat";
+import GroupDetail from "../pages/GroupDetail";
+import Home from "../pages/Home";
+import Login from "../pages/Login";
+import MatchDetail from "../pages/MatchDetail";
+import Matches from "../pages/Matches";
+import MyCards from "../pages/MyCards";
+import Saved from "../pages/Saved";
+import Search from "../pages/Search";
+import Signup from "../pages/Signup";
 
-const NearbyMap = lazy(() => import("./pages/NearbyMap"));
+const NearbyMap = lazy(() => import("../pages/NearbyMap"));
 
 const TABS = [
   { to: "/", label: "ホーム", icon: HomeRoundedIcon, tone: "tab-pink" },

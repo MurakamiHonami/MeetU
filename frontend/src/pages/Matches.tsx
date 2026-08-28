@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import { api, TYPE_LABEL, type Group, type Match } from "../lib/api";
+import { api } from "../features/api";
+import { TYPE_LABEL } from "../entities/card/model";
+import type { Group } from "../entities/group/model";
+import type { Match } from "../entities/match/model";
 
 export default function Matches() {
   const navigate = useNavigate();

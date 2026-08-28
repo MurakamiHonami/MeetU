@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Tag } from "../lib/api";
+import { tagApi } from "../features/tag/api";
+import type { Tag } from "../entities/tag/model";
 
 export type PickedTag = { name: string; category?: string };
 
@@ -41,7 +42,7 @@ export default function TagInput({
     timer.current = window.setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await api.suggestTags(query);
+        const res = await tagApi.suggestTags(query);
         const picked = new Set(value.map((t) => t.name));
         setSuggestions(res.tags.filter((t) => !picked.has(t.name)));
         setCanCreate(Boolean(res.createCandidate));

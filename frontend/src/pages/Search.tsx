@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CardItem from "../components/CardItem";
-import TagInput, { type PickedTag } from "../components/TagInput";
-import { api, TYPE_LABEL, type Card, type CardType } from "../lib/api";
+import CardItem from "../widgets/CardItem";
+import TagInput, { type PickedTag } from "../widgets/TagInput";
+import { api } from "../features/api";
+import { TYPE_LABEL, type Card, type CardType } from "../entities/card/model";
 
 export default function Search() {
   const navigate = useNavigate();

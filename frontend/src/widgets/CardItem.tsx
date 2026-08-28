@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
-import { TYPE_LABEL, type Card } from "../lib/api";
+import { TYPE_LABEL, type Card } from "../entities/card/model";
 
 type Props = {
   card: Card;

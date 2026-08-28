@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 import ChatBubbleRoundedIcon from "@mui/icons-material/ChatBubbleRounded";
-import CardItem from "../components/CardItem";
-import { api, type Group } from "../lib/api";
+import CardItem from "../widgets/CardItem";
+import { api } from "../features/api";
+import type { Group } from "../entities/group/model";
 
 /** 誰から誰へ何が渡るかを輪の順に並べる */
 function CycleDiagram({ group }: { group: Group }) {

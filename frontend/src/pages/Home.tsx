@@ -7,10 +7,12 @@ import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
-import SwipeDeck from "../components/SwipeDeck";
-import TagInput, { type PickedTag } from "../components/TagInput";
-import { api, type Card, type Owner } from "../lib/api";
-import { currentPosition } from "../lib/device";
+import SwipeDeck from "../widgets/SwipeDeck";
+import TagInput, { type PickedTag } from "../widgets/TagInput";
+import { api } from "../features/api";
+import type { Card } from "../entities/card/model";
+import type { Owner } from "../entities/user/model";
+import { currentPosition } from "../shared/lib/device";
 
 type Me = Owner & { cardCount: number; favorites?: { tagId: string; name: string }[] };
 

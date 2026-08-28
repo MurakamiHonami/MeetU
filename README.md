@@ -40,7 +40,14 @@ backend/
     interfaces/        # インターフェース層 (Hono Routes, Middleware)
   tests/               # Vitest + Miniflare インメモリテスト
   wrangler.json        # Cloudflare Workers バインディング設定
-frontend/              # LIFF（React + Vite + TypeScript）
+frontend/
+  src/
+    app/               # ルーティング・認可
+    pages/             # 画面（薄い組み立て）
+    widgets/           # 複合 UI コンポーネント
+    features/          # Bounded Context 単位の API（auth, card, match …）
+    entities/          # View Model 型
+    shared/            # API クライアント・ユーティリティ
 docs/
   ADR-001.md           # システムアーキテクチャ定義
   dev-setup.md         # 開発環境セットアップガイド

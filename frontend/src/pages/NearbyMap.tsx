@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { api, TYPE_LABEL, type Card, type CardType, type GeoPoint } from "../lib/api";
-import { currentPosition } from "../lib/device";
+import { api } from "../features/api";
+import { TYPE_LABEL, type Card, type CardType } from "../entities/card/model";
+import type { GeoPoint } from "../entities/user/geo";
+import { currentPosition } from "../shared/lib/device";
 
 const RADIUS_CHOICES = [1, 3, 10];
 const TYPE_COLOR: Record<CardType, string> = {

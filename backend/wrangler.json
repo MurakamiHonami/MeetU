@@ -27,10 +27,6 @@
       "bucket_name": "meetu-uploads"
     }
   ],
-  "ai": {
-    "binding": "AI",
-    "remote": true
-  },
   "vars": {
     "JWT_SECRET": "local-test-only-not-for-staging-or-production",
     "APP_ENV": "local",

@@ -70,9 +70,11 @@ export default function SwipeDeck({ cards, onSave, onSkip, onOpen }: Props) {
     return (
       <div className="deck-empty">
         <p className="hint">
-          新着のカードは今のところありません。
+          いま表示できる新着カードはありません。
           <br />
-          また覗きに来てください。
+          他のユーザーのカードが増えると、ここでスワイプできます。
+          <br />
+          保存したカードは「保存したカード」から確認できます。
         </p>
       </div>
     );

@@ -1,0 +1,42 @@
+{
+  "name": "meetu-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:staging": "wrangler d1 migrations apply meetu-db-staging --remote --env staging",
+    "db:migrate:production": "wrangler d1 migrations apply meetu-db --remote --env production",
+    "db:verify": "drizzle-kit check",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:seed:staging": "tsx scripts/seed.ts --staging"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.44.5",
+    "hono": "^4.7.0",
+    "ngeohash": "^0.6.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.7.0",
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/ngeohash": "^0.6.8",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-kit": "^0.31.4",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5",
+    "wrangler": "^3.109.0"
+  }
+}

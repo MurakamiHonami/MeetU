@@ -88,7 +88,7 @@ export default function CardNew() {
         ) : (
           <p className="hint">
             いまは一致するカードがありません。新しく条件に合うカードが登録されたら
-            LINE に通知が届きます。
+            マッチ成立時に通知が届きます。
           </p>
         )}
 

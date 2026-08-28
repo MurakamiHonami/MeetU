@@ -1,0 +1,22 @@
+{
+  "name": "meetu-monorepo",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "test:backend": "cd backend && npm run test",
+    "typecheck:backend": "cd backend && npm run typecheck",
+    "typecheck:frontend": "cd frontend && npm run build",
+    "lint:secrets": "secretlint \"**/*\""
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,sql,sh,py,toml}": "secretlint"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^11.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "secretlint": "^11.0.0"
+  }
+}

@@ -1,28 +1,36 @@
-import { Suspense, lazy, useEffect, useState } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Suspense, lazy, useState } from "react";
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
-import { initLiff } from "./lib/liff";
+import { getAccessToken, signOut } from "./lib/api";
 import CardDetail from "./pages/CardDetail";
 import CardNew from "./pages/CardNew";
 import Chat from "./pages/Chat";
 import GroupChat from "./pages/GroupChat";
 import GroupDetail from "./pages/GroupDetail";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
 import MatchDetail from "./pages/MatchDetail";
 import Matches from "./pages/Matches";
 import MyCards from "./pages/MyCards";
-
 import Saved from "./pages/Saved";
 import Search from "./pages/Search";
+import Signup from "./pages/Signup";
 
-// Leaflet は重いので、地図を開いたときだけ読み込む
 const NearbyMap = lazy(() => import("./pages/NearbyMap"));
 
-// ピンクとティールを交互に割り当てて 1:1 の比率にする
 const TABS = [
   { to: "/", label: "ホーム", icon: HomeRoundedIcon, tone: "tab-pink" },
   { to: "/cards/new", label: "登録", icon: StyleRoundedIcon, tone: "tab-teal" },
@@ -39,11 +47,7 @@ function TabBar() {
         const Icon = tab.icon;
         const active = pathname === tab.to;
         return (
-          <Link
-            key={tab.to}
-            to={tab.to}
-            className={`${tab.tone} ${active ? "active" : ""}`}
-          >
+          <Link key={tab.to} to={tab.to} className={`${tab.tone} ${active ? "active" : ""}`}>
             <Icon />
             {tab.label}
           </Link>
@@ -53,54 +57,81 @@ function TabBar() {
   );
 }
 
-export default function App() {
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState("");
+function AppHeader() {
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    initLiff()
-      .then(() => setReady(true))
-      .catch((e) => setError(e.message));
-  }, []);
-
-  if (error) {
-    return (
-      <main className="app">
-        <p className="error">LIFF の初期化に失敗しました: {error}</p>
-      </main>
-    );
-  }
-  if (!ready) {
-    return (
-      <main className="app">
-        <p className="loading">起動中…</p>
-      </main>
-    );
-  }
+  const handleLogout = async () => {
+    setBusy(true);
+    try {
+      await signOut();
+      navigate("/login", { replace: true });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <BrowserRouter>
-      <main className="app">
-        <header className="apphead">MeetU</header>
-        <Suspense fallback={<p className="loading">読み込み中…</p>}>
+    <header className="apphead">
+      <span className="apphead-title">MeetU</span>
+      <button
+        type="button"
+        className="apphead-logout"
+        onClick={handleLogout}
+        disabled={busy}
+        aria-label="ログアウト"
+      >
+        <LogoutRoundedIcon fontSize="small" />
+        {busy ? "…" : "ログアウト"}
+      </button>
+    </header>
+  );
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = getAccessToken();
+  const location = useLocation();
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
+
+  return (
+    <main className="app">
+      {!isAuthPage && <AppHeader />}
+      <Suspense fallback={<p className="loading">読み込み中…</p>}>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/cards/new" element={<CardNew />} />
-          <Route path="/cards/mine" element={<MyCards />} />
-          <Route path="/cards/:cardId" element={<CardDetail />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/nearby" element={<NearbyMap />} />
-          <Route path="/saved" element={<Saved />} />
-          <Route path="/matches" element={<Matches />} />
-          <Route path="/matches/:matchId" element={<MatchDetail />} />
-          <Route path="/matches/:matchId/chat" element={<Chat />} />
-          <Route path="/groups/:groupId" element={<GroupDetail />} />
-          <Route path="/groups/:groupId/chat" element={<GroupChat />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+          <Route path="/cards/new" element={<RequireAuth><CardNew /></RequireAuth>} />
+          <Route path="/cards/mine" element={<RequireAuth><MyCards /></RequireAuth>} />
+          <Route path="/cards/:cardId" element={<RequireAuth><CardDetail /></RequireAuth>} />
+          <Route path="/search" element={<RequireAuth><Search /></RequireAuth>} />
+          <Route path="/nearby" element={<RequireAuth><NearbyMap /></RequireAuth>} />
+          <Route path="/saved" element={<RequireAuth><Saved /></RequireAuth>} />
+          <Route path="/matches" element={<RequireAuth><Matches /></RequireAuth>} />
+          <Route path="/matches/:matchId" element={<RequireAuth><MatchDetail /></RequireAuth>} />
+          <Route path="/matches/:matchId/chat" element={<RequireAuth><Chat /></RequireAuth>} />
+          <Route path="/groups/:groupId" element={<RequireAuth><GroupDetail /></RequireAuth>} />
+          <Route path="/groups/:groupId/chat" element={<RequireAuth><GroupChat /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        </Suspense>
-        <TabBar />
-      </main>
+      </Suspense>
+      {!isAuthPage && <TabBar />}
+    </main>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

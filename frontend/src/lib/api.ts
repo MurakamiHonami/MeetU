@@ -1,6 +1,39 @@
-import liff from "@line/liff";
+import { hc } from "hono/client";
+import type { AppType } from "../../../backend/src/index";
 
-const BASE = import.meta.env.VITE_API_BASE as string;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8787";
+
+const ACCESS_TOKEN_KEY = "meetu.accessToken";
+const REFRESH_TOKEN_KEY = "meetu.refreshToken";
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setTokens(accessToken: string, refreshToken: string): void {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+}
+
+export function clearTokens(): void {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+const authenticatedFetch: typeof fetch = (input, init) => {
+  const token = getAccessToken();
+  const headers = new Headers(init?.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return fetch(input, { ...init, headers });
+};
+
+export const client = hc<AppType>(API_BASE, { fetch: authenticatedFetch });
+
+// ---------------- 共有型（ページが参照する契約） ----------------
 
 export type CardType = "GIVE" | "WANT" | "COMPANION";
 
@@ -11,6 +44,7 @@ export const TYPE_LABEL: Record<CardType, string> = {
 };
 
 export type Tag = { tagId: string; name: string; category?: string; useCount?: number };
+export type GeoPoint = { lat: number; lon: number; name?: string };
 
 export type Owner = {
   userId: string;
@@ -23,8 +57,6 @@ export type Owner = {
   favorites?: Tag[];
   homeLocation?: GeoPoint | null;
 };
-
-export type GeoPoint = { lat: number; lon: number; name?: string };
 
 export type Card = {
   cardId: string;
@@ -41,10 +73,8 @@ export type Card = {
   owner?: Owner;
   matchedTags?: string[];
   matchCount?: number;
-  /** おすすめ順で返るときだけ付く */
   score?: number;
   reasonTags?: string[];
-  /** 地図検索のときだけ付く */
   distanceKm?: number;
   distanceLabel?: string;
 };
@@ -113,88 +143,87 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  // ID Token はリクエストごとに取り直す。期限切れならログインし直す
-  const token = liff.getIDToken();
-  if (!token) {
-    liff.login({ redirectUri: window.location.href });
-    throw new ApiError(401, "ログインが必要です");
-  }
-
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(init.headers ?? {}),
-    },
-  });
-
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
+async function unwrap<T>(res: { ok: boolean; status: number; json(): Promise<unknown> }): Promise<T> {
+  const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(res.status, data.message ?? "通信に失敗しました", data.code ?? data.error);
+    const msg = (body as { message?: string; error?: string }).message
+      ?? (body as { error?: string }).error
+      ?? `リクエストに失敗しました (${res.status})`;
+    throw new ApiError(res.status, msg, (body as { code?: string }).code);
   }
-  return data as T;
+  return body as T;
 }
 
-/**
- * S3 への直接アップロード。
- *
- * fetch ではなく XMLHttpRequest を使う。LINE アプリ内の WebView では
- * fetch + File body が理由の分からない "Load failed" で落ちることがあり、
- * XHR の方が確実で、失敗の種類（通信断・タイムアウト・S3 のエラー）も見分けられる。
- * 署名付き URL なので Authorization も Content-Type も付けない。
- */
-function putToS3(url: string, file: File): Promise<void> {
+/** 署名付き URL へ直接 PUT（Authorization ヘッダ不要） */
+function putToStorage(url: string, file: File): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", url, true);
     xhr.timeout = 60000;
-
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-        return;
-      }
-      // S3 は失敗理由を XML で返す
-      const code = /<Code>([^<]+)<\/Code>/.exec(xhr.responseText || "")?.[1];
-      reject(
-        new ApiError(
-          xhr.status,
-          code
-            ? `画像を送れませんでした（${code}）`
-            : `画像を送れませんでした（HTTP ${xhr.status}）`,
-        ),
-      );
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new ApiError(xhr.status, `画像を送れませんでした（HTTP ${xhr.status}）`));
     };
-
-    xhr.onerror = () =>
-      reject(new ApiError(0, "画像の送信先に接続できませんでした。通信環境をご確認ください。"));
-    xhr.ontimeout = () =>
-      reject(new ApiError(0, "画像の送信がタイムアウトしました。もう一度お試しください。"));
-    xhr.onabort = () => reject(new ApiError(0, "画像の送信が中断されました。"));
-
+    xhr.onerror = () => reject(new ApiError(0, "画像の送信先に接続できませんでした"));
+    xhr.ontimeout = () => reject(new ApiError(0, "画像の送信がタイムアウトしました"));
     xhr.send(file);
   });
 }
 
-const get = <T,>(path: string) => request<T>(path);
-const post = <T,>(path: string, body?: unknown) =>
-  request<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) });
-const del = <T,>(path: string) => request<T>(path, { method: "DELETE" });
+// ---------------- 認証 ----------------
+
+export async function signup(input: { email: string; password: string; displayName: string }) {
+  const res = await client.api.auth.signup.$post({ json: input });
+  return unwrap<{
+    user: { id: string; email: string; displayName: string };
+    tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+  }>(res);
+}
+
+export async function login(input: { email: string; password: string }) {
+  const res = await client.api.auth.login.$post({ json: input });
+  return unwrap<{
+    user: { id: string; email: string; displayName: string };
+    tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+  }>(res);
+}
+
+export async function logout(refreshToken: string) {
+  const res = await client.api.auth.logout.$post({ json: { refreshToken } });
+  return unwrap<{ success: boolean }>(res);
+}
+
+/** トークンを失効させてローカルから削除 */
+export async function signOut(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  try {
+    if (refreshToken) await logout(refreshToken);
+  } catch {
+    // サーバー側失敗でもローカルはクリアする
+  } finally {
+    clearTokens();
+  }
+}
+
+// ---------------- RPC ラッパー（既存ページ互換の api オブジェクト） ----------------
 
 export const api = {
-  me: () => get<{ user: Owner & { cardCount: number } }>("/me"),
-  myReviews: () =>
-    get<{ reviews: { rating: number; comment?: string; createdAt: string }[] }>("/me/reviews"),
+  me: async () => {
+    const res = await client.api.me.$get();
+    return unwrap<{ user: Owner & { cardCount: number } }>(res);
+  },
 
-  suggestTags: (q: string) =>
-    get<{ tags: Tag[]; createCandidate?: Tag & { isNew: boolean } }>(
-      `/tags?q=${encodeURIComponent(q)}`,
-    ),
+  myReviews: async () => {
+    const res = await client.api.me.reviews.$get();
+    return unwrap<{ reviews: { rating: number; comment?: string; createdAt: string }[] }>(res);
+  },
 
-  createCard: (payload: {
+  suggestTags: async (q: string) => {
+    const res = await client.api.tags.$get({ query: { q } });
+    return unwrap<{ tags: Tag[]; createCandidate?: Tag & { isNew: boolean } }>(res);
+  },
+
+  createCard: async (payload: {
     type: CardType;
     title: string;
     note?: string;
@@ -203,119 +232,232 @@ export const api = {
     minMatchCount: number;
     dates?: string[];
     location?: GeoPoint | null;
-  }) =>
-    post<{
+  }) => {
+    const res = await client.api.cards.$post({
+      json: {
+        ...payload,
+        tags: payload.tags.map((t) => ({ displayName: t.name, category: t.category })),
+        requiredTags: payload.requiredTags?.map((t) => t.name),
+      },
+    });
+    return unwrap<{
       card: Card;
       newMatches: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[];
       newGroups: Group[];
-    }>("/cards", payload),
-
-  myCards: () => get<{ cards: Card[] }>("/cards/mine"),
-  card: (cardId: string) => get<{ card: Card }>(`/cards/${cardId}`),
-  closeCard: (cardId: string) => del<{ card: Card }>(`/cards/${cardId}`),
-  cardMatches: (cardId: string) =>
-    get<{ cards: Card[]; minMatchCount: number }>(`/cards/${cardId}/matches`),
-
-  search: (params: { tags: string[]; type?: CardType | ""; minMatch: number }) => {
-    const query = new URLSearchParams({
-      tags: params.tags.join(","),
-      minMatch: String(params.minMatch),
-    });
-    if (params.type) query.set("type", params.type);
-    return get<{ cards: Card[] }>(`/cards?${query.toString()}`);
+    }>(res);
   },
 
-  matches: () => get<{ matches: Match[] }>("/matches"),
-  match: (matchId: string) => get<{ match: Match }>(`/matches/${matchId}`),
-  accept: (matchId: string) =>
-    post<{ match: Match; bothAccepted: boolean }>(`/matches/${matchId}/accept`),
-  decline: (matchId: string) => post<{ match: Match }>(`/matches/${matchId}/decline`),
-  complete: (matchId: string) => post<{ match: Match }>(`/matches/${matchId}/complete`),
+  myCards: async () => {
+    const res = await client.api.cards.mine.$get();
+    return unwrap<{ cards: Card[] }>(res);
+  },
 
-  messages: (matchId: string, after?: string) => {
-    const query = after ? `?after=${encodeURIComponent(after)}` : "";
-    return get<{
+  card: async (cardId: string) => {
+    const res = await client.api.cards[":id"].$get({ param: { id: cardId } });
+    return unwrap<{ card: Card }>(res);
+  },
+
+  closeCard: async (cardId: string) => {
+    const res = await client.api.cards[":id"].$delete({ param: { id: cardId } });
+    return unwrap<{ card: Card }>(res);
+  },
+
+  cardMatches: async (cardId: string) => {
+    const res = await client.api.cards[":id"].matches.$get({ param: { id: cardId } });
+    return unwrap<{ cards: Card[]; minMatchCount: number }>(res);
+  },
+
+  search: async (params: { tags: string[]; type?: CardType | ""; minMatch: number }) => {
+    const res = await client.api.cards.$get({
+      query: {
+        tags: params.tags.join(","),
+        minMatch: String(params.minMatch),
+        ...(params.type ? { type: params.type } : {}),
+      },
+    });
+    return unwrap<{ cards: Card[] }>(res);
+  },
+
+  matches: async () => {
+    const res = await client.api.matches.$get();
+    return unwrap<{ matches: Match[] }>(res);
+  },
+
+  match: async (matchId: string) => {
+    const res = await client.api.matches[":id"].$get({ param: { id: matchId } });
+    return unwrap<{ match: Match }>(res);
+  },
+
+  accept: async (matchId: string) => {
+    const res = await client.api.matches[":id"].accept.$post({ param: { id: matchId } });
+    return unwrap<{ match: Match; bothAccepted: boolean }>(res);
+  },
+
+  decline: async (matchId: string) => {
+    const res = await client.api.matches[":id"].decline.$post({ param: { id: matchId } });
+    return unwrap<{ match: Match }>(res);
+  },
+
+  complete: async (matchId: string) => {
+    const res = await client.api.matches[":id"].complete.$post({ param: { id: matchId } });
+    return unwrap<{ match: Match }>(res);
+  },
+
+  messages: async (matchId: string, after?: string) => {
+    const url = client.api.matches[":id"].messages.$url({
+      param: { id: matchId },
+      ...(after ? { query: { after } } : {}),
+    });
+    const res = await authenticatedFetch(url);
+    return unwrap<{
       messages: Message[];
       canSend: boolean;
       status: string;
       partner: Owner | null;
-    }>(`/matches/${matchId}/messages${query}`);
+    }>({ ok: res.ok, status: res.status, json: () => res.json() });
   },
-  sendMessage: (
+
+  sendMessage: async (
     matchId: string,
     payload: { text?: string; imageKey?: string; location?: GeoPoint },
-  ) => post<{ message: Message; notified: boolean }>(`/matches/${matchId}/messages`, payload),
+  ) => {
+    const res = await authenticatedFetch(
+      client.api.matches[":id"].messages.$url({ param: { id: matchId } }),
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+    );
+    return unwrap<{ message: Message; notified: boolean }>({
+      ok: res.ok,
+      status: res.status,
+      json: () => res.json(),
+    });
+  },
 
-  /** 署名付き URL を取って、S3 へ直接アップロードする */
   uploadImage: async (thread: { matchId?: string; groupId?: string }, file: File) => {
-    const ticket = await post<{
-      uploadUrl: string;
-      imageKey: string;
-      contentType: string;
-    }>("/uploads", { ...thread, contentType: file.type, size: file.size });
-
-    await putToS3(ticket.uploadUrl, file);
+    const res = await client.api.uploads.$post({
+      json: { ...thread, contentType: file.type, size: file.size },
+    });
+    const ticket = await unwrap<{ uploadUrl: string; imageKey: string; contentType: string }>(res);
+    await putToStorage(ticket.uploadUrl, file);
     return ticket.imageKey;
   },
 
-  feed: () =>
-    get<{ cards: Card[]; hasFavorites: boolean }>("/feed"),
-  saveCard: (cardId: string) => post<{ cardId: string }>(`/feed/${cardId}/save`),
-  skipCard: (cardId: string) => post<{ cardId: string }>(`/feed/${cardId}/skip`),
-  savedCards: () => get<{ cards: Card[] }>("/saved"),
-  unsaveCard: (cardId: string) => del<{ cardId: string }>(`/saved/${cardId}`),
+  feed: async () => {
+    const res = await client.api.feed.$get();
+    return unwrap<{ cards: Card[]; hasFavorites: boolean }>(res);
+  },
 
-  nearby: (params: { lat: number; lon: number; radius: number; type?: CardType | "" }) => {
-    const query = new URLSearchParams({
-      lat: String(params.lat),
-      lon: String(params.lon),
-      radius: String(params.radius),
+  saveCard: async (cardId: string) => {
+    const res = await client.api.feed[":cardId"].save.$post({ param: { cardId } });
+    return unwrap<{ cardId: string }>(res);
+  },
+
+  skipCard: async (cardId: string) => {
+    const res = await client.api.feed[":cardId"].skip.$post({ param: { cardId } });
+    return unwrap<{ cardId: string }>(res);
+  },
+
+  savedCards: async () => {
+    const res = await client.api.saved.$get();
+    return unwrap<{ cards: Card[] }>(res);
+  },
+
+  unsaveCard: async (cardId: string) => {
+    const res = await client.api.saved[":cardId"].$delete({ param: { cardId } });
+    return unwrap<{ cardId: string }>(res);
+  },
+
+  nearby: async (params: { lat: number; lon: number; radius: number; type?: CardType | "" }) => {
+    const res = await client.api.nearby.$get({
+      query: {
+        lat: String(params.lat),
+        lon: String(params.lon),
+        radius: String(params.radius),
+        ...(params.type ? { type: params.type } : {}),
+      },
     });
-    if (params.type) query.set("type", params.type);
-    return get<{
+    return unwrap<{
       cards: Card[];
       center: { lat: number; lon: number };
       radiusKm: number;
-    }>(`/nearby?${query.toString()}`);
+    }>(res);
   },
 
-  updateFavorites: (favorites: { name: string }[]) =>
-    request<{ user: Owner }>("/me", { method: "PUT", body: JSON.stringify({ favorites }) }),
+  updateFavorites: async (favorites: { name: string }[]) => {
+    const res = await client.api.me.$put({ json: { favorites } });
+    return unwrap<{ user: Owner }>(res);
+  },
 
-  /** 拠点。カードに位置を付けなくても近い相手を優先できる */
-  updateHome: (homeLocation: GeoPoint | null) =>
-    request<{ user: Owner }>("/me", {
-      method: "PUT",
-      body: JSON.stringify({ homeLocation }),
-    }),
+  updateHome: async (homeLocation: GeoPoint | null) => {
+    const res = await client.api.me.$put({ json: { homeLocation } });
+    return unwrap<{ user: Owner }>(res);
+  },
 
-  groups: () => get<{ groups: Group[] }>("/groups"),
-  group: (groupId: string) => get<{ group: Group }>(`/groups/${groupId}`),
-  acceptGroup: (groupId: string) =>
-    post<{ group: Group; established: boolean }>(`/groups/${groupId}/accept`),
-  declineGroup: (groupId: string) => post<{ group: Group }>(`/groups/${groupId}/decline`),
-  completeGroup: (groupId: string) => post<{ group: Group }>(`/groups/${groupId}/complete`),
+  groups: async () => {
+    const res = await client.api.groups.$get();
+    return unwrap<{ groups: Group[] }>(res);
+  },
 
-  groupMessages: (groupId: string, after?: string) => {
-    const query = after ? `?after=${encodeURIComponent(after)}` : "";
-    return get<{
+  group: async (groupId: string) => {
+    const res = await client.api.groups[":id"].$get({ param: { id: groupId } });
+    return unwrap<{ group: Group }>(res);
+  },
+
+  acceptGroup: async (groupId: string) => {
+    const res = await client.api.groups[":id"].accept.$post({ param: { id: groupId } });
+    return unwrap<{ group: Group; established: boolean }>(res);
+  },
+
+  declineGroup: async (groupId: string) => {
+    const res = await client.api.groups[":id"].decline.$post({ param: { id: groupId } });
+    return unwrap<{ group: Group }>(res);
+  },
+
+  completeGroup: async (groupId: string) => {
+    const res = await client.api.groups[":id"].complete.$post({ param: { id: groupId } });
+    return unwrap<{ group: Group }>(res);
+  },
+
+  groupMessages: async (groupId: string, after?: string) => {
+    const url = client.api.groups[":id"].messages.$url({
+      param: { id: groupId },
+      ...(after ? { query: { after } } : {}),
+    });
+    const res = await authenticatedFetch(url);
+    return unwrap<{
       messages: (Message & { sender: Owner })[];
       canSend: boolean;
       status: string;
       members: Owner[];
-    }>(`/groups/${groupId}/messages${query}`);
+    }>({ ok: res.ok, status: res.status, json: () => res.json() });
   },
-  sendGroupMessage: (
+
+  sendGroupMessage: async (
     groupId: string,
     payload: { text?: string; imageKey?: string; location?: GeoPoint },
-  ) => post<{ message: Message }>(`/groups/${groupId}/messages`, payload),
+  ) => {
+    const res = await authenticatedFetch(
+      client.api.groups[":id"].messages.$url({ param: { id: groupId } }),
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+    );
+    return unwrap<{ message: Message }>({
+      ok: res.ok,
+      status: res.status,
+      json: () => res.json(),
+    });
+  },
 
-  review: (payload: { matchId: string; rating: number; comment?: string }) =>
-    post<{ review: unknown }>("/reviews", payload),
-  report: (payload: {
+  review: async (payload: { matchId: string; rating: number; comment?: string }) => {
+    const res = await client.api.reviews.$post({ json: payload });
+    return unwrap<{ review: unknown }>(res);
+  },
+
+  report: async (payload: {
     targetUserId: string;
     matchId?: string;
     reason: string;
     detail?: string;
-  }) => post<{ reportId: string; message: string }>("/reports", payload),
+  }) => {
+    const res = await client.api.reports.$post({ json: payload });
+    return unwrap<{ reportId: string; message: string }>(res);
+  },
 };

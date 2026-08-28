@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddCircleRoundedIcon from "@mui/icons-material/AddCircleRounded";
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
@@ -24,6 +25,7 @@ export default function Home() {
   const [savingHome, setSavingHome] = useState(false);
   const [favorites, setFavorites] = useState<PickedTag[]>([]);
   const [savingFav, setSavingFav] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const loadFeed = useCallback(async () => {
     setLoadingFeed(true);
@@ -41,8 +43,11 @@ export default function Home() {
     api
       .me()
       .then((res) => {
-        setMe(res.user as Me);
-        setFavorites((res.user.favorites ?? []).map((f) => ({ name: f.name })));
+        const user = res.user as Me;
+        setMe(user);
+        setFavorites((user.favorites ?? []).map((f) => ({ name: f.name })));
+        // 好み未設定なら設定パネルを開いておく
+        setSettingsOpen((user.favorites?.length ?? 0) === 0);
       })
       .catch((e) => setError(e.message));
     void loadFeed();
@@ -55,7 +60,8 @@ export default function Home() {
       const res = await api.updateFavorites(favorites.map((f) => ({ name: f.name })));
       setMe((prev) => (prev ? { ...prev, favorites: res.user.favorites } : prev));
       setEditing(false);
-      await loadFeed();   // 好みが変わったのでおすすめを取り直す
+      setSettingsOpen(false);
+      await loadFeed();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -76,9 +82,9 @@ export default function Home() {
     }
   }
 
-  // スワイプは楽観的に進める。失敗しても操作を止めない
   function swipe(card: Card, action: "save" | "skip") {
     const call = action === "save" ? api.saveCard : api.skipCard;
+    setCards((prev) => prev.filter((c) => c.cardId !== card.cardId));
     call(card.cardId).catch((e) => setError((e as Error).message));
   }
 
@@ -88,9 +94,9 @@ export default function Home() {
   const hasFavorites = (me.favorites?.length ?? 0) > 0;
 
   return (
-    <div className="page">
-      <section className="profile">
-        {me.pictureUrl && <img src={me.pictureUrl} alt="" className="avatar" />}
+    <div className="page home-page">
+      <section className="profile profile-compact">
+        {me.pictureUrl && <img src={me.pictureUrl} alt="" className="avatar avatar-sm" />}
         <div>
           <h2>{me.displayName}</h2>
           <p className="profile-meta">
@@ -105,100 +111,110 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- 好きな作品。おすすめの精度に直結する --- */}
-      <section className="panel">
-        <div className="fav-head">
-          <strong>好きな作品</strong>
-          {!editing && (
-            <button className="link" onClick={() => setEditing(true)}>
-              {hasFavorites ? "編集" : "登録する"}
-            </button>
-          )}
-        </div>
-
-        {editing ? (
-          <>
-            <TagInput
-              value={favorites}
-              onChange={setFavorites}
-              required={[]}
-              onRequiredChange={() => {}}
-              max={20}
-            />
-            <div className="actions">
-              <button className="primary" disabled={savingFav} onClick={saveFavorites}>
-                {savingFav ? "保存中…" : "保存する"}
-              </button>
-              <button onClick={() => setEditing(false)}>やめる</button>
-            </div>
-          </>
-        ) : hasFavorites ? (
-          <div className="chips chips-sm">
-            {me.favorites!.map((f) => (
-              <span key={f.tagId} className="chip">
-                {f.name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="hint">
-            好きな作品を登録すると、新着カードが好みに近い順に並びます。
-          </p>
-        )}
-      </section>
-
-      {/* --- 拠点。距離順マッチングの基準になる --- */}
-      <section className="panel">
-        <div className="fav-head">
-          <strong>拠点</strong>
-          {me.homeLocation && (
-            <button className="link" disabled={savingHome} onClick={() => saveHome(null)}>
-              外す
-            </button>
-          )}
-        </div>
-        {me.homeLocation ? (
-          <p className="card-detail">
-            <PlaceRoundedIcon fontSize="inherit" /> 設定済み
-            <span className="hint">
-              {me.homeLocation.lat.toFixed(3)}, {me.homeLocation.lon.toFixed(3)}
-            </span>
-          </p>
-        ) : (
-          <button
-            className="teal"
-            disabled={savingHome}
-            onClick={() =>
-              currentPosition()
-                .then(saveHome)
-                .catch((e) => setError((e as Error).message))
-            }
-          >
-            <PlaceRoundedIcon fontSize="small" />{" "}
-            {savingHome ? "設定中…" : "現在地を拠点にする"}
-          </button>
-        )}
-        <p className="hint">
-          条件が合う相手が複数いるとき、拠点が近い人から順にマッチします。
+      {/* スワイプをホームの主役に */}
+      <section className="home-feed">
+        <h2>新着をチェック</h2>
+        <p className="hint deck-help">
+          右にスワイプで保存、左でスキップ。
+          {hasFavorites ? "好みに近い順に並んでいます。" : "好きな作品を登録すると並び順が変わります。"}
         </p>
+
+        {loadingFeed ? (
+          <p className="loading">新着を読み込み中…</p>
+        ) : (
+          <SwipeDeck
+            cards={cards}
+            onSave={(c) => swipe(c, "save")}
+            onSkip={(c) => swipe(c, "skip")}
+            onOpen={(c) => navigate(`/cards/${c.cardId}`)}
+          />
+        )}
       </section>
 
-      {/* --- 新着をスワイプ --- */}
-      <h2>新着をチェック</h2>
-      <p className="hint deck-help">
-        右にスワイプで保存、左でスキップ。
-        {hasFavorites ? "好みに近い順に並んでいます。" : "好きな作品を登録すると並び順が変わります。"}
-      </p>
+      <button
+        type="button"
+        className="home-settings-toggle"
+        onClick={() => setSettingsOpen((v) => !v)}
+        aria-expanded={settingsOpen}
+      >
+        <span>プロフィール・好みの設定</span>
+        <ExpandMoreRoundedIcon className={settingsOpen ? "is-open" : ""} />
+      </button>
 
-      {loadingFeed ? (
-        <p className="loading">読み込み中…</p>
-      ) : (
-        <SwipeDeck
-          cards={cards}
-          onSave={(c) => swipe(c, "save")}
-          onSkip={(c) => swipe(c, "skip")}
-          onOpen={(c) => navigate(`/cards/${c.cardId}`)}
-        />
+      {settingsOpen && (
+        <div className="home-settings">
+          <section className="panel">
+            <div className="fav-head">
+              <strong>好きな作品</strong>
+              {!editing && (
+                <button className="link" onClick={() => setEditing(true)}>
+                  {hasFavorites ? "編集" : "登録する"}
+                </button>
+              )}
+            </div>
+
+            {editing ? (
+              <>
+                <TagInput
+                  value={favorites}
+                  onChange={setFavorites}
+                  required={[]}
+                  onRequiredChange={() => {}}
+                  max={20}
+                />
+                <div className="actions">
+                  <button className="primary" disabled={savingFav} onClick={saveFavorites}>
+                    {savingFav ? "保存中…" : "保存する"}
+                  </button>
+                  <button onClick={() => setEditing(false)}>やめる</button>
+                </div>
+              </>
+            ) : hasFavorites ? (
+              <div className="chips chips-sm">
+                {me.favorites!.map((f) => (
+                  <span key={f.tagId} className="chip">
+                    {f.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">好きな作品を登録すると、新着カードが好みに近い順に並びます。</p>
+            )}
+          </section>
+
+          <section className="panel">
+            <div className="fav-head">
+              <strong>拠点</strong>
+              {me.homeLocation && (
+                <button className="link" disabled={savingHome} onClick={() => saveHome(null)}>
+                  外す
+                </button>
+              )}
+            </div>
+            {me.homeLocation ? (
+              <p className="card-detail">
+                <PlaceRoundedIcon fontSize="inherit" /> 設定済み
+                <span className="hint">
+                  {me.homeLocation.lat.toFixed(3)}, {me.homeLocation.lon.toFixed(3)}
+                </span>
+              </p>
+            ) : (
+              <button
+                className="teal"
+                disabled={savingHome}
+                onClick={() =>
+                  currentPosition()
+                    .then(saveHome)
+                    .catch((e) => setError((e as Error).message))
+                }
+              >
+                <PlaceRoundedIcon fontSize="small" />{" "}
+                {savingHome ? "設定中…" : "現在地を拠点にする"}
+              </button>
+            )}
+            <p className="hint">条件が合う相手が複数いるとき、拠点が近い人から順にマッチします。</p>
+          </section>
+        </div>
       )}
 
       {error && <p className="error">{error}</p>}

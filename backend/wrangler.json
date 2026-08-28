@@ -29,20 +29,12 @@
   ],
   "vars": {
     "APP_ENV": "local",
-    "JWT_SECRET": "local-dev-only-not-for-production",
     "CORS_ORIGINS": "http://localhost:5173",
     "COOKIE_DOMAIN": ""
   },
   "env": {
     "staging": {
       "name": "meetu-backend-staging",
-      "routes": [
-        {
-          "pattern": "api-meetu-staging.ruxel.net",
-          "custom_domain": true,
-          "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
-        }
-      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -72,13 +64,6 @@
     },
     "production": {
       "name": "meetu-backend",
-      "routes": [
-        {
-          "pattern": "api.meetu.ruxel.net",
-          "custom_domain": true,
-          "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
-        }
-      ],
       "d1_databases": [
         {
           "binding": "DB",

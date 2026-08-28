@@ -44,6 +44,10 @@ test-backend-ci:
 test-staging-integration:
     bash scripts/test-staging-integration.sh
 
+# Cloudflare Observability → Datadog destinations (needs DATADOG_API_KEY + CLOUDFLARE_API_TOKEN)
+setup-datadog-observability:
+    bash scripts/setup-datadog-observability.sh
+
 # Run TypeScript type checks (no production build)
 typecheck:
     npm run typecheck

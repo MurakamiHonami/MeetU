@@ -13,5 +13,17 @@
       "custom_domain": true,
       "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
     }
-  ]
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "destinations": ["datadog-logs"],
+      "head_sampling_rate": 0.5
+    },
+    "traces": {
+      "enabled": true,
+      "destinations": ["datadog-traces"],
+      "head_sampling_rate": 0.25
+    }
+  }
 }

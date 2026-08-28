@@ -134,6 +134,11 @@ just test-staging-integration   # https://api-meetu-staging.ruxel.net
 
 CI: `deploy-staging` 完了後 / `deploy-production` の release 前に実行。
 
+### Datadog（Workers Observability）
+
+staging / production の logs・traces を Datadog に送る設定は [datadog-observability.md](./datadog-observability.md) を参照。  
+Cloudflare ダッシュボードで `datadog-traces` / `datadog-logs` Destination を先に作成してからデプロイしてください。
+
 ---
 
 ## 4. ローカル開発メモ

@@ -64,23 +64,35 @@ just d1-seed-staging      # staging のみ（本番 seed なし）
 ## 3. CI/CD（GitHub Actions）
 
 ```
-feature/*  →  PR  →  just ci
+feature/*  →  PR → dev  →  just ci
        ↓ merge
-     stg      →  just ci → release-staging
-       ↓ merge
-     main     →  just ci → release-production
+     dev      →  just ci → release-staging（staging 環境）
+       ↓ PR → main → merge
+     main     →  just ci → release-production（本番）
 ```
+
+Dependabot の PR も **dev** 向け。
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
-| `ci.yml` | PR | `just setup` → `just ci` |
-| `deploy-staging.yml` | `stg` push | verify job → `release-staging` |
+| `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
+| `deploy-staging.yml` | `dev` push | verify job → `release-staging` |
 | `deploy-production.yml` | `main` push | verify job → `release-production` |
 
 **husky**
 
 - pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）
 - pre-push: `just ci`
+
+**`dev` ブランチ（初回のみ）**
+
+```bash
+git checkout main && git pull
+git checkout -b dev && git push -u origin dev
+```
+
+日常は feature ブランチを **dev** に PR してマージ → staging 自動デプロイ。  
+本番反映は **dev → main** の PR をマージ。
 
 ### GitHub Secrets
 

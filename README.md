@@ -72,7 +72,7 @@ just deploy-staging      # staging API + Web
 just deploy-production   # production API + Web
 ```
 
-CI/CD: PR → `just ci` / `stg` merge → staging deploy（CI 通過後）/ `main` merge → production deploy（CI 通過後）
+CI/CD: feature → PR → **dev** → staging deploy / **dev → main** → production deploy
 
 ## 環境 URL
 

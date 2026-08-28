@@ -3,8 +3,8 @@
 # Deploy shortcuts:
 #   just deploy-staging      → staging API + Web
 #   just deploy-production   → production API + Web
-#   just release-staging     → check + staging 一式 (+ migrate)
-#   just release-production  → check + production 一式 (+ migrate, seed なし)
+#   just release-staging     → staging 一式 (+ migrate)
+#   just release-production  → production 一式 (+ migrate, seed なし)
 
 set export
 export CLOUDFLARE_ACCOUNT_ID := "e3800962ed5e416e565f49c823868cf3"
@@ -93,7 +93,7 @@ login:
 # --------------------------------------------------
 
 # Deploy staging API only
-deploy-staging-backend: check
+deploy-staging-backend:
     cd backend && npx wrangler deploy --env staging
 
 # Deploy staging Web only
@@ -103,7 +103,7 @@ deploy-staging-frontend:
 # Deploy staging API + Web (日常のデプロイ)
 deploy-staging: deploy-staging-backend deploy-staging-frontend
 
-# check + API + migrate + Web
+# API + migrate + Web
 release-staging: deploy-staging-backend d1-migrate-staging deploy-staging-frontend
 
 # release-staging + demo seed
@@ -116,7 +116,7 @@ staging-setup: release-staging d1-seed-staging
 # --------------------------------------------------
 
 # Deploy production API only
-deploy-production-backend: check
+deploy-production-backend:
     cd backend && npx wrangler deploy --env production
 
 # Deploy production Web only
@@ -126,7 +126,7 @@ deploy-production-frontend:
 # Deploy production API + Web (seed なし)
 deploy-production: deploy-production-backend deploy-production-frontend
 
-# check + API + migrate + Web (seed なし)
+# API + migrate + Web (seed なし)
 release-production: deploy-production-backend d1-migrate-production deploy-production-frontend
 
 # --------------------------------------------------

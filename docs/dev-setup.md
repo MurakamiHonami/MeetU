@@ -82,11 +82,36 @@ feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan�
 
 `CLOUDFLARE_ACCOUNT_ID` は workflow に直書き（公開情報）。API URL も同様。
 
-Cloudflare API Token の権限例: Account → Workers Scripts Edit, D1 Edit, Workers KV Storage Edit, Workers R2 Storage Edit。
+**Cloudflare API Token の権限（`CLOUDFLARE_API_TOKEN`）**
 
-**Environments（任意）**
+`wrangler.json` で `custom_domain: true` のルートを使うため、**Account 権限だけでは足りません**。`ruxel.net` ゾーンへの Zone 権限も必要です。
 
-- `staging` / `production` … Required reviewers で本番承認フローを付けられる
+| スコープ | 権限 |
+|----------|------|
+| Account | Workers Scripts **Edit** |
+| Account | D1 **Edit** |
+| Account | Workers KV Storage **Edit** |
+| Account | Workers R2 Storage **Edit** |
+| Account | Workers Tail **Read**（任意） |
+| Zone `ruxel.net` | Workers Routes **Edit** |
+| Zone `ruxel.net` | DNS **Edit**（カスタムドメインの DNS 自動作成用） |
+
+テンプレート **Edit Cloudflare Workers** をベースに、Zone Resources で `ruxel.net`（または All zones）を指定して作成するのが手早いです。
+
+作成後 [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/e3800962ed5e416e565f49c823868cf3/api-tokens) で権限を確認し、GitHub **Repository secrets** の `CLOUDFLARE_API_TOKEN` を更新してください。
+
+**よくある CI エラー**
+
+```
+A request to the Cloudflare API (.../zones/.../workers/routes) failed.
+Authentication error [code: 10000]
+```
+
+Worker 本体のアップロードは成功しているがルート設定で失敗している状態です。上記 Zone 権限（Workers Routes Edit）が不足していることがほとんどです。
+
+**Environments（未使用）**
+
+デプロイ workflow は GitHub Environments を使わず、上記 **Repository secrets** のみ参照します。本番デプロイの承認フローが必要になったら `environment: production` を workflow に戻して Environments を設定してください。
 
 **`stg` ブランチ**
 

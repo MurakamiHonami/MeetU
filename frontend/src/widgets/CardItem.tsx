@@ -46,8 +46,7 @@ export default function CardItem({ card, onClick, footer }: Props) {
       {details.length > 0 && <p className="card-detail">{details.join(" ・ ")}</p>}
       {card.location && (
         <p className="card-detail">
-          <PlaceRoundedIcon fontSize="inherit" />{" "}
-          {card.location.name ?? "位置情報あり"}
+          <PlaceRoundedIcon fontSize="inherit" /> {card.location.name ?? "位置情報あり"}
           {card.distanceLabel && <span className="distance">{card.distanceLabel}</span>}
         </p>
       )}

@@ -40,7 +40,9 @@ export function LoginForm() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
-            <label><EmailOutlinedIcon fontSize="small" /> メールアドレス</label>
+            <label>
+              <EmailOutlinedIcon fontSize="small" /> メールアドレス
+            </label>
             <input
               type="email"
               placeholder="example@meetu.staging.ruxel.net"
@@ -51,7 +53,9 @@ export function LoginForm() {
           </div>
 
           <div className="input-group">
-            <label><LockOutlinedIcon fontSize="small" /> パスワード</label>
+            <label>
+              <LockOutlinedIcon fontSize="small" /> パスワード
+            </label>
             <input
               type="password"
               placeholder="••••••••"

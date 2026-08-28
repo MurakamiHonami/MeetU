@@ -1,6 +1,6 @@
-import { Card } from '../card/Card';
-import { Match } from './Match';
-import { User } from '../user/User';
+import { Card } from "../card/Card";
+import { Match } from "./Match";
+import { User } from "../user/User";
 
 export interface MatchEvaluationResult {
   match: Match;
@@ -14,8 +14,8 @@ export class MatchingEngine {
    * 環状交換（CycleFinder）のような「渡す→受け取る」の単方向評価に使う。
    */
   static satisfies(wantCard: Card, giveCard: Card): string[] | null {
-    if (wantCard.type !== 'WANT' || !wantCard.isOpen()) return null;
-    if (giveCard.type !== 'GIVE' || !giveCard.isOpen()) return null;
+    if (wantCard.type !== "WANT" || !wantCard.isOpen()) return null;
+    if (giveCard.type !== "GIVE" || !giveCard.isOpen()) return null;
     if (wantCard.ownerId === giveCard.ownerId) return null;
 
     const giveTags = new Set(giveCard.tags);
@@ -32,7 +32,13 @@ export class MatchingEngine {
     return matched;
   }
 
-  static evaluate(card: Card, targetCard: Card, matchedTags: string[], ownerUser?: User, targetUser?: User): MatchEvaluationResult | null {
+  static evaluate(
+    card: Card,
+    targetCard: Card,
+    matchedTags: string[],
+    ownerUser?: User,
+    targetUser?: User,
+  ): MatchEvaluationResult | null {
     // 1. 除外ルール (同一ユーザー、またはどちらかのユーザーが停止中)
     if (card.ownerId === targetCard.ownerId) return null;
     if (ownerUser?.isSuspended() || targetUser?.isSuspended()) return null;
@@ -53,7 +59,7 @@ export class MatchingEngine {
 
     // 4. ハードコンディション判定 (日程 dates の積集合)
     if (card.dates.length > 0 && targetCard.dates.length > 0) {
-      const hasCommonDate = card.dates.some(d => targetCard.dates.includes(d));
+      const hasCommonDate = card.dates.some((d) => targetCard.dates.includes(d));
       if (!hasCommonDate) return null;
     }
 
@@ -65,16 +71,23 @@ export class MatchingEngine {
     if (!notifyOwner && !notifyTarget) return null;
 
     const labels = { ...targetCard.tagLabels, ...card.tagLabels };
-    const matchedLabels = matchedTags.map(t => labels[t] ?? t);
+    const matchedLabels = matchedTags.map((t) => labels[t] ?? t);
 
     const cardLoc = card.location;
     const targetLoc = targetCard.location;
     const distanceKm = cardLoc && targetLoc ? cardLoc.distanceKm(targetLoc) : undefined;
 
-    const match = Match.create(card.id, targetCard.id, card.ownerId, targetCard.ownerId, matchedTags, {
-      matchedLabels,
-      distanceKm,
-    });
+    const match = Match.create(
+      card.id,
+      targetCard.id,
+      card.ownerId,
+      targetCard.ownerId,
+      matchedTags,
+      {
+        matchedLabels,
+        distanceKm,
+      },
+    );
 
     return {
       match,

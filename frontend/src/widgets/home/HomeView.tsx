@@ -138,7 +138,9 @@ export function HomeView() {
         <h2>新着をチェック</h2>
         <p className="hint deck-help">
           右にスワイプで保存、左でスキップ。
-          {hasFavorites ? "好みに近い順に並んでいます。" : "好きな作品を登録すると並び順が変わります。"}
+          {hasFavorites
+            ? "好みに近い順に並んでいます。"
+            : "好きな作品を登録すると並び順が変わります。"}
         </p>
 
         {loadingFeed ? (

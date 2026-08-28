@@ -1,82 +1,82 @@
 # MeetU
-「推し活の“欲しい”と“会いたい”をつなぐ」
 
-LINE 上でグッズ譲渡・イベント同行者をマッチングするアプリ。
-LIFF + LINE Login + Messaging API + Cloudflare Workers (TypeScript / Hono / D1 / KV / R2)。
+推し活の「欲しい」と「譲る」をタグマッチングでつなぐ Web アプリ。
 
-## アーキテクチャ方針 (ADR-001)
+Email/Password 認証 + React フロント + Cloudflare Workers API（Hono / D1 / KV / R2）。
 
-- **言語**: TypeScript (フロントエンド・バックエンド統一)
-- **実行基盤**: Cloudflare Workers
-- **DB / Storage**: D1 (SQLite) + KV (Cache) + R2 (Object Storage)
-- **設計思想**: Domain-Driven Design (DDD) + Clean Architecture
-- **API 契約**: Hono RPC（`hc<AppType>` でフロント・バックエンド間の型共有）
+## アーキテクチャ
 
-詳細は [docs/ADR-001.md](docs/ADR-001.md) および [docs/dev-setup.md](docs/dev-setup.md)。
+| 項目 | 選定 |
+|------|------|
+| 言語 | TypeScript（フロント・バック統一） |
+| API | Cloudflare Workers + Hono |
+| DB | D1 (SQLite) + Drizzle ORM |
+| キャッシュ | KV（refresh token 等） |
+| ストレージ | R2（画像アップロード） |
+| フロント | React + Vite → Workers Static Assets |
+| 設計 | DDD + Clean Architecture |
+| API 契約 | Hono RPC（`hc<AppType>`） |
+
+詳細: [docs/ADR-001.md](docs/ADR-001.md) / [docs/dev-setup.md](docs/dev-setup.md)
 
 ## 仕組み
 
 条件は **タグ** で登録する。既存タグから選ぶか、その場で新しく作れる。
-**一致したタグの件数** で行う。
+**一致したタグの件数** がしきい値以上でマッチ通知。
 
 ```
-【求】プロセカ / 天馬司 / アクスタ / 東京都   ← 3件以上一致で通知
-【譲】プロセカ / 天馬司 / 缶バッジ / 東京都
-      一致 = プロセカ・天馬司・東京都 = 3件  → マッチ成立 → LINE に通知
+【求】プロセカ / 天馬司 / アクスタ
+【譲】プロセカ / 天馬司 / 缶バッジ
+      一致 = プロセカ・天馬司 = 2件 → マッチ成立
 ```
 
-- しきい値はカードごとに「◯件以上一致で通知」で設定する
-- ★を付けたタグは **必須タグ**（相手が必ず持っている必要がある）
-- しきい値は両者で別々に評価し、**満たした側にだけ通知**する
+- しきい値はカードごとに設定
+- ★付きタグは **必須タグ**（相手が必ず持っている必要がある）
 
 ## ディレクトリ構成
 
 ```
-backend/
-  src/
-    domain/            # ドメイン層 (Entities, Value Objects, MatchingEngine)
-    usecase/           # ユースケース層 (Application Services)
-    infrastructure/    # インフラ層 (D1 Repositories, LINE Client)
-    interfaces/        # インターフェース層 (Hono Routes, Middleware)
-  tests/               # Vitest + Miniflare インメモリテスト
-  wrangler.json        # Cloudflare Workers バインディング設定
-frontend/
-  src/
-    app/               # ルーティング・認可
-    pages/             # 画面（薄い組み立て）
-    widgets/           # 複合 UI コンポーネント
-    features/          # Bounded Context 単位の API（auth, card, match …）
-    entities/          # View Model 型
-    shared/            # API クライアント・ユーティリティ
+backend/src/
+  domain/          # エンティティ・ドメインサービス
+  usecase/         # アプリケーションサービス
+  infrastructure/  # D1 リポジトリ、R2、認証
+  interfaces/      # Hono ルート、ミドルウェア、Zod バリデーション
+frontend/src/
+  app/ pages/ widgets/ features/ entities/ shared/
 docs/
-  ADR-001.md           # システムアーキテクチャ定義
-  dev-setup.md         # 開発環境セットアップガイド
-  design.md            # 設計書
-justfile               # just コマンドランナー設定
+  ADR-001.md  ADR-002.md  ADR-003.md  dev-setup.md
+justfile
 ```
 
-## クイックスタート (just コマンド)
-
-`just` コマンドランナーを使用して各操作を行えます：
+## クイックスタート
 
 ```bash
-# コマンド一覧を表示
-just
+# 依存関係インストール（npm workspaces、1 回の npm ci）
+just setup
 
-# 型チェック＆全テストを実行
-just check
+# バックエンド + フロントを同時起動
+just dev
 
-# バックエンド ローカル起動 (Cloudflare Workers)
-just dev-backend
+# または個別起動
+just dev-backend   # localhost:8787
+just dev-frontend  # localhost:5173
 
-# フロントエンド ローカル起動 (React / Vite)
-just dev-frontend
-
-# Staging デプロイ (API + Web)
-just deploy-staging
-
-# 本番デプロイ (API + Web, seed なし)
-just deploy-production
+# CI と同じ検証
+just ci
 ```
 
-CI/CD: PR → check のみ / `stg` merge → staging / `main` merge → production（詳細は [docs/dev-setup.md](docs/dev-setup.md)）
+## デプロイ
+
+```bash
+just deploy-staging      # staging API + Web
+just deploy-production   # production API + Web
+```
+
+CI/CD: PR → `just ci` / `stg` merge → staging deploy（CI 通過後）/ `main` merge → production deploy（CI 通過後）
+
+## 環境 URL
+
+| 環境 | Web | API |
+|------|-----|-----|
+| Staging | https://meetu.staging.ruxel.net | https://api-meetu-staging.ruxel.net |
+| Production | https://meetu.ruxel.net | https://api.meetu.ruxel.net |

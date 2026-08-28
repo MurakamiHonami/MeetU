@@ -1,8 +1,8 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { IReviewRepository } from '../../../domain/review/IReviewRepository';
-import { Review, ReviewProps } from '../../../domain/review/Review';
-import { AppDatabase } from '../database';
-import { reviews } from '../schema';
+import { and, desc, eq } from "drizzle-orm";
+import { IReviewRepository } from "../../../domain/review/IReviewRepository";
+import { Review, ReviewProps } from "../../../domain/review/Review";
+import { AppDatabase } from "../database";
+import { reviews } from "../schema";
 
 export class D1ReviewRepository implements IReviewRepository {
   constructor(private db: AppDatabase) {}

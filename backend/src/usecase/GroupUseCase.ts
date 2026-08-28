@@ -1,9 +1,9 @@
-import { IGroupRepository } from '../domain/group/IGroupRepository';
-import { ICardRepository } from '../domain/card/ICardRepository';
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { TradeGroup } from '../domain/group/TradeGroup';
-import { User } from '../domain/user/User';
-import { Card } from '../domain/card/Card';
+import { IGroupRepository } from "../domain/group/IGroupRepository";
+import { ICardRepository } from "../domain/card/ICardRepository";
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { TradeGroup } from "../domain/group/TradeGroup";
+import { User } from "../domain/user/User";
+import { Card } from "../domain/card/Card";
 
 export interface GroupDetail {
   group: TradeGroup;
@@ -16,7 +16,7 @@ export class GroupUseCase {
   constructor(
     private groupRepo: IGroupRepository,
     private cardRepo: ICardRepository,
-    private userRepo: IUserRepository
+    private userRepo: IUserRepository,
   ) {}
 
   async getMyGroups(userId: string): Promise<TradeGroup[]> {
@@ -45,18 +45,21 @@ export class GroupUseCase {
     return { group, users, cards, lastReadAt };
   }
 
-  async accept(groupId: string, userId: string): Promise<{ group: TradeGroup; established: boolean } | null> {
+  async accept(
+    groupId: string,
+    userId: string,
+  ): Promise<{ group: TradeGroup; established: boolean } | null> {
     const group = await this.groupRepo.findById(groupId);
     if (!group || !group.isMember(userId)) return null;
-    group.respond(userId, 'accept');
+    group.respond(userId, "accept");
     await this.groupRepo.update(group);
-    return { group, established: group.status === 'ACCEPTED' };
+    return { group, established: group.status === "ACCEPTED" };
   }
 
   async decline(groupId: string, userId: string): Promise<TradeGroup | null> {
     const group = await this.groupRepo.findById(groupId);
     if (!group || !group.isMember(userId)) return null;
-    group.respond(userId, 'decline');
+    group.respond(userId, "decline");
     await this.groupRepo.update(group);
     return group;
   }

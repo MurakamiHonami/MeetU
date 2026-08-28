@@ -1,8 +1,8 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { IGroupRepository } from '../../../domain/group/IGroupRepository';
-import { TradeGroup, TradeGroupProps } from '../../../domain/group/TradeGroup';
-import { AppDatabase, parseJson } from '../database';
-import { tradeGroupMembers, tradeGroups } from '../schema';
+import { and, desc, eq } from "drizzle-orm";
+import { IGroupRepository } from "../../../domain/group/IGroupRepository";
+import { TradeGroup, TradeGroupProps } from "../../../domain/group/TradeGroup";
+import { AppDatabase, parseJson } from "../database";
+import { tradeGroupMembers, tradeGroups } from "../schema";
 
 export class D1GroupRepository implements IGroupRepository {
   constructor(private db: AppDatabase) {}
@@ -18,7 +18,7 @@ export class D1GroupRepository implements IGroupRepository {
       lastMessageAt: row.lastMessageAt ?? undefined,
       lastMessageBy: row.lastMessageBy ?? undefined,
       lastMessagePreview: row.lastMessagePreview ?? undefined,
-      status: row.status as TradeGroupProps['status'],
+      status: row.status as TradeGroupProps["status"],
       createdAt: row.createdAt,
       updatedAt: row.updatedAt ?? undefined,
     };
@@ -100,9 +100,6 @@ export class D1GroupRepository implements IGroupRepository {
   }
 
   async ensureMember(groupId: string, userId: string): Promise<void> {
-    await this.db
-      .insert(tradeGroupMembers)
-      .values({ groupId, userId })
-      .onConflictDoNothing();
+    await this.db.insert(tradeGroupMembers).values({ groupId, userId }).onConflictDoNothing();
   }
 }

@@ -1,5 +1,5 @@
-import { sign, verify } from 'hono/jwt';
-import bcrypt from 'bcryptjs';
+import { sign, verify } from "hono/jwt";
+import bcrypt from "bcryptjs";
 
 export interface TokenPair {
   accessToken: string;
@@ -38,7 +38,7 @@ export class AuthService {
 
   static async verifyAccessToken(token: string, jwtSecret: string): Promise<JWTPayload | null> {
     try {
-      const payload = await verify(token, jwtSecret, 'HS256');
+      const payload = await verify(token, jwtSecret, "HS256");
       return payload as unknown as JWTPayload;
     } catch {
       return null;

@@ -1,4 +1,4 @@
-import initialSql from '../../../drizzle/0000_initial.sql?raw';
+import initialSql from "../../../drizzle/0000_initial.sql?raw";
 
 function splitStatements(sql: string): string[] {
   return sql

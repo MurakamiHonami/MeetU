@@ -1,6 +1,6 @@
-import '@cloudflare/vitest-pool-workers/types';
+import "@cloudflare/vitest-pool-workers/types";
 
-declare module '*.sql?raw' {
+declare module "*.sql?raw" {
   const content: string;
   export default content;
 }
@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-declare module 'cloudflare:workers' {
+declare module "cloudflare:workers" {
   interface Env {
     DB: D1Database;
     CACHE_KV: KVNamespace;

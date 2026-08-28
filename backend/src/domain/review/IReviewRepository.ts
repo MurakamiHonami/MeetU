@@ -1,4 +1,4 @@
-import { Review } from './Review';
+import { Review } from "./Review";
 
 export interface IReviewRepository {
   /** 同じマッチ・同じ投稿者の評価が既にあるか（1マッチにつき1回だけ）。 */

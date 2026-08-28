@@ -16,22 +16,29 @@ default:
 # Local development
 # --------------------------------------------------
 
+# Install all workspace dependencies (single npm ci)
+setup:
+    npm ci
+
+# Start backend + frontend dev servers together
+dev:
+    npm run dev
+
 # Start Cloudflare Workers local dev server (localhost:8787)
 dev-backend:
-    cd backend && npm run dev
+    npm run dev:backend
 
 # Start Vite frontend dev server (localhost:5173)
 dev-frontend:
-    cd frontend && npm run dev
+    npm run dev:frontend
 
-# Run backend Vitest tests
+# Run all tests (backend + frontend)
 test:
-    cd backend && npm run test
+    npm run test
 
-# Run TypeScript type checks
+# Run TypeScript type checks (no production build)
 typecheck:
-    cd backend && npm run typecheck
-    cd frontend && npm run build
+    npm run typecheck
 
 # db:verify + typecheck + tests
 check:
@@ -40,7 +47,7 @@ check:
     just test
 
 # CI / pre-push と同じ検証（npm ci 済み前提）
-ci: lint lint-secrets check
+ci: format-check lint lint-secrets check
 
 # Oxlint (backend + frontend)
 lint:
@@ -48,6 +55,12 @@ lint:
 
 lint-fix:
     npm run lint:fix
+
+format:
+    npm run format
+
+format-check:
+    npm run format:check
 
 # Scan repository for leaked secrets
 lint-secrets:

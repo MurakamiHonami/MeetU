@@ -45,9 +45,7 @@ export function MatchesList() {
                 <span className="badge badge-COMPANION">
                   <GroupsRoundedIcon fontSize="inherit" /> {group.length}人
                 </span>
-                <h3>
-                  {group.iReceive?.title ?? "交換の輪"}
-                </h3>
+                <h3>{group.iReceive?.title ?? "交換の輪"}</h3>
                 <span className={`status status-${group.status}`}>{group.statusLabel}</span>
               </div>
               <p className="matchline">
@@ -85,7 +83,7 @@ export function MatchesList() {
           <div className="card-head">
             <span className={`status status-${match.status}`}>{match.statusLabel}</span>
             <h3>
-              {match.iReceive ?? match.partnerCard
+              {(match.iReceive ?? match.partnerCard)
                 ? `${TYPE_LABEL[(match.iReceive ?? match.partnerCard)!.type]}${
                     (match.iReceive ?? match.partnerCard)!.title
                   }`
@@ -93,9 +91,7 @@ export function MatchesList() {
             </h3>
           </div>
 
-          {match.iGive && (
-            <p className="hint">渡す: {match.iGive.title}</p>
-          )}
+          {match.iGive && <p className="hint">渡す: {match.iGive.title}</p>}
           <p className="matchline">
             タグ <strong>{match.matchCount}件</strong> 一致
             {match.distanceLabel && <span className="distance"> 約{match.distanceLabel}</span>}

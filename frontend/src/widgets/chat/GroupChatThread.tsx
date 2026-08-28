@@ -30,26 +30,29 @@ export function GroupChatThread({ groupId, onBack }: Props) {
   const bottom = useRef<HTMLDivElement>(null);
   const lastId = useRef<string | undefined>(undefined);
 
-  const load = useCallback(async (initial: boolean) => {
-    try {
-      const res = await groupApi.groupMessages(groupId, initial ? undefined : lastId.current);
-      if (initial) {
-        setMessages(res.messages);
-        setMembers(res.members);
-        setCanSend(res.canSend);
-      } else if (res.messages.length > 0) {
-        setMessages((prev) => [...prev, ...res.messages]);
+  const load = useCallback(
+    async (initial: boolean) => {
+      try {
+        const res = await groupApi.groupMessages(groupId, initial ? undefined : lastId.current);
+        if (initial) {
+          setMessages(res.messages);
+          setMembers(res.members);
+          setCanSend(res.canSend);
+        } else if (res.messages.length > 0) {
+          setMessages((prev) => [...prev, ...res.messages]);
+        }
+        if (res.messages.length > 0) {
+          lastId.current = res.messages[res.messages.length - 1].messageId;
+        }
+        setError("");
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        if (initial) setLoading(false);
       }
-      if (res.messages.length > 0) {
-        lastId.current = res.messages[res.messages.length - 1].messageId;
-      }
-      setError("");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      if (initial) setLoading(false);
-    }
-  }, [groupId]);
+    },
+    [groupId],
+  );
 
   useEffect(() => {
     void load(true);

@@ -1,15 +1,15 @@
-import { ICardRepository } from '../domain/card/ICardRepository';
-import { ITagRepository } from '../domain/tag/ITagRepository';
-import { IMatchRepository } from '../domain/match/IMatchRepository';
-import { IUserRepository } from '../domain/user/IUserRepository';
-import { IGroupRepository } from '../domain/group/IGroupRepository';
-import { Card, CardType } from '../domain/card/Card';
-import { TagNormalizer } from '../domain/tag/TagNormalizer';
-import { Tag } from '../domain/tag/Tag';
-import { MatchingEngine } from '../domain/match/MatchingEngine';
-import { CycleFinder } from '../domain/group/CycleFinder';
-import { TradeGroup } from '../domain/group/TradeGroup';
-import { Location, LocationProps } from '../domain/shared/Location';
+import { ICardRepository } from "../domain/card/ICardRepository";
+import { ITagRepository } from "../domain/tag/ITagRepository";
+import { IMatchRepository } from "../domain/match/IMatchRepository";
+import { IUserRepository } from "../domain/user/IUserRepository";
+import { IGroupRepository } from "../domain/group/IGroupRepository";
+import { Card, CardType } from "../domain/card/Card";
+import { TagNormalizer } from "../domain/tag/TagNormalizer";
+import { Tag } from "../domain/tag/Tag";
+import { MatchingEngine } from "../domain/match/MatchingEngine";
+import { CycleFinder } from "../domain/group/CycleFinder";
+import { TradeGroup } from "../domain/group/TradeGroup";
+import { Location, LocationProps } from "../domain/shared/Location";
 
 export interface CreateCardInput {
   ownerId: string;
@@ -35,7 +35,7 @@ export class CardUseCase {
     private tagRepo: ITagRepository,
     private matchRepo: IMatchRepository,
     private userRepo: IUserRepository,
-    private groupRepo: IGroupRepository
+    private groupRepo: IGroupRepository,
   ) {}
 
   async createCard(input: CreateCardInput): Promise<CreateCardResult> {
@@ -47,7 +47,7 @@ export class CardUseCase {
       tagLabels[tagId] = t.displayName;
       const existing = await this.tagRepo.findById(tagId);
       if (!existing) {
-        await this.tagRepo.save(Tag.create(t.displayName, t.category || 'other'));
+        await this.tagRepo.save(Tag.create(t.displayName, t.category || "other"));
       }
     }
     await this.tagRepo.incrementCounts(tagIds);
@@ -77,7 +77,7 @@ export class CardUseCase {
 
   private async runMatching(card: Card) {
     const counterpartType: CardType =
-      card.type === 'GIVE' ? 'WANT' : card.type === 'WANT' ? 'GIVE' : 'COMPANION';
+      card.type === "GIVE" ? "WANT" : card.type === "WANT" ? "GIVE" : "COMPANION";
     const candidates = await this.cardRepo.findCandidateCardIdsByTags(card.tags, counterpartType);
 
     const candidateMatches = new Map<string, Set<string>>();
@@ -88,7 +88,8 @@ export class CardUseCase {
     }
 
     const ownerUser = await this.userRepo.findById(card.ownerId);
-    const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] = [];
+    const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] =
+      [];
 
     for (const [targetCardId, matchedTagSet] of candidateMatches.entries()) {
       const targetCard = await this.cardRepo.findById(targetCardId);
@@ -102,7 +103,7 @@ export class CardUseCase {
         targetCard,
         matchedTags,
         ownerUser ?? undefined,
-        targetUser ?? undefined
+        targetUser ?? undefined,
       );
       if (result) {
         await this.matchRepo.save(result.match);
@@ -118,7 +119,7 @@ export class CardUseCase {
   }
 
   private async runCycleFinding(card: Card): Promise<TradeGroup[]> {
-    if (card.type !== 'GIVE') return [];
+    if (card.type !== "GIVE") return [];
     const finder = new CycleFinder(this.cardRepo);
     const cycles = await finder.findCycles(card);
     const created: TradeGroup[] = [];
@@ -142,16 +143,19 @@ export class CardUseCase {
     const card = await this.cardRepo.findById(id);
     if (!card || card.ownerId !== ownerId) return null;
     card.close();
-    await this.cardRepo.updateStatus(id, 'CLOSED');
+    await this.cardRepo.updateStatus(id, "CLOSED");
     return card;
   }
 
-  async getCardMatches(cardId: string, userId: string): Promise<{ cards: Card[]; minMatchCount: number } | null> {
+  async getCardMatches(
+    cardId: string,
+    userId: string,
+  ): Promise<{ cards: Card[]; minMatchCount: number } | null> {
     const card = await this.cardRepo.findById(cardId);
     if (!card || card.ownerId !== userId) return null;
 
     const counterpartType: CardType =
-      card.type === 'GIVE' ? 'WANT' : card.type === 'WANT' ? 'GIVE' : 'COMPANION';
+      card.type === "GIVE" ? "WANT" : card.type === "WANT" ? "GIVE" : "COMPANION";
     const hits = await this.cardRepo.findCandidateCardIdsByTags(card.tags, counterpartType);
 
     const byCard = new Map<string, Set<string>>();
@@ -167,11 +171,11 @@ export class CardUseCase {
       if (!other) continue;
       const matchedTags = Array.from(tags);
       let ok = false;
-      if (card.type === 'WANT' && other.type === 'GIVE') {
+      if (card.type === "WANT" && other.type === "GIVE") {
         ok = !!MatchingEngine.satisfies(card, other);
-      } else if (card.type === 'GIVE' && other.type === 'WANT') {
+      } else if (card.type === "GIVE" && other.type === "WANT") {
         ok = !!MatchingEngine.satisfies(other, card);
-      } else if (card.type === 'COMPANION' && other.type === 'COMPANION') {
+      } else if (card.type === "COMPANION" && other.type === "COMPANION") {
         ok = matchedTags.length >= card.minMatchCount;
       }
       if (ok) matched.push(other);

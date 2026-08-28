@@ -1,8 +1,8 @@
-import { asc, and, eq, gt } from 'drizzle-orm';
-import { IMessageRepository } from '../../../domain/message/IMessageRepository';
-import { Message, MessageProps } from '../../../domain/message/Message';
-import { AppDatabase } from '../database';
-import { messages } from '../schema';
+import { asc, and, eq, gt } from "drizzle-orm";
+import { IMessageRepository } from "../../../domain/message/IMessageRepository";
+import { Message, MessageProps } from "../../../domain/message/Message";
+import { AppDatabase } from "../database";
+import { messages } from "../schema";
 
 export class D1MessageRepository implements IMessageRepository {
   constructor(private db: AppDatabase) {}
@@ -10,10 +10,10 @@ export class D1MessageRepository implements IMessageRepository {
   private mapRow(row: typeof messages.$inferSelect): Message {
     const props: MessageProps = {
       id: row.id,
-      threadType: row.threadType as MessageProps['threadType'],
+      threadType: row.threadType as MessageProps["threadType"],
       threadId: row.threadId,
       senderId: row.senderId,
-      kind: row.kind as MessageProps['kind'],
+      kind: row.kind as MessageProps["kind"],
       text: row.text ?? undefined,
       imageKey: row.imageKey ?? undefined,
       location:
@@ -31,10 +31,10 @@ export class D1MessageRepository implements IMessageRepository {
   }
 
   async findByThread(
-    threadType: Message['threadType'],
+    threadType: Message["threadType"],
     threadId: string,
     after?: string,
-    limit = 100
+    limit = 100,
   ): Promise<Message[]> {
     const conditions = [eq(messages.threadType, threadType), eq(messages.threadId, threadId)];
 

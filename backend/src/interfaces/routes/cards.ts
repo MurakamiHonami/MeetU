@@ -1,17 +1,19 @@
-import { Hono } from 'hono';
-import { Env } from '../middleware/auth';
-import { createContext } from '../container';
-import { cardView, groupView } from '../dto/ViewMapper';
-import { baseUrl, handleError } from './helpers';
-import { CardType } from '../../domain/card/Card';
+import { Hono } from "hono";
+import { Env } from "../middleware/auth";
+import { createContext } from "../container";
+import { cardView, groupView } from "../dto/ViewMapper";
+import { baseUrl, handleError } from "./helpers";
+import { CardType } from "../../domain/card/Card";
+import { parseBody } from "../validation/parseBody";
+import { createCardSchema, validationErrorResponse } from "../validation/schemas";
 
 export const cardsRouter = new Hono<Env>()
-  .get('/', async (c) => {
+  .get("/", async (c) => {
     try {
       const ctx = createContext(c.env, baseUrl(c));
-      const tags = (c.req.query('tags') || '').split(',').filter(Boolean);
-      const minMatch = Number(c.req.query('minMatch') || '1');
-      const type = c.req.query('type') as CardType | undefined;
+      const tags = (c.req.query("tags") || "").split(",").filter(Boolean);
+      const minMatch = Number(c.req.query("minMatch") || "1");
+      const type = c.req.query("type") as CardType | undefined;
       const cards = await ctx.useCases.card.searchCards(tags, minMatch, type || undefined);
 
       const views = [];
@@ -25,28 +27,39 @@ export const cardsRouter = new Hono<Env>()
     }
   })
 
-  .post('/', async (c) => {
+  .post("/", async (c) => {
     try {
-      const userId = c.get('userId');
-      const body = await c.req.json<any>();
+      const userId = c.get("userId");
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ error: "Invalid JSON body" }, 400);
+      }
+      const parsed = parseBody(createCardSchema, body);
+      if (!parsed.ok) {
+        return c.json(validationErrorResponse(parsed.error), 400);
+      }
       const ctx = createContext(c.env, baseUrl(c));
 
-      const tags = (body.tags || []).map((t: any) => ({
-        displayName: t.name || t.displayName,
+      const tags = parsed.data.tags.map((t) => ({
+        displayName: t.name || t.displayName || "",
         category: t.category,
       }));
-      const requiredTags = (body.requiredTags || []).map((t: any) => t.name || t);
+      const requiredTags = (parsed.data.requiredTags || []).map((t) =>
+        typeof t === "string" ? t : t.name,
+      );
 
       const result = await ctx.useCases.card.createCard({
         ownerId: userId,
-        type: body.type,
-        title: body.title,
-        note: body.note,
-        minMatchCount: body.minMatchCount,
+        type: parsed.data.type,
+        title: parsed.data.title,
+        note: parsed.data.note,
+        minMatchCount: parsed.data.minMatchCount,
         tags,
         requiredTags,
-        dates: body.dates,
-        location: body.location ?? undefined,
+        dates: parsed.data.dates,
+        location: parsed.data.location ?? undefined,
       });
 
       const owner = await ctx.repos.userRepo.findById(userId);
@@ -54,28 +67,33 @@ export const cardsRouter = new Hono<Env>()
       for (const g of result.newGroups) {
         const detail = await ctx.useCases.group.getGroupDetail(g.id, userId);
         if (detail) {
-          groupViews.push(groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt));
+          groupViews.push(
+            groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
+          );
         }
       }
 
-      return c.json({
-        card: cardView(result.card, owner ?? undefined),
-        newMatches: result.newMatches.map((m) => ({
-          matchId: m.matchId,
-          matchCount: m.matchCount,
-          matchedTags: m.matchedTags,
-          card: cardView(m.card),
-        })),
-        newGroups: groupViews,
-      }, 201);
+      return c.json(
+        {
+          card: cardView(result.card, owner ?? undefined),
+          newMatches: result.newMatches.map((m) => ({
+            matchId: m.matchId,
+            matchCount: m.matchCount,
+            matchedTags: m.matchedTags,
+            card: cardView(m.card),
+          })),
+          newGroups: groupViews,
+        },
+        201,
+      );
     } catch (e) {
       return handleError(c, e);
     }
   })
 
-  .get('/mine', async (c) => {
+  .get("/mine", async (c) => {
     try {
-      const userId = c.get('userId');
+      const userId = c.get("userId");
       const ctx = createContext(c.env, baseUrl(c));
       const cards = await ctx.useCases.card.getMyCards(userId);
       return c.json({ cards: cards.map((card) => cardView(card)) });
@@ -84,13 +102,13 @@ export const cardsRouter = new Hono<Env>()
     }
   })
 
-  .get('/:id/matches', async (c) => {
+  .get("/:id/matches", async (c) => {
     try {
-      const userId = c.get('userId');
-      const id = c.req.param('id');
+      const userId = c.get("userId");
+      const id = c.req.param("id");
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.card.getCardMatches(id, userId);
-      if (!result) return c.json({ message: 'カードが見つかりません' }, 404);
+      if (!result) return c.json({ message: "カードが見つかりません" }, 404);
       const views = [];
       for (const card of result.cards) {
         const owner = await ctx.repos.userRepo.findById(card.ownerId);
@@ -102,12 +120,12 @@ export const cardsRouter = new Hono<Env>()
     }
   })
 
-  .get('/:id', async (c) => {
+  .get("/:id", async (c) => {
     try {
-      const id = c.req.param('id');
+      const id = c.req.param("id");
       const ctx = createContext(c.env, baseUrl(c));
       const card = await ctx.useCases.card.getCard(id);
-      if (!card) return c.json({ message: 'カードが見つかりません' }, 404);
+      if (!card) return c.json({ message: "カードが見つかりません" }, 404);
       const owner = await ctx.repos.userRepo.findById(card.ownerId);
       return c.json({ card: cardView(card, owner ?? undefined) });
     } catch (e) {
@@ -115,13 +133,13 @@ export const cardsRouter = new Hono<Env>()
     }
   })
 
-  .delete('/:id', async (c) => {
+  .delete("/:id", async (c) => {
     try {
-      const userId = c.get('userId');
-      const id = c.req.param('id');
+      const userId = c.get("userId");
+      const id = c.req.param("id");
       const ctx = createContext(c.env, baseUrl(c));
       const card = await ctx.useCases.card.deleteCard(id, userId);
-      if (!card) return c.json({ message: 'カードが見つかりません' }, 404);
+      if (!card) return c.json({ message: "カードが見つかりません" }, 404);
       return c.json({ card: cardView(card) });
     } catch (e) {
       return handleError(c, e);

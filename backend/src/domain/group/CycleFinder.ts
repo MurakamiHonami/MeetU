@@ -1,7 +1,7 @@
-import { Card } from '../card/Card';
-import { ICardRepository } from '../card/ICardRepository';
-import { MatchingEngine } from '../match/MatchingEngine';
-import { TradeStep } from './TradeGroup';
+import { Card } from "../card/Card";
+import { ICardRepository } from "../card/ICardRepository";
+import { MatchingEngine } from "../match/MatchingEngine";
+import { TradeStep } from "./TradeGroup";
 
 const MAX_CYCLE = 4; // 4人までの輪を探す
 const MIN_CYCLE = 3; // 2人の交換は通常のマッチが扱うので3人から
@@ -31,7 +31,7 @@ export class CycleFinder {
     const cached = this.giveCardCache.get(userId);
     if (cached) return cached;
     const cards = (await this.cardRepo.findByOwnerId(userId)).filter(
-      (c) => c.type === 'GIVE' && c.isOpen()
+      (c) => c.type === "GIVE" && c.isOpen(),
     );
     this.giveCardCache.set(userId, cards);
     return cards;
@@ -42,8 +42,10 @@ export class CycleFinder {
     const cached = this.edgeCache.get(giveCard.id);
     if (cached) return cached;
 
-    const hits = await this.cardRepo.findCandidateCardIdsByTags(giveCard.tags, 'WANT');
-    const candidateIds = new Set(hits.filter((h) => h.ownerId !== giveCard.ownerId).map((h) => h.cardId));
+    const hits = await this.cardRepo.findCandidateCardIdsByTags(giveCard.tags, "WANT");
+    const candidateIds = new Set(
+      hits.filter((h) => h.ownerId !== giveCard.ownerId).map((h) => h.cardId),
+    );
 
     const edges: Edge[] = [];
     for (const cardId of candidateIds) {
@@ -73,8 +75,12 @@ export class CycleFinder {
   }
 
   /** startCard（譲カード）の持ち主を起点に、閉じた交換の輪を探す。 */
-  async findCycles(startCard: Card, maxLen = MAX_CYCLE, limit = MAX_RESULTS): Promise<TradeStep[][]> {
-    if (startCard.type !== 'GIVE' || !startCard.isOpen()) return [];
+  async findCycles(
+    startCard: Card,
+    maxLen = MAX_CYCLE,
+    limit = MAX_RESULTS,
+  ): Promise<TradeStep[][]> {
+    if (startCard.type !== "GIVE" || !startCard.isOpen()) return [];
 
     const startUser = startCard.ownerId;
     this.giveCardCache.set(startUser, [startCard]);
@@ -100,7 +106,10 @@ export class CycleFinder {
           if (receiver === startUser) {
             const closed = [...chain, step];
             if (closed.length >= MIN_CYCLE) {
-              const groupId = closed.map((s) => s.giveCardId).sort().join('_');
+              const groupId = closed
+                .map((s) => s.giveCardId)
+                .sort()
+                .join("_");
               if (!found.has(groupId)) found.set(groupId, closed);
             }
             continue;
@@ -118,6 +127,8 @@ export class CycleFinder {
     }
 
     // 短い輪ほど成立しやすいので前に出す
-    return Array.from(found.values()).sort((a, b) => a.length - b.length).slice(0, limit);
+    return Array.from(found.values())
+      .sort((a, b) => a.length - b.length)
+      .slice(0, limit);
   }
 }

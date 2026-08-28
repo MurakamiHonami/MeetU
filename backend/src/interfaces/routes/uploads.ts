@@ -1,23 +1,25 @@
-import { Hono } from 'hono';
-import { Env } from '../middleware/auth';
-import { AuthService } from '../../infrastructure/auth/AuthService';
-import { createContext } from '../container';
-import { baseUrl, handleError } from './helpers';
+import { Context, Hono } from "hono";
+import { Env } from "../middleware/auth";
+import { mockUserIdFromToken } from "../middleware/mockAuth";
+import { AuthService } from "../../infrastructure/auth/AuthService";
+import { createContext } from "../container";
+import { baseUrl, handleError } from "./helpers";
 
-async function requireUserId(c: any): Promise<string | null> {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
+async function requireUserId(c: Context<Env>): Promise<string | null> {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.substring(7);
-  if (token.startsWith('mock_')) return token.replace('mock_', '');
+  const mockUserId = mockUserIdFromToken(c, token);
+  if (mockUserId) return mockUserId;
   const payload = await AuthService.verifyAccessToken(token, c.env.JWT_SECRET);
   return payload?.userId ?? null;
 }
 
 export const uploadsRouter = new Hono<Env>()
-  .post('/', async (c) => {
+  .post("/", async (c) => {
     try {
       const userId = await requireUserId(c);
-      if (!userId) return c.json({ message: 'Unauthorized' }, 401);
+      if (!userId) return c.json({ message: "Unauthorized" }, 401);
       const body = await c.req.json<{
         matchId?: string;
         groupId?: string;
@@ -32,10 +34,10 @@ export const uploadsRouter = new Hono<Env>()
     }
   })
 
-  .put('/put', async (c) => {
+  .put("/put", async (c) => {
     try {
-      const token = c.req.query('token');
-      if (!token) return c.json({ message: 'token が必要です' }, 400);
+      const token = c.req.query("token");
+      if (!token) return c.json({ message: "token が必要です" }, 400);
       const ctx = createContext(c.env, baseUrl(c));
       await ctx.uploadService.handlePut(token, c.req.raw.body);
       return c.json({ success: true });
@@ -44,15 +46,15 @@ export const uploadsRouter = new Hono<Env>()
     }
   })
 
-  .get('/view', async (c) => {
+  .get("/view", async (c) => {
     try {
-      const token = c.req.query('token');
-      if (!token) return c.json({ message: 'token が必要です' }, 400);
+      const token = c.req.query("token");
+      if (!token) return c.json({ message: "token が必要です" }, 400);
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.uploadService.handleView(token);
-      if (!result) return c.json({ message: '画像が見つかりません' }, 404);
+      if (!result) return c.json({ message: "画像が見つかりません" }, 404);
       return new Response(result.body, {
-        headers: { 'Content-Type': result.contentType, 'Cache-Control': 'private, max-age=3600' },
+        headers: { "Content-Type": result.contentType, "Cache-Control": "private, max-age=3600" },
       });
     } catch (e) {
       return handleError(c, e);

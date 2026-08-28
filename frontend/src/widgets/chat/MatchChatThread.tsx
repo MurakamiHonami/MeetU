@@ -32,26 +32,29 @@ export function MatchChatThread({ matchId, onBack }: Props) {
     bottom.current?.scrollIntoView({ block: "end" });
   }, []);
 
-  const load = useCallback(async (initial: boolean) => {
-    try {
-      const res = await matchApi.messages(matchId, initial ? undefined : lastId.current);
-      if (initial) {
-        setMessages(res.messages);
-        setPartner(res.partner);
-        setCanSend(res.canSend);
-      } else if (res.messages.length > 0) {
-        setMessages((prev) => [...prev, ...res.messages]);
+  const load = useCallback(
+    async (initial: boolean) => {
+      try {
+        const res = await matchApi.messages(matchId, initial ? undefined : lastId.current);
+        if (initial) {
+          setMessages(res.messages);
+          setPartner(res.partner);
+          setCanSend(res.canSend);
+        } else if (res.messages.length > 0) {
+          setMessages((prev) => [...prev, ...res.messages]);
+        }
+        if (res.messages.length > 0) {
+          lastId.current = res.messages[res.messages.length - 1].messageId;
+        }
+        setError("");
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        if (initial) setLoading(false);
       }
-      if (res.messages.length > 0) {
-        lastId.current = res.messages[res.messages.length - 1].messageId;
-      }
-      setError("");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      if (initial) setLoading(false);
-    }
-  }, [matchId]);
+    },
+    [matchId],
+  );
 
   useEffect(() => {
     void load(true);

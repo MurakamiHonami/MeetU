@@ -1,4 +1,10 @@
-import { client, clearAccessToken, setAccessToken, unwrap, type AuthTokens } from "../../shared/api";
+import {
+  client,
+  clearAccessToken,
+  setAccessToken,
+  unwrap,
+  type AuthTokens,
+} from "../../shared/api";
 
 export async function signup(input: { email: string; password: string; displayName: string }) {
   const res = await client.api.auth.signup.$post({ json: input });

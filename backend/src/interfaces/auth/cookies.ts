@@ -1,18 +1,18 @@
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import type { Context } from 'hono';
-import type { Env } from '../middleware/auth';
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import type { Context } from "hono";
+import type { Env } from "../middleware/auth";
 
-export const REFRESH_COOKIE = 'meetu_refresh';
+export const REFRESH_COOKIE = "meetu_refresh";
 const REFRESH_MAX_AGE = 45 * 24 * 60 * 60;
 
 function cookieOptions(c: Context<Env>) {
-  const isDeployed = c.env.APP_ENV === 'production' || c.env.APP_ENV === 'staging';
+  const isDeployed = c.env.APP_ENV === "production" || c.env.APP_ENV === "staging";
   const domain = c.env.COOKIE_DOMAIN?.trim() || undefined;
   return {
     httpOnly: true,
     secure: isDeployed,
-    sameSite: isDeployed ? ('None' as const) : ('Lax' as const),
-    path: '/',
+    sameSite: isDeployed ? ("None" as const) : ("Lax" as const),
+    path: "/",
     maxAge: REFRESH_MAX_AGE,
     ...(domain ? { domain } : {}),
   };

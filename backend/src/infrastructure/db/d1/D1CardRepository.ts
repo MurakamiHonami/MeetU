@@ -1,14 +1,18 @@
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
-import { ICardRepository, CardTagHit } from '../../../domain/card/ICardRepository';
-import { Card, CardProps, CardType } from '../../../domain/card/Card';
-import { Location } from '../../../domain/shared/Location';
-import { AppDatabase, parseJson } from '../database';
-import { cardTags, cards } from '../schema';
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { ICardRepository, CardTagHit } from "../../../domain/card/ICardRepository";
+import { Card, CardProps, CardType } from "../../../domain/card/Card";
+import { Location } from "../../../domain/shared/Location";
+import { AppDatabase, parseJson } from "../database";
+import { cardTags, cards } from "../schema";
 
 export class D1CardRepository implements ICardRepository {
   constructor(private db: AppDatabase) {}
 
-  private mapRowToCard(row: typeof cards.$inferSelect, tags: string[], tagLabels: Record<string, string>): Card {
+  private mapRowToCard(
+    row: typeof cards.$inferSelect,
+    tags: string[],
+    tagLabels: Record<string, string>,
+  ): Card {
     const props: CardProps = {
       id: row.id,
       ownerId: row.ownerId,
@@ -24,14 +28,16 @@ export class D1CardRepository implements ICardRepository {
         row.lat != null && row.lon != null
           ? { lat: row.lat, lon: row.lon, ...(row.locationName ? { name: row.locationName } : {}) }
           : undefined,
-      status: row.status as CardProps['status'],
+      status: row.status as CardProps["status"],
       createdAt: row.createdAt,
       expiresAt: row.expiresAt,
     };
     return new Card(props);
   }
 
-  private async loadTags(cardId: string): Promise<{ tags: string[]; tagLabels: Record<string, string> }> {
+  private async loadTags(
+    cardId: string,
+  ): Promise<{ tags: string[]; tagLabels: Record<string, string> }> {
     const results = await this.db
       .select({ tagId: cardTags.tagId, displayName: cardTags.displayName })
       .from(cardTags)
@@ -67,7 +73,7 @@ export class D1CardRepository implements ICardRepository {
 
   async findCandidateCardIdsByTags(
     tagIds: string[],
-    targetType: CardType | readonly CardType[]
+    targetType: CardType | readonly CardType[],
   ): Promise<CardTagHit[]> {
     if (tagIds.length === 0) return [];
     const types = Array.isArray(targetType) ? [...targetType] : [targetType];
@@ -90,7 +96,7 @@ export class D1CardRepository implements ICardRepository {
     const rows = await this.db
       .select({ id: cards.id })
       .from(cards)
-      .where(and(eq(cards.status, 'OPEN'), gte(cards.createdAt, since)))
+      .where(and(eq(cards.status, "OPEN"), gte(cards.createdAt, since)))
       .orderBy(desc(cards.createdAt))
       .limit(limit)
       .all();
@@ -107,7 +113,7 @@ export class D1CardRepository implements ICardRepository {
     const rows = await this.db
       .select({ id: cards.id })
       .from(cards)
-      .where(and(eq(cards.status, 'OPEN'), inArray(cards.geohash, cells)))
+      .where(and(eq(cards.status, "OPEN"), inArray(cards.geohash, cells)))
       .all();
     const result: Card[] = [];
     for (const r of rows) {
@@ -129,8 +135,8 @@ export class D1CardRepository implements ICardRepository {
   async searchByTags(tagIds: string[], minMatch: number, type?: CardType): Promise<Card[]> {
     if (tagIds.length === 0) return [];
 
-    const hitCount = sql<number>`count(distinct ${cardTags.tagId})`.as('hit_count');
-    const conditions = [inArray(cardTags.tagId, tagIds), eq(cards.status, 'OPEN')];
+    const hitCount = sql<number>`count(distinct ${cardTags.tagId})`.as("hit_count");
+    const conditions = [inArray(cardTags.tagId, tagIds), eq(cards.status, "OPEN")];
     if (type) conditions.push(eq(cards.type, type));
 
     const rows = await this.db
@@ -186,7 +192,7 @@ export class D1CardRepository implements ICardRepository {
     }
   }
 
-  async updateStatus(id: string, status: Card['status']): Promise<void> {
+  async updateStatus(id: string, status: Card["status"]): Promise<void> {
     await this.db.update(cards).set({ status }).where(eq(cards.id, id));
   }
 

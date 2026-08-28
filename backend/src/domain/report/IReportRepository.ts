@@ -1,4 +1,4 @@
-import { Report } from './Report';
+import { Report } from "./Report";
 
 export interface IReportRepository {
   save(report: Report): Promise<void>;

@@ -1,5 +1,5 @@
-import { Card, CardType } from '../card/Card';
-import { Location, MAX_RADIUS_KM } from '../shared/Location';
+import { Card, CardType } from "../card/Card";
+import { Location, MAX_RADIUS_KM } from "../shared/Location";
 
 export const DEFAULT_RADIUS_KM = 3.0;
 export const MAX_RESULTS = 60;
@@ -23,18 +23,15 @@ export interface NearbySearchInput {
  */
 export class NearbySearch {
   static parseRadius(raw: unknown): number {
-    if (raw === undefined || raw === null || raw === '') return DEFAULT_RADIUS_KM;
+    if (raw === undefined || raw === null || raw === "") return DEFAULT_RADIUS_KM;
     const km = Number(raw);
     if (!Number.isFinite(km) || km <= 0) {
-      throw new Error('radius は 0 より大きい数値で指定してください');
+      throw new Error("radius は 0 より大きい数値で指定してください");
     }
     return Math.min(km, MAX_RADIUS_KM);
   }
 
-  static filter(
-    cards: Card[],
-    input: NearbySearchInput
-  ): NearbyResult[] {
+  static filter(cards: Card[], input: NearbySearchInput): NearbyResult[] {
     const radius = input.radiusKm ?? DEFAULT_RADIUS_KM;
     const center = new Location({ lat: input.lat, lon: input.lon });
     const results: NearbyResult[] = [];

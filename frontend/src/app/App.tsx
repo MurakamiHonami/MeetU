@@ -126,18 +126,102 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
-          <Route path="/cards/new" element={<RequireAuth><CardNew /></RequireAuth>} />
-          <Route path="/cards/mine" element={<RequireAuth><MyCards /></RequireAuth>} />
-          <Route path="/cards/:cardId" element={<RequireAuth><CardDetail /></RequireAuth>} />
-          <Route path="/search" element={<RequireAuth><Search /></RequireAuth>} />
-          <Route path="/nearby" element={<RequireAuth><NearbyMap /></RequireAuth>} />
-          <Route path="/saved" element={<RequireAuth><Saved /></RequireAuth>} />
-          <Route path="/matches" element={<RequireAuth><Matches /></RequireAuth>} />
-          <Route path="/matches/:matchId" element={<RequireAuth><MatchDetail /></RequireAuth>} />
-          <Route path="/matches/:matchId/chat" element={<RequireAuth><Chat /></RequireAuth>} />
-          <Route path="/groups/:groupId" element={<RequireAuth><GroupDetail /></RequireAuth>} />
-          <Route path="/groups/:groupId/chat" element={<RequireAuth><GroupChat /></RequireAuth>} />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <Home />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cards/new"
+            element={
+              <RequireAuth>
+                <CardNew />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cards/mine"
+            element={
+              <RequireAuth>
+                <MyCards />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cards/:cardId"
+            element={
+              <RequireAuth>
+                <CardDetail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <RequireAuth>
+                <Search />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/nearby"
+            element={
+              <RequireAuth>
+                <NearbyMap />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/saved"
+            element={
+              <RequireAuth>
+                <Saved />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/matches"
+            element={
+              <RequireAuth>
+                <Matches />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/matches/:matchId"
+            element={
+              <RequireAuth>
+                <MatchDetail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/matches/:matchId/chat"
+            element={
+              <RequireAuth>
+                <Chat />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/groups/:groupId"
+            element={
+              <RequireAuth>
+                <GroupDetail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/groups/:groupId/chat"
+            element={
+              <RequireAuth>
+                <GroupChat />
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

@@ -50,7 +50,11 @@ export const matchApi = {
   ) => {
     const res = await authenticatedFetch(
       client.api.matches[":id"].messages.$url({ param: { id: matchId } }),
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
     );
     return unwrap<{ message: Message; notified: boolean }>({
       ok: res.ok,

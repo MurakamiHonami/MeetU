@@ -72,7 +72,12 @@ export function NearbyMapView() {
     setLoading(true);
     setError("");
     try {
-      const res = await nearbyApi.nearby({ lat: point.lat, lon: point.lon, radius: km, type: kind });
+      const res = await nearbyApi.nearby({
+        lat: point.lat,
+        lon: point.lon,
+        radius: km,
+        type: kind,
+      });
       setCards(res.cards);
     } catch (e) {
       setError((e as Error).message);

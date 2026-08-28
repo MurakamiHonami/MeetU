@@ -1,8 +1,8 @@
-import { desc, eq, inArray, like, or, sql } from 'drizzle-orm';
-import { ITagRepository, RelatedTagHit } from '../../../domain/tag/ITagRepository';
-import { Tag, TagProps } from '../../../domain/tag/Tag';
-import { AppDatabase } from '../database';
-import { tagCooccurrences, tags } from '../schema';
+import { desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { ITagRepository, RelatedTagHit } from "../../../domain/tag/ITagRepository";
+import { Tag, TagProps } from "../../../domain/tag/Tag";
+import { AppDatabase } from "../database";
+import { tagCooccurrences, tags } from "../schema";
 
 export class D1TagRepository implements ITagRepository {
   constructor(private db: AppDatabase) {}
@@ -68,9 +68,7 @@ export class D1TagRepository implements ITagRepository {
       .orderBy(desc(tagCooccurrences.hits))
       .limit(limit)
       .all();
-    const merged = [...rowsA, ...rowsB]
-      .sort((a, b) => b.hits - a.hits)
-      .slice(0, limit);
+    const merged = [...rowsA, ...rowsB].sort((a, b) => b.hits - a.hits).slice(0, limit);
     return merged.map((r) => ({ tagId: r.related, hits: r.hits }));
   }
 

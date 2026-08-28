@@ -125,7 +125,7 @@ export function MatchDetailView({ matchId }: Props) {
       </section>
 
       <h3>受け取るカード</h3>
-      {match.iReceive ?? match.partnerCard ? (
+      {(match.iReceive ?? match.partnerCard) ? (
         <CardItem
           card={{ ...(match.iReceive ?? match.partnerCard)!, owner: match.partner ?? undefined }}
         />
@@ -134,7 +134,7 @@ export function MatchDetailView({ matchId }: Props) {
       )}
 
       <h3>渡すカード</h3>
-      {match.iGive ?? match.myCard ? (
+      {(match.iGive ?? match.myCard) ? (
         <CardItem card={(match.iGive ?? match.myCard)!} />
       ) : (
         <p className="hint">削除済みです。</p>
@@ -149,7 +149,9 @@ export function MatchDetailView({ matchId }: Props) {
             <p className="hint">相手の返事を待っています。</p>
           ) : (
             <>
-              {match.acceptedByPartner && <p className="notice">相手が「話したい」を送っています</p>}
+              {match.acceptedByPartner && (
+                <p className="notice">相手が「話したい」を送っています</p>
+              )}
               <div className="actions">
                 <button
                   className="primary"

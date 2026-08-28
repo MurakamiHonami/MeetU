@@ -1,7 +1,10 @@
 import { client, unwrap } from "../../shared/api";
 import type { Card, CardType } from "../../entities/card/model";
 import type { Group } from "../../entities/group/model";
+import type { Match } from "../../entities/match/model";
 import type { GeoPoint } from "../../entities/user/geo";
+
+export type RespondOption = { card: Card; matchedTags: string[]; matchCount: number };
 
 export const cardApi = {
   createCard: async (payload: {
@@ -19,6 +22,7 @@ export const cardApi = {
         ...payload,
         tags: payload.tags.map((t) => ({ displayName: t.name, category: t.category })),
         requiredTags: payload.requiredTags?.map((t) => t.name),
+        location: payload.location ?? undefined,
       },
     });
     return unwrap<{
@@ -57,5 +61,18 @@ export const cardApi = {
       },
     });
     return unwrap<{ cards: Card[] }>(res);
+  },
+
+  respondOptions: async (cardId: string) => {
+    const res = await client.api.cards[":id"]["respond-options"].$get({ param: { id: cardId } });
+    return unwrap<{ targetCard: Card; options: RespondOption[] }>(res);
+  },
+
+  respond: async (targetCardId: string, myCardId: string) => {
+    const res = await client.api.cards[":id"].respond.$post({
+      param: { id: targetCardId },
+      json: { myCardId },
+    });
+    return unwrap<{ created: boolean; match: Match }>(res);
   },
 };

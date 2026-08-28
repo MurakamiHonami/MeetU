@@ -27,7 +27,7 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 |----------|------|
 | `just setup` | 依存関係インストール |
 | `just dev` | バックエンド + フロント同時起動 |
-| `just ci` | format + oxlint + secretlint + db:verify + typecheck + test |
+| `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
@@ -71,11 +71,12 @@ feature/*  →  PR → dev  →  just ci
      main     →  just ci → release-production（本番）
 ```
 
-Dependabot の PR も **dev** 向け。
+Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動マージ（`dependabot-automerge.yml`）。
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
 | `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
+| `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
 | `deploy-staging.yml` | `dev` push | verify job → `release-staging` |
 | `deploy-production.yml` | `main` push | verify job → `release-production` |
 
@@ -99,6 +100,9 @@ git checkout -b dev && git push -u origin dev
 | Secret | 用途 |
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
+| `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
+
+`JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
 
 トークン確認:
 
@@ -112,13 +116,27 @@ curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
 | 環境 | 設定方法 |
 |------|----------|
 | Local | `backend/.dev.vars` |
-| Staging | `wrangler secret put JWT_SECRET --env staging`（初回のみ） |
-| Production | `wrangler secret put JWT_SECRET --env production`（初回のみ） |
+| Staging | `JWT_SECRET` GitHub Secret（deploy-staging で自動設定） |
+| Production | `JWT_SECRET` GitHub Secret（deploy-production で自動設定） |
 
 ```bash
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
 ```
+
+### Staging integration tests
+
+本番デプロイ前・staging デプロイ後に、live API へ HTTP で疎通確認します。
+
+```bash
+just test-staging-integration   # https://api-meetu-staging.ruxel.net
+```
+
+CI: `deploy-staging` 完了後 / `deploy-production` の release 前に実行。
+
+### Observability
+
+Workers Logs（Cloudflare ダッシュボード内、追加 SaaS なし）: [observability.md](./observability.md)
 
 ---
 

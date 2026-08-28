@@ -13,5 +13,9 @@
       "custom_domain": true,
       "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
     }
-  ]
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.25
+  }
 }

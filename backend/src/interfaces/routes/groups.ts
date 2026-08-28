@@ -3,6 +3,8 @@ import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { groupView, messageView, ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
+import { zValidator } from "../validation/validator";
+import { messagesAfterQuerySchema, sendMessageSchema } from "../validation/schemas";
 
 export const groupsRouter = new Hono<Env>()
   .get("/", async (c) => {
@@ -86,13 +88,13 @@ export const groupsRouter = new Hono<Env>()
     }
   })
 
-  .get("/:id/messages", async (c) => {
+  .get("/:id/messages", zValidator("query", messagesAfterQuerySchema), async (c) => {
     try {
       const userId = c.get("userId");
       const id = c.req.param("id");
-      const after = c.req.query("after");
+      const query = c.req.valid("query");
       const ctx = createContext(c.env, baseUrl(c));
-      const result = await ctx.useCases.message.listGroupMessages(id, userId, after);
+      const result = await ctx.useCases.message.listGroupMessages(id, userId, query.after);
       const messages = [];
       for (const m of result.messages) {
         const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
@@ -110,11 +112,11 @@ export const groupsRouter = new Hono<Env>()
     }
   })
 
-  .post("/:id/messages", async (c) => {
+  .post("/:id/messages", zValidator("json", sendMessageSchema), async (c) => {
     try {
       const userId = c.get("userId");
       const id = c.req.param("id");
-      const body = await c.req.json<any>();
+      const body = c.req.valid("json");
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.message.sendGroupMessage(id, userId, body);
       const view = await messageView(result.message, userId, (key) =>

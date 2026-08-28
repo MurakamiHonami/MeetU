@@ -3,6 +3,7 @@ import { IUserRepository } from "../domain/user/IUserRepository";
 import { NearbySearch, DEFAULT_RADIUS_KM } from "../domain/nearby/NearbySearch";
 import { CardType } from "../domain/card/Card";
 import { Location } from "../domain/shared/Location";
+import { NotFoundError } from "../domain/shared/DomainError";
 
 export class NearbyUseCase {
   constructor(
@@ -18,7 +19,7 @@ export class NearbyUseCase {
     type?: CardType;
   }) {
     const user = await this.userRepo.findById(input.userId);
-    if (!user) throw new Error("ユーザーが見つかりません");
+    if (!user) throw new NotFoundError("ユーザーが見つかりません");
 
     Location.tryParse({ lat: input.lat, lon: input.lon });
     const radiusKm = input.radiusKm ?? DEFAULT_RADIUS_KM;

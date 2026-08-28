@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
+import RespondToCardButton from "./RespondToCardButton";
 import { TYPE_LABEL, type Card } from "../entities/card/model";
 
 type Props = {
@@ -148,6 +149,10 @@ export default function SwipeDeck({ cards, onSave, onSkip, onOpen }: Props) {
         <button className="link deck-detail" onClick={() => onOpen(card)}>
           詳細を見る
         </button>
+
+        <div className="deck-respond">
+          <RespondToCardButton card={card} className="teal deck-respond-btn" />
+        </div>
       </article>
 
       <div className="deck-actions">

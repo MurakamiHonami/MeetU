@@ -1,5 +1,6 @@
 import { client, unwrap } from "../../shared/api";
 import type { Owner } from "../../entities/user/model";
+import type { GeoPoint } from "../../entities/user/geo";
 
 export const userApi = {
   me: async () => {
@@ -17,7 +18,7 @@ export const userApi = {
     return unwrap<{ user: Owner }>(res);
   },
 
-  updateHome: async (homeLocation: Owner["homeLocation"]) => {
+  updateHome: async (homeLocation: GeoPoint | null) => {
     const res = await client.api.me.$put({ json: { homeLocation } });
     return unwrap<{ user: Owner }>(res);
   },

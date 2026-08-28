@@ -8,12 +8,8 @@ import { User } from "../../domain/user/User";
 import { clearRefreshCookie, readRefreshToken, setRefreshCookie } from "../auth/cookies";
 import { toPublicTokens } from "../auth/tokens";
 import { parseBody } from "../validation/parseBody";
-import {
-  loginSchema,
-  refreshSchema,
-  signupSchema,
-  validationErrorResponse,
-} from "../validation/schemas";
+import { zValidator } from "../validation/validator";
+import { loginSchema, refreshSchema, signupSchema } from "../validation/schemas";
 
 async function resolveRefreshToken(
   c: { req: { json: <T>() => Promise<T> } },
@@ -35,28 +31,19 @@ const authRateLimit = rateLimit({ key: "auth", limit: 30, windowSec: 60 });
 export const authRouter = new Hono<Env>()
   .use("*", authRateLimit)
 
-  .post("/signup", async (c) => {
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ error: "Invalid JSON body" }, 400);
-    }
-    const parsed = parseBody(signupSchema, body);
-    if (!parsed.ok) {
-      return c.json(validationErrorResponse(parsed.error), 400);
-    }
+  .post("/signup", zValidator("json", signupSchema), async (c) => {
+    const body = c.req.valid("json");
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
-    const existing = await userRepo.findByEmail(parsed.data.email);
+    const existing = await userRepo.findByEmail(body.email);
     if (existing) {
       return c.json({ error: "Email already registered" }, 409);
     }
 
     const salt = AuthService.generateSalt();
-    const passwordHash = await AuthService.hashPassword(parsed.data.password, salt);
+    const passwordHash = await AuthService.hashPassword(body.password, salt);
 
-    const user = User.create(parsed.data.email, passwordHash, salt, parsed.data.displayName);
+    const user = User.create(body.email, passwordHash, salt, body.displayName);
     await userRepo.save(user);
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
@@ -72,29 +59,16 @@ export const authRouter = new Hono<Env>()
     );
   })
 
-  .post("/login", async (c) => {
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ error: "Invalid JSON body" }, 400);
-    }
-    const parsed = parseBody(loginSchema, body);
-    if (!parsed.ok) {
-      return c.json(validationErrorResponse(parsed.error), 400);
-    }
+  .post("/login", zValidator("json", loginSchema), async (c) => {
+    const body = c.req.valid("json");
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
-    const user = await userRepo.findByEmail(parsed.data.email);
+    const user = await userRepo.findByEmail(body.email);
     if (!user) {
       return c.json({ error: "Invalid email or password" }, 401);
     }
 
-    const valid = await AuthService.verifyPassword(
-      parsed.data.password,
-      user.salt,
-      user.passwordHash,
-    );
+    const valid = await AuthService.verifyPassword(body.password, user.salt, user.passwordHash);
     if (!valid) {
       return c.json({ error: "Invalid email or password" }, 401);
     }

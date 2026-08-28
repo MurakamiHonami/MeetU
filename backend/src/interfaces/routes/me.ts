@@ -4,6 +4,8 @@ import { createContext } from "../container";
 import { ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
 import { Location } from "../../domain/shared/Location";
+import { zValidator } from "../validation/validator";
+import { updateMeSchema } from "../validation/schemas";
 
 export const meRouter = new Hono<Env>()
   .get("/", async (c) => {
@@ -31,24 +33,22 @@ export const meRouter = new Hono<Env>()
     }
   })
 
-  .put("/", async (c) => {
+  .put("/", zValidator("json", updateMeSchema), async (c) => {
     try {
       const userId = c.get("userId");
-      const body = await c.req.json<any>();
+      const body = c.req.valid("json");
       const ctx = createContext(c.env, baseUrl(c));
 
       let user;
-      if (body.favorites !== undefined) {
+      if ("favorites" in body) {
         user = await ctx.useCases.user.updateFavorites(userId, body.favorites);
-      } else if (body.homeLocation !== undefined) {
+      } else if ("homeLocation" in body) {
         const loc = body.homeLocation
           ? (Location.tryParse(body.homeLocation)?.toJSON() ?? null)
           : null;
         user = await ctx.useCases.user.updateHome(userId, loc);
-      } else if (body.displayName) {
-        user = await ctx.useCases.user.updateProfile(userId, body.displayName, body.pictureUrl);
       } else {
-        return c.json({ message: "更新内容を指定してください" }, 400);
+        user = await ctx.useCases.user.updateProfile(userId, body.displayName, body.pictureUrl);
       }
 
       if (!user) return c.json({ message: "ユーザーが見つかりません" }, 404);

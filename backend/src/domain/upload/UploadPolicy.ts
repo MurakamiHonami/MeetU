@@ -1,3 +1,5 @@
+import { ValidationError, ForbiddenError } from "../shared/DomainError";
+
 export const ALLOWED_CONTENT_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -16,7 +18,7 @@ export class UploadPolicy {
   static validateContentType(contentType: string): string {
     const normalized = contentType.toLowerCase();
     if (!(normalized in ALLOWED_CONTENT_TYPES)) {
-      throw new Error("画像は JPEG / PNG / WebP のみ送れます");
+      throw new ValidationError("画像は JPEG / PNG / WebP のみ送れます");
     }
     return normalized;
   }
@@ -24,7 +26,7 @@ export class UploadPolicy {
   static validateSize(size: number | undefined): void {
     if (size === undefined) return;
     if (!Number.isFinite(size) || size > MAX_UPLOAD_BYTES) {
-      throw new Error("画像は 5MB 以内にしてください");
+      throw new ValidationError("画像は 5MB 以内にしてください");
     }
   }
 
@@ -35,7 +37,7 @@ export class UploadPolicy {
 
   static assertKeyBelongsToThread(imageKey: string, threadId: string): void {
     if (!imageKey.startsWith(`chat/${threadId}/`)) {
-      throw new Error("この画像は使用できません");
+      throw new ForbiddenError("この画像は使用できません");
     }
   }
 }

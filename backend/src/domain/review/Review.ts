@@ -1,3 +1,5 @@
+import { ValidationError } from "../shared/DomainError";
+
 export interface ReviewProps {
   id: string;
   matchId: string;
@@ -45,7 +47,7 @@ export class Review {
     comment?: string;
   }): Review {
     if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
-      throw new Error("rating は 1〜5 で指定してください");
+      throw new ValidationError("rating は 1〜5 で指定してください");
     }
     return new Review({
       id: crypto.randomUUID(),

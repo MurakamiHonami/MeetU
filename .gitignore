@@ -5,6 +5,8 @@ node_modules/
 # Build & Output
 dist/
 build/
+coverage/
+backend/coverage/
 .wrangler/
 .mf/
 backend/.data/

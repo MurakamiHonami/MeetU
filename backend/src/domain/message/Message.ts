@@ -1,4 +1,5 @@
 import { Location, LocationProps } from "../shared/Location";
+import { ValidationError } from "../shared/DomainError";
 
 export type MessageKind = "text" | "image" | "location";
 export type ThreadType = "MATCH" | "GROUP";
@@ -69,10 +70,10 @@ export class Message {
   }): Message {
     const text = (input.text ?? "").trim();
     if (text.length > MAX_TEXT) {
-      throw new Error(`メッセージは${MAX_TEXT}文字以内にしてください`);
+      throw new ValidationError(`メッセージは${MAX_TEXT}文字以内にしてください`);
     }
     if (!text && !input.imageKey && !input.location) {
-      throw new Error("メッセージを入力してください");
+      throw new ValidationError("メッセージを入力してください");
     }
 
     const kind: MessageKind = input.imageKey ? "image" : input.location ? "location" : "text";

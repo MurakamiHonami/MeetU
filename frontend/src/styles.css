@@ -786,7 +786,8 @@ input[type="range"] {
   white-space: nowrap;
 }
 
-.status-NEW {
+.status-NEW,
+.status-PENDING {
   background: var(--pink);
   color: var(--white);
 }
@@ -1318,6 +1319,34 @@ input[type="range"] {
 
 .deck-detail {
   margin-top: 12px;
+}
+
+.deck-respond {
+  margin-top: 12px;
+}
+
+.deck-respond-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 45%);
+}
+
+.modal {
+  width: min(100%, 480px);
+  max-height: min(85vh, 720px);
+  overflow: auto;
 }
 
 .deck-actions {

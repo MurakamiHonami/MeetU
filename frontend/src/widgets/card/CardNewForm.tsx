@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import ThresholdSlider from "../ThresholdSlider";
@@ -16,6 +16,12 @@ const TYPE_HELP: Record<CardType, string> = {
   COMPANION: "イベントの同行者を募集します。同じ【同行者求】とマッチします。",
 };
 
+const COUNTERPART: Record<CardType, CardType> = {
+  GIVE: "WANT",
+  WANT: "GIVE",
+  COMPANION: "COMPANION",
+};
+
 type Result = {
   card: Card;
   newMatches: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[];
@@ -24,6 +30,8 @@ type Result = {
 
 export function CardNewForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const respondTo = searchParams.get("respondTo");
   const [type, setType] = useState<CardType>("WANT");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -42,6 +50,29 @@ export function CardNewForm() {
     () => Math.min(Math.max(minMatch, required.length, 1), Math.max(tags.length, 1)),
     [minMatch, required.length, tags.length],
   );
+
+  useEffect(() => {
+    if (!respondTo) return;
+    let alive = true;
+    cardApi
+      .card(respondTo)
+      .then(({ card }) => {
+        if (!alive) return;
+        const counterpart = COUNTERPART[card.type];
+        setType(counterpart);
+        setTags(card.tags.map((t) => ({ name: t.name })));
+        setRequired(card.requiredTags);
+        setMinMatch(Math.min(card.minMatchCount, card.tags.length));
+        if (card.dates?.length) setDates([...card.dates]);
+        const lead =
+          counterpart === "GIVE" ? "譲ります: " : counterpart === "WANT" ? "求めます: " : "同行: ";
+        setTitle(`${lead}${card.title}`.slice(0, 60));
+      })
+      .catch((e) => setError((e as Error).message));
+    return () => {
+      alive = false;
+    };
+  }, [respondTo]);
 
   async function submit() {
     setError("");
@@ -132,6 +163,11 @@ export function CardNewForm() {
   return (
     <div className="page">
       <h2>カードを登録</h2>
+      {respondTo && (
+        <p className="notice">
+          相手のカード条件に合わせて入力をプリセットしました。内容を確認して登録してください。
+        </p>
+      )}
 
       <label className="field">
         <span>種類</span>

@@ -4,9 +4,23 @@ import { createDb } from '../../infrastructure/db/database';
 import { D1UserRepository } from '../../infrastructure/db/d1/D1UserRepository';
 import { AuthService } from '../../infrastructure/auth/AuthService';
 import { User } from '../../domain/user/User';
+import { clearRefreshCookie, readRefreshToken, setRefreshCookie } from '../auth/cookies';
+import { toPublicTokens } from '../auth/tokens';
+
+async function resolveRefreshToken(
+  c: { req: { json: <T>() => Promise<T> } },
+  fromCookie: string | null,
+): Promise<string | null> {
+  if (fromCookie) return fromCookie;
+  try {
+    const body = await c.req.json<{ refreshToken?: string }>();
+    return body.refreshToken ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const authRouter = new Hono<Env>()
-  // 1. サインアップ (ユーザー登録)
   .post('/signup', async (c) => {
     const body = await c.req.json<{ email: string; password: string; displayName: string }>();
     if (!body.email || !body.password || !body.displayName) {
@@ -27,14 +41,14 @@ export const authRouter = new Hono<Env>()
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
     const tokens = await authService.createTokenPair(user.id, user.email);
+    setRefreshCookie(c, tokens.refreshToken);
 
     return c.json({
       user: user.toPublicProfile(),
-      tokens,
+      tokens: toPublicTokens(tokens),
     }, 201);
   })
 
-  // 2. ログイン
   .post('/login', async (c) => {
     const body = await c.req.json<{ email: string; password: string }>();
     if (!body.email || !body.password) {
@@ -58,36 +72,38 @@ export const authRouter = new Hono<Env>()
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
     const tokens = await authService.createTokenPair(user.id, user.email);
+    setRefreshCookie(c, tokens.refreshToken);
 
     return c.json({
       user: user.toPublicProfile(),
-      tokens,
+      tokens: toPublicTokens(tokens),
     });
   })
 
-  // 3. トークンリフレッシュ (Refresh Token -> Access Token / Refresh Token 再発行)
   .post('/refresh', async (c) => {
-    const body = await c.req.json<{ refreshToken: string }>();
-    if (!body.refreshToken) {
-      return c.json({ error: 'refreshToken is required' }, 400);
+    const refreshToken = await resolveRefreshToken(c, readRefreshToken(c));
+    if (!refreshToken) {
+      return c.json({ error: 'refresh token required' }, 401);
     }
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
-    const newTokens = await authService.refreshTokenPair(body.refreshToken);
+    const newTokens = await authService.refreshTokenPair(refreshToken);
 
     if (!newTokens) {
+      clearRefreshCookie(c);
       return c.json({ error: 'Invalid or expired refresh token' }, 401);
     }
 
-    return c.json({ tokens: newTokens });
+    setRefreshCookie(c, newTokens.refreshToken);
+    return c.json({ tokens: toPublicTokens(newTokens) });
   })
 
-  // 4. ログアウト (Refresh Token 失効)
   .post('/logout', async (c) => {
-    const body = await c.req.json<{ refreshToken: string }>();
-    if (body.refreshToken) {
+    const refreshToken = await resolveRefreshToken(c, readRefreshToken(c));
+    if (refreshToken) {
       const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
-      await authService.revokeRefreshToken(body.refreshToken);
+      await authService.revokeRefreshToken(refreshToken);
     }
+    clearRefreshCookie(c);
     return c.json({ success: true });
   });

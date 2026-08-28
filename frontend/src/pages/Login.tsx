@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login, setTokens } from "../lib/api";
+import { login } from "../lib/api";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
@@ -21,8 +21,7 @@ export default function Login() {
     try {
       setLoading(true);
       setError("");
-      const res = await login({ email, password });
-      setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+      await login({ email, password });
       navigate("/");
     } catch (err: any) {
       setError(err.message || "ログインに失敗しました");

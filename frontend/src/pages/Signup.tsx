@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signup, setTokens } from "../lib/api";
+import { signup } from "../lib/api";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -23,8 +23,7 @@ export default function Signup() {
     try {
       setLoading(true);
       setError("");
-      const res = await signup({ email, password, displayName });
-      setTokens(res.tokens.accessToken, res.tokens.refreshToken);
+      await signup({ email, password, displayName });
       navigate("/");
     } catch (err: any) {
       setError(err.message || "会員登録に失敗しました");

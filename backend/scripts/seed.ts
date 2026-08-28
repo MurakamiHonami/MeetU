@@ -18,7 +18,7 @@ const force = args.includes('--force');
 const staging = args.includes('--staging');
 const apiBase = (process.env.API_BASE ?? (staging ? STAGING_API : LOCAL_API)).replace(/\/$/, '');
 
-type Tokens = { accessToken: string; refreshToken: string };
+type Tokens = { accessToken: string };
 
 async function request<T>(
   path: string,

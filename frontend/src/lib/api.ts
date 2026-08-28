@@ -1,34 +1,97 @@
 import { hc } from "hono/client";
 import type { AppType } from "../../../backend/src/index";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8787";
+/** 空 = 同一オリジン（Vite プロキシ）。staging/production は .env で API URL を指定 */
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-const ACCESS_TOKEN_KEY = "meetu.accessToken";
-const REFRESH_TOKEN_KEY = "meetu.refreshToken";
+export type AuthTokens = { accessToken: string; expiresIn: number };
+
+// access token はメモリのみ（XSS で窃取されにくくする）
+let accessToken: string | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
+let sessionBootstrapped = false;
 
 export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return accessToken;
 }
 
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+export function setAccessToken(token: string): void {
+  accessToken = token;
 }
 
-export function setTokens(accessToken: string, refreshToken: string): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+export function clearAccessToken(): void {
+  accessToken = null;
+  sessionBootstrapped = false;
 }
 
-export function clearTokens(): void {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+export function isAuthenticated(): boolean {
+  return accessToken !== null;
 }
 
-const authenticatedFetch: typeof fetch = (input, init) => {
-  const token = getAccessToken();
-  const headers = new Headers(init?.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(input, { ...init, headers });
+async function refreshSession(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        clearAccessToken();
+        return false;
+      }
+      const body = (await res.json()) as { tokens: AuthTokens };
+      setAccessToken(body.tokens.accessToken);
+      return true;
+    } catch {
+      clearAccessToken();
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
+/** ページリロード後: HttpOnly Cookie から access token を再取得 */
+export async function ensureSession(): Promise<boolean> {
+  if (accessToken) return true;
+  if (sessionBootstrapped) return false;
+  sessionBootstrapped = true;
+  return refreshSession();
+}
+
+function isAuthEndpoint(url: string): boolean {
+  return url.includes("/api/auth/");
+}
+
+const authenticatedFetch: typeof fetch = async (input, init) => {
+  const execute = async (retried: boolean): Promise<Response> => {
+    const headers = new Headers(init?.headers);
+    const token = getAccessToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+
+    const res = await fetch(input, { ...init, headers, credentials: "include" });
+
+    if (res.status === 401 && !retried) {
+      const url = typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+      if (!isAuthEndpoint(url)) {
+        const ok = await refreshSession();
+        if (ok) return execute(true);
+        clearAccessToken();
+      }
+    }
+    return res;
+  };
+
+  return execute(false);
 };
 
 export const client = hc<AppType>(API_BASE, { fetch: authenticatedFetch });
@@ -174,34 +237,37 @@ function putToStorage(url: string, file: File): Promise<void> {
 
 export async function signup(input: { email: string; password: string; displayName: string }) {
   const res = await client.api.auth.signup.$post({ json: input });
-  return unwrap<{
+  const data = await unwrap<{
     user: { id: string; email: string; displayName: string };
-    tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+    tokens: AuthTokens;
   }>(res);
+  setAccessToken(data.tokens.accessToken);
+  return data;
 }
 
 export async function login(input: { email: string; password: string }) {
   const res = await client.api.auth.login.$post({ json: input });
-  return unwrap<{
+  const data = await unwrap<{
     user: { id: string; email: string; displayName: string };
-    tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+    tokens: AuthTokens;
   }>(res);
+  setAccessToken(data.tokens.accessToken);
+  return data;
 }
 
-export async function logout(refreshToken: string) {
-  const res = await client.api.auth.logout.$post({ json: { refreshToken } });
+export async function logout() {
+  const res = await client.api.auth.logout.$post({});
   return unwrap<{ success: boolean }>(res);
 }
 
-/** トークンを失効させてローカルから削除 */
+/** サーバー側 refresh token 失効 + ローカル access token クリア */
 export async function signOut(): Promise<void> {
-  const refreshToken = getRefreshToken();
   try {
-    if (refreshToken) await logout(refreshToken);
+    await logout();
   } catch {
     // サーバー側失敗でもローカルはクリアする
   } finally {
-    clearTokens();
+    clearAccessToken();
   }
 }
 

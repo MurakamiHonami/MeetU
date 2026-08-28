@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import {
   BrowserRouter,
   Link,
@@ -14,7 +14,7 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
-import { getAccessToken, signOut } from "./lib/api";
+import { getAccessToken, ensureSession, signOut } from "./lib/api";
 import CardDetail from "./pages/CardDetail";
 import CardNew from "./pages/CardNew";
 import Chat from "./pages/Chat";
@@ -89,9 +89,26 @@ function AppHeader() {
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const token = getAccessToken();
+  const [ready, setReady] = useState(false);
+  const [authed, setAuthed] = useState(false);
   const location = useLocation();
-  if (!token) {
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ok = getAccessToken() !== null || (await ensureSession());
+      if (!cancelled) {
+        setAuthed(ok);
+        setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!ready) return <p className="loading">読み込み中…</p>;
+  if (!authed) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
   return <>{children}</>;

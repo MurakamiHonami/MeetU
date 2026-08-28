@@ -7,6 +7,9 @@ export interface Env {
     CACHE_KV: KVNamespace;
     UPLOADS_R2: R2Bucket;
     JWT_SECRET: string;
+    APP_ENV?: string;
+    CORS_ORIGINS?: string;
+    COOKIE_DOMAIN?: string;
   };
   Variables: {
     userId: string;

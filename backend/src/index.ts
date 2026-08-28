@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { authMiddleware, Env } from './interfaces/middleware/auth';
+import { corsMiddleware } from './interfaces/middleware/cors';
 import { authRouter } from './interfaces/routes/auth';
 import { meRouter } from './interfaces/routes/me';
 import { cardsRouter } from './interfaces/routes/cards';
@@ -13,7 +13,7 @@ import { reviewsRouter, reportsRouter } from './interfaces/routes/reviews';
 import { uploadsRouter } from './interfaces/routes/uploads';
 
 const app = new Hono<Env>()
-  .use('*', cors())
+  .use('*', corsMiddleware())
   .get('/health', (c) => c.json({ status: 'ok', runtime: 'Cloudflare Workers (TypeScript)' }))
   .route('/api/auth', authRouter)
   // アップロード PUT/GET はトークン認証のため auth ミドルウェアの外

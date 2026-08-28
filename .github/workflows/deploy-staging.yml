@@ -53,5 +53,19 @@ jobs:
       - name: Install dependencies
         run: just setup
 
+      - name: Set JWT secret (staging)
+        working-directory: backend
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::Add JWT_SECRET to repository secrets (see docs/dev-setup.md)"
+            exit 1
+          fi
+          echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
+
       - name: Release to staging
         run: just release-staging
+
+      - name: Staging integration tests
+        run: just test-staging-integration

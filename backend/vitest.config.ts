@@ -37,6 +37,14 @@ export default defineConfig({
           pool: "forks",
         },
       }),
+      defineProject({
+        test: {
+          name: "staging",
+          include: ["tests/staging.integration.test.ts"],
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
+        },
+      }),
     ],
   },
 });

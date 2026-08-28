@@ -10,6 +10,7 @@ LIFF + LINE Login + Messaging API + Cloudflare Workers (TypeScript / Hono / D1 /
 - **実行基盤**: Cloudflare Workers
 - **DB / Storage**: D1 (SQLite) + KV (Cache) + R2 (Object Storage)
 - **設計思想**: Domain-Driven Design (DDD) + Clean Architecture
+- **API 契約**: Hono RPC（`hc<AppType>` でフロント・バックエンド間の型共有）
 
 詳細は [docs/ADR-001.md](docs/ADR-001.md) および [docs/dev-setup.md](docs/dev-setup.md)。
 

@@ -69,16 +69,8 @@
         "COOKIE_DOMAIN": ".ruxel.net"
       },
       "observability": {
-        "logs": {
-          "enabled": true,
-          "destinations": ["datadog-logs"],
-          "head_sampling_rate": 1
-        },
-        "traces": {
-          "enabled": true,
-          "destinations": ["datadog-traces"],
-          "head_sampling_rate": 1
-        }
+        "enabled": true,
+        "head_sampling_rate": 1
       }
     },
     "production": {
@@ -116,16 +108,8 @@
         "COOKIE_DOMAIN": ".ruxel.net"
       },
       "observability": {
-        "logs": {
-          "enabled": true,
-          "destinations": ["datadog-logs"],
-          "head_sampling_rate": 0.5
-        },
-        "traces": {
-          "enabled": true,
-          "destinations": ["datadog-traces"],
-          "head_sampling_rate": 0.25
-        }
+        "enabled": true,
+        "head_sampling_rate": 0.25
       }
     }
   }

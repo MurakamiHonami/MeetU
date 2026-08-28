@@ -28,8 +28,8 @@ just dev-frontend  # localhost:5173
 |----------|------|
 | `just deploy-staging` | staging API + Web をデプロイ |
 | `just deploy-production` | 本番 API + Web をデプロイ（seed なし） |
-| `just release-staging` | check + staging API + D1 migrate + Web |
-| `just release-production` | check + 本番 API + D1 migrate + Web |
+| `just release-staging` | staging API + D1 migrate + Web |
+| `just release-production` | 本番 API + D1 migrate + Web |
 | `just staging-setup` | release-staging + デモ seed 投入 |
 
 | 環境 | Web | API |

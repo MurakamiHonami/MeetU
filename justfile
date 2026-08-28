@@ -39,6 +39,16 @@ check:
     just typecheck
     just test
 
+# CI / pre-push と同じ検証（npm ci 済み前提）
+ci: lint lint-secrets check
+
+# Oxlint (backend + frontend)
+lint:
+    npm run lint
+
+lint-fix:
+    npm run lint:fix
+
 # Scan repository for leaked secrets
 lint-secrets:
     npm run lint:secrets

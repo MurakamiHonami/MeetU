@@ -32,11 +32,7 @@ export default function TagInput({
   useEffect(() => {
     window.clearTimeout(timer.current);
     const query = text.trim();
-    if (!query) {
-      setSuggestions([]);
-      setCanCreate(false);
-      return;
-    }
+    if (!query) return;
 
     // 打つたびに投げると無駄なので少し待つ
     timer.current = window.setTimeout(async () => {
@@ -113,7 +109,14 @@ export default function TagInput({
         value={text}
         disabled={full}
         placeholder={full ? `タグは${max}個までです` : "作品名・キャラ名・エリアなど"}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          setText(next);
+          if (!next.trim()) {
+            setSuggestions([]);
+            setCanCreate(false);
+          }
+        }}
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;
           e.preventDefault();

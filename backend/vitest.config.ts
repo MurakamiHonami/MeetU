@@ -11,6 +11,7 @@ export default defineConfig({
             "tests/domain.test.ts",
             "tests/domain-extended.test.ts",
             "tests/validation.test.ts",
+            "tests/tag-vision.test.ts",
           ],
           coverage: {
             provider: "v8",

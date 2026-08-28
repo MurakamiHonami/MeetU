@@ -27,6 +27,10 @@
       "bucket_name": "meetu-uploads"
     }
   ],
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
   "vars": {
     "JWT_SECRET": "local-test-only-not-for-staging-or-production",
     "APP_ENV": "local",
@@ -63,6 +67,10 @@
           "bucket_name": "meetu-uploads-staging"
         }
       ],
+      "ai": {
+        "binding": "AI",
+        "remote": true
+      },
       "vars": {
         "APP_ENV": "staging",
         "CORS_ORIGINS": "https://meetu.staging.ruxel.net",
@@ -102,6 +110,10 @@
           "bucket_name": "meetu-uploads"
         }
       ],
+      "ai": {
+        "binding": "AI",
+        "remote": true
+      },
       "vars": {
         "APP_ENV": "production",
         "CORS_ORIGINS": "https://meetu.ruxel.net",

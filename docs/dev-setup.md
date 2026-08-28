@@ -82,50 +82,9 @@ feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan�
 
 `CLOUDFLARE_ACCOUNT_ID` は workflow に直書き（公開情報）。API URL も同様。
 
-**Cloudflare API Token の権限（`CLOUDFLARE_API_TOKEN`）**
+Cloudflare API Token の権限例: テンプレート **Edit Cloudflare Workers**（Account: Workers Scripts / D1 / KV / R2、Zone `ruxel.net`: Workers Routes + DNS）。
 
-`wrangler.json` で `custom_domain: true` のルートを使うため、**Account 権限だけでは足りません**。`ruxel.net` ゾーンへの Zone 権限も必要です。
-
-| スコープ | 権限 |
-|----------|------|
-| Account | Workers Scripts **Edit** |
-| Account | D1 **Edit** |
-| Account | Workers KV Storage **Edit** |
-| Account | Workers R2 Storage **Edit** |
-| Account | Workers Tail **Read**（任意） |
-| Zone `ruxel.net` | Workers Routes **Edit** |
-| Zone `ruxel.net` | DNS **Edit**（カスタムドメインの DNS 自動作成用） |
-
-テンプレート **Edit Cloudflare Workers** をベースに、Zone Resources で `ruxel.net`（または All zones）を指定して作成するのが手早いです。
-
-作成後 [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/e3800962ed5e416e565f49c823868cf3/api-tokens) で権限を確認し、GitHub **Repository secrets** の `CLOUDFLARE_API_TOKEN` を更新してください。
-
-**よくある CI エラー**
-
-```
-A request to the Cloudflare API (.../zones/.../workers/routes) failed.
-Authentication error [code: 10000]
-```
-
-Worker 本体のアップロードは成功しているがルート設定で失敗している状態です。上記 Zone 権限（Workers Routes Edit）が不足していることがほとんどです。
-
-```
-Authentication failed (status: 400) [code: 9106]
-```
-
-`wrangler secret put` や `wrangler whoami` で出る場合、**Repository secrets の `CLOUDFLARE_API_TOKEN` が空・無効・未設定** です。Environment secrets にだけ入れていると参照されません（workflow は Repository secrets のみ使用）。
-
-確認手順:
-
-1. GitHub → **Settings → Secrets and variables → Actions → Repository secrets**
-2. `CLOUDFLARE_API_TOKEN` と `JWT_SECRET` の両方が存在するか
-3. ローカルで検証:
-
-```bash
-curl -s "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-  -H "Authorization: Bearer （トークン）" | jq .
-# "success": true なら OK
-```
+`wrangler.json` の routes には `zone_id` を明示しています。Zone を 1 つに絞った API Token でも deploy できるようにするためです（`zone_id` なしだと Wrangler が Account 全体の Zone 一覧 API を叩き、Zone 限定トークンでは 10000 になる既知の挙動）。
 
 **Environments（未使用）**
 

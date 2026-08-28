@@ -39,7 +39,8 @@
       "routes": [
         {
           "pattern": "api-meetu-staging.ruxel.net",
-          "custom_domain": true
+          "custom_domain": true,
+          "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
         }
       ],
       "d1_databases": [
@@ -74,7 +75,8 @@
       "routes": [
         {
           "pattern": "api.meetu.ruxel.net",
-          "custom_domain": true
+          "custom_domain": true,
+          "zone_id": "bdbf7e30ed6987f1a240291681d33ca7"
         }
       ],
       "d1_databases": [

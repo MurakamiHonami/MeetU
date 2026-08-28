@@ -39,6 +39,9 @@ check:
     just typecheck
     just test
 
+# CI / pre-push と同じ検証（npm ci 済み前提）
+ci: lint-secrets check
+
 # Scan repository for leaked secrets
 lint-secrets:
     npm run lint:secrets

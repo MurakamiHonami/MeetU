@@ -7,16 +7,20 @@ export default defineConfig({
       defineProject({
         test: {
           name: "unit",
-          include: ["tests/domain.test.ts", "tests/validation.test.ts"],
+          include: [
+            "tests/domain.test.ts",
+            "tests/domain-extended.test.ts",
+            "tests/validation.test.ts",
+          ],
           coverage: {
             provider: "v8",
             reporter: ["text", "lcov"],
             include: ["src/domain/**/*.ts", "src/interfaces/validation/**/*.ts"],
             thresholds: {
-              lines: 35,
-              functions: 30,
-              branches: 20,
-              statements: 35,
+              lines: 70,
+              functions: 65,
+              branches: 55,
+              statements: 70,
             },
           },
         },

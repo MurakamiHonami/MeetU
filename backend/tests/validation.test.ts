@@ -103,4 +103,44 @@ describe("Zod schemas", () => {
   it("loginSchema requires password", () => {
     expect(parseBody(loginSchema, { email: "a@b.com", password: "" }).ok).toBe(false);
   });
+
+  it("createCardSchema accepts location with lng alias", () => {
+    const result = parseBody(createCardSchema, {
+      type: "GIVE",
+      title: "Test",
+      tags: [{ displayName: "tag" }],
+      location: { lat: 35.6, lng: 139.7, name: "Tokyo" },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.location?.lon).toBe(139.7);
+    }
+  });
+
+  it("updateMeSchema accepts homeLocation null", () => {
+    expect(parseBody(updateMeSchema, { homeLocation: null }).ok).toBe(true);
+  });
+
+  it("updateMeSchema accepts displayName update", () => {
+    expect(parseBody(updateMeSchema, { displayName: "New" }).ok).toBe(true);
+  });
+
+  it("sendMessageSchema accepts imageKey only", () => {
+    expect(parseBody(sendMessageSchema, { imageKey: "chat/m1/x.png" }).ok).toBe(true);
+  });
+
+  it("nearbyQuerySchema rejects invalid lat", () => {
+    expect(parseBody(nearbyQuerySchema, { lat: "abc", lon: "139" }).ok).toBe(false);
+  });
+});
+
+describe("parseBody", () => {
+  it("returns typed data on success", () => {
+    const result = parseBody(signupSchema, {
+      email: "x@y.z",
+      password: "password1",
+      displayName: "X",
+    });
+    if (result.ok) expect(result.data.email).toBe("x@y.z");
+  });
 });

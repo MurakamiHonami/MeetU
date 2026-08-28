@@ -65,9 +65,9 @@ feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan�
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
-| `ci.yml` | PR | `just ci`（secret scan + db:verify + typecheck + test） |
+| `ci.yml` | PR | `just ci`（oxlint + secret scan + db:verify + typecheck + test） |
 
-push 前に **husky pre-push** で同じ `just ci` が走ります（`npm ci` はローカルで済ませてください）。
+push 前に **husky pre-push** で同じ `just ci` が走ります。commit 時は **lint-staged** で staged ファイルに oxlint + secretlint が走ります。
 | `deploy-staging.yml` | `stg` への push | `just release-staging` |
 | `deploy-production.yml` | `main` への push | `just release-production` |
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
@@ -22,13 +22,6 @@ export default function SwipeDeck({ cards, onSave, onSkip, onOpen }: Props) {
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [leaving, setLeaving] = useState<"save" | "skip" | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
-
-  // カードが差し替わったら先頭に戻す
-  useEffect(() => {
-    setIndex(0);
-    setDrag({ x: 0, y: 0 });
-    setLeaving(null);
-  }, [cards]);
 
   const card = cards[index];
   const next = cards[index + 1];

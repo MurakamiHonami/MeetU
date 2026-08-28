@@ -43,18 +43,37 @@ export function HomeView() {
   }, []);
 
   useEffect(() => {
+    let alive = true;
     userApi
       .me()
       .then((res) => {
+        if (!alive) return;
         const user = res.user as Me;
         setMe(user);
         setFavorites((user.favorites ?? []).map((f) => ({ name: f.name })));
         // 好み未設定なら設定パネルを開いておく
         setSettingsOpen((user.favorites?.length ?? 0) === 0);
       })
-      .catch((e) => setError(e.message));
-    void loadFeed();
-  }, [loadFeed]);
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+
+    feedApi
+      .feed()
+      .then((res) => {
+        if (alive) setCards(res.cards);
+      })
+      .catch((e) => {
+        if (alive) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (alive) setLoadingFeed(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function saveFavorites() {
     setSavingFav(true);
@@ -126,6 +145,7 @@ export function HomeView() {
           <p className="loading">新着を読み込み中…</p>
         ) : (
           <SwipeDeck
+            key={cards.map((c) => c.cardId).join("|") || "empty"}
             cards={cards}
             onSave={(c) => swipe(c, "save")}
             onSkip={(c) => swipe(c, "skip")}

@@ -30,7 +30,7 @@ export class Card {
   get note(): string | undefined { return this.props.note; }
   get minMatchCount(): number { return this.props.minMatchCount; }
   get tags(): string[] { return [...this.props.tags]; }
-  get tagLabels(): Record<string, string> { return { ...(this.props.tagLabels ?? {}) }; }
+  get tagLabels(): Record<string, string> { return { ...this.props.tagLabels }; }
   get requiredTags(): string[] { return [...this.props.requiredTags]; }
   get dates(): string[] { return [...this.props.dates]; }
   get location(): Location | undefined {
@@ -61,7 +61,7 @@ export class Card {
     return {
       ...this.props,
       tags: [...this.props.tags],
-      tagLabels: { ...(this.props.tagLabels ?? {}) },
+      tagLabels: { ...this.props.tagLabels },
       requiredTags: [...this.props.requiredTags],
       dates: [...this.props.dates],
     };

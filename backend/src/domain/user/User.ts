@@ -35,7 +35,7 @@ export class User {
   get reportCount(): number { return this.props.reportCount; }
   get tradeCount(): number { return this.props.tradeCount; }
   get favoriteTags(): string[] { return [...this.props.favoriteTags]; }
-  get favoriteLabels(): Record<string, string> { return { ...(this.props.favoriteLabels ?? {}) }; }
+  get favoriteLabels(): Record<string, string> { return { ...this.props.favoriteLabels }; }
   get homeLocation(): Location | undefined {
     return this.props.homeLocation ? new Location(this.props.homeLocation) : undefined;
   }
@@ -86,7 +86,7 @@ export class User {
     return {
       ...this.props,
       favoriteTags: [...this.props.favoriteTags],
-      favoriteLabels: { ...(this.props.favoriteLabels ?? {}) },
+      favoriteLabels: { ...this.props.favoriteLabels },
     };
   }
 

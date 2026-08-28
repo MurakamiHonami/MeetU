@@ -1,4 +1,4 @@
-import { Swipe, SwipeAction } from './Swipe';
+import { SwipeAction } from './Swipe';
 
 export interface ISwipeRepository {
   record(userId: string, cardId: string, action: SwipeAction): Promise<void>;

@@ -3,6 +3,8 @@ import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { groupView, messageView, ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
+import { parseJson, parseQueryParams, readJsonBody } from "../validation/parseRequest";
+import { messagesAfterQuerySchema, sendMessageSchema } from "../validation/schemas";
 
 export const groupsRouter = new Hono<Env>()
   .get("/", async (c) => {
@@ -90,9 +92,10 @@ export const groupsRouter = new Hono<Env>()
     try {
       const userId = c.get("userId");
       const id = c.req.param("id");
-      const after = c.req.query("after");
+      const query = parseQueryParams(c, messagesAfterQuerySchema);
+      if (!query.ok) return query.response;
       const ctx = createContext(c.env, baseUrl(c));
-      const result = await ctx.useCases.message.listGroupMessages(id, userId, after);
+      const result = await ctx.useCases.message.listGroupMessages(id, userId, query.data.after);
       const messages = [];
       for (const m of result.messages) {
         const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
@@ -114,9 +117,12 @@ export const groupsRouter = new Hono<Env>()
     try {
       const userId = c.get("userId");
       const id = c.req.param("id");
-      const body = await c.req.json<any>();
+      const raw = await readJsonBody(c);
+      if (!raw.ok) return raw.response;
+      const parsed = parseJson(c, sendMessageSchema, raw.data);
+      if (!parsed.ok) return parsed.response;
       const ctx = createContext(c.env, baseUrl(c));
-      const result = await ctx.useCases.message.sendGroupMessage(id, userId, body);
+      const result = await ctx.useCases.message.sendGroupMessage(id, userId, parsed.data);
       const view = await messageView(result.message, userId, (key) =>
         ctx.useCases.message.getImageUrl(key),
       );

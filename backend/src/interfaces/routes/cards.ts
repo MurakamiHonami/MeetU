@@ -3,18 +3,17 @@ import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { cardView, groupView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
-import { CardType } from "../../domain/card/Card";
-import { parseBody } from "../validation/parseBody";
-import { createCardSchema, validationErrorResponse } from "../validation/schemas";
+import { parseJson, parseQueryParams, readJsonBody } from "../validation/parseRequest";
+import { cardsSearchQuerySchema, createCardSchema } from "../validation/schemas";
 
 export const cardsRouter = new Hono<Env>()
   .get("/", async (c) => {
     try {
+      const query = parseQueryParams(c, cardsSearchQuerySchema);
+      if (!query.ok) return query.response;
       const ctx = createContext(c.env, baseUrl(c));
-      const tags = (c.req.query("tags") || "").split(",").filter(Boolean);
-      const minMatch = Number(c.req.query("minMatch") || "1");
-      const type = c.req.query("type") as CardType | undefined;
-      const cards = await ctx.useCases.card.searchCards(tags, minMatch, type || undefined);
+      const tags = query.data.tags.split(",").filter(Boolean);
+      const cards = await ctx.useCases.card.searchCards(tags, query.data.minMatch, query.data.type);
 
       const views = [];
       for (const card of cards) {
@@ -30,16 +29,10 @@ export const cardsRouter = new Hono<Env>()
   .post("/", async (c) => {
     try {
       const userId = c.get("userId");
-      let body: unknown;
-      try {
-        body = await c.req.json();
-      } catch {
-        return c.json({ error: "Invalid JSON body" }, 400);
-      }
-      const parsed = parseBody(createCardSchema, body);
-      if (!parsed.ok) {
-        return c.json(validationErrorResponse(parsed.error), 400);
-      }
+      const raw = await readJsonBody(c);
+      if (!raw.ok) return raw.response;
+      const parsed = parseJson(c, createCardSchema, raw.data);
+      if (!parsed.ok) return parsed.response;
       const ctx = createContext(c.env, baseUrl(c));
 
       const tags = parsed.data.tags.map((t) => ({

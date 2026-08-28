@@ -3,18 +3,23 @@ import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { cardView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
-import { CardType } from "../../domain/card/Card";
+import { parseQueryParams } from "../validation/parseRequest";
+import { nearbyQuerySchema } from "../validation/schemas";
 
 export const nearbyRouter = new Hono<Env>().get("/", async (c) => {
   try {
     const userId = c.get("userId");
-    const lat = Number(c.req.query("lat"));
-    const lon = Number(c.req.query("lon"));
-    const radius = c.req.query("radius") ? Number(c.req.query("radius")) : undefined;
-    const type = c.req.query("type") as CardType | undefined;
+    const query = parseQueryParams(c, nearbyQuerySchema);
+    if (!query.ok) return query.response;
 
     const ctx = createContext(c.env, baseUrl(c));
-    const result = await ctx.useCases.nearby.search({ userId, lat, lon, radiusKm: radius, type });
+    const result = await ctx.useCases.nearby.search({
+      userId,
+      lat: query.data.lat,
+      lon: query.data.lon,
+      radiusKm: query.data.radius,
+      type: query.data.type,
+    });
 
     const cards = [];
     for (const row of result.cards) {

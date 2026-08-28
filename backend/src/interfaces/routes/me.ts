@@ -4,6 +4,8 @@ import { createContext } from "../container";
 import { ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
 import { Location } from "../../domain/shared/Location";
+import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { updateMeSchema } from "../validation/schemas";
 
 export const meRouter = new Hono<Env>()
   .get("/", async (c) => {
@@ -34,21 +36,26 @@ export const meRouter = new Hono<Env>()
   .put("/", async (c) => {
     try {
       const userId = c.get("userId");
-      const body = await c.req.json<any>();
+      const raw = await readJsonBody(c);
+      if (!raw.ok) return raw.response;
+      const parsed = parseJson(c, updateMeSchema, raw.data);
+      if (!parsed.ok) return parsed.response;
       const ctx = createContext(c.env, baseUrl(c));
 
       let user;
-      if (body.favorites !== undefined) {
-        user = await ctx.useCases.user.updateFavorites(userId, body.favorites);
-      } else if (body.homeLocation !== undefined) {
-        const loc = body.homeLocation
-          ? (Location.tryParse(body.homeLocation)?.toJSON() ?? null)
+      if ("favorites" in parsed.data) {
+        user = await ctx.useCases.user.updateFavorites(userId, parsed.data.favorites);
+      } else if ("homeLocation" in parsed.data) {
+        const loc = parsed.data.homeLocation
+          ? (Location.tryParse(parsed.data.homeLocation)?.toJSON() ?? null)
           : null;
         user = await ctx.useCases.user.updateHome(userId, loc);
-      } else if (body.displayName) {
-        user = await ctx.useCases.user.updateProfile(userId, body.displayName, body.pictureUrl);
       } else {
-        return c.json({ message: "更新内容を指定してください" }, 400);
+        user = await ctx.useCases.user.updateProfile(
+          userId,
+          parsed.data.displayName,
+          parsed.data.pictureUrl,
+        );
       }
 
       if (!user) return c.json({ message: "ユーザーが見つかりません" }, 404);

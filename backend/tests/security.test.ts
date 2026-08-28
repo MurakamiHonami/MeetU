@@ -108,6 +108,65 @@ describe("Security & Validation", () => {
     expect(res.status).toBe(400);
   });
 
+  it("POST /api/reviews rejects invalid rating", async () => {
+    const signupRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "reviewtest@example.com",
+          password: "password123",
+          displayName: "Review Test",
+        }),
+      },
+      env,
+    );
+    const signupData = (await signupRes.json()) as { tokens: { accessToken: string } };
+
+    const res = await app.request(
+      "/api/reviews",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${signupData.tokens.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ matchId: "fake", rating: 10 }),
+      },
+      env,
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /api/nearby rejects missing coordinates", async () => {
+    const signupRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "nearbytest@example.com",
+          password: "password123",
+          displayName: "Nearby Test",
+        }),
+      },
+      env,
+    );
+    const signupData = (await signupRes.json()) as { tokens: { accessToken: string } };
+
+    const res = await app.request(
+      "/api/nearby",
+      {
+        headers: { Authorization: `Bearer ${signupData.tokens.accessToken}` },
+      },
+      env,
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it("GET /api/tags returns tag list without auth", async () => {
     const res = await app.request("/api/tags", {}, env);
     expect(res.status).toBe(401);

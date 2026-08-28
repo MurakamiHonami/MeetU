@@ -19,4 +19,5 @@ if [[ -f "$dev_vars" ]]; then
 fi
 
 cd "$root"
-npm run test -w meetu-backend
+npm run test:coverage -w meetu-backend
+npm run test:integration -w meetu-backend

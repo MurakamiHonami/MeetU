@@ -8,12 +8,8 @@ import { User } from "../../domain/user/User";
 import { clearRefreshCookie, readRefreshToken, setRefreshCookie } from "../auth/cookies";
 import { toPublicTokens } from "../auth/tokens";
 import { parseBody } from "../validation/parseBody";
-import {
-  loginSchema,
-  refreshSchema,
-  signupSchema,
-  validationErrorResponse,
-} from "../validation/schemas";
+import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { loginSchema, refreshSchema, signupSchema } from "../validation/schemas";
 
 async function resolveRefreshToken(
   c: { req: { json: <T>() => Promise<T> } },
@@ -36,16 +32,10 @@ export const authRouter = new Hono<Env>()
   .use("*", authRateLimit)
 
   .post("/signup", async (c) => {
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ error: "Invalid JSON body" }, 400);
-    }
-    const parsed = parseBody(signupSchema, body);
-    if (!parsed.ok) {
-      return c.json(validationErrorResponse(parsed.error), 400);
-    }
+    const raw = await readJsonBody(c);
+    if (!raw.ok) return raw.response;
+    const parsed = parseJson(c, signupSchema, raw.data);
+    if (!parsed.ok) return parsed.response;
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
     const existing = await userRepo.findByEmail(parsed.data.email);
@@ -73,16 +63,10 @@ export const authRouter = new Hono<Env>()
   })
 
   .post("/login", async (c) => {
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ error: "Invalid JSON body" }, 400);
-    }
-    const parsed = parseBody(loginSchema, body);
-    if (!parsed.ok) {
-      return c.json(validationErrorResponse(parsed.error), 400);
-    }
+    const raw = await readJsonBody(c);
+    if (!raw.ok) return raw.response;
+    const parsed = parseJson(c, loginSchema, raw.data);
+    if (!parsed.ok) return parsed.response;
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
     const user = await userRepo.findByEmail(parsed.data.email);

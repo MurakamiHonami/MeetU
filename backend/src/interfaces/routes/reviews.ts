@@ -2,18 +2,22 @@ import { Hono } from "hono";
 import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { baseUrl, handleError } from "./helpers";
-import { ReportReason } from "../../domain/report/Report";
+import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { createReportSchema, createReviewSchema } from "../validation/schemas";
 
 export const reviewsRouter = new Hono<Env>().post("/", async (c) => {
   try {
     const userId = c.get("userId");
-    const body = await c.req.json<{ matchId: string; rating: number; comment?: string }>();
+    const raw = await readJsonBody(c);
+    if (!raw.ok) return raw.response;
+    const parsed = parseJson(c, createReviewSchema, raw.data);
+    if (!parsed.ok) return parsed.response;
     const ctx = createContext(c.env, baseUrl(c));
     const review = await ctx.useCases.review.createReview({
-      matchId: body.matchId,
+      matchId: parsed.data.matchId,
       fromUserId: userId,
-      rating: body.rating,
-      comment: body.comment,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment,
     });
     return c.json({ review: review.toProps() });
   } catch (e) {
@@ -24,19 +28,17 @@ export const reviewsRouter = new Hono<Env>().post("/", async (c) => {
 export const reportsRouter = new Hono<Env>().post("/", async (c) => {
   try {
     const userId = c.get("userId");
-    const body = await c.req.json<{
-      targetUserId: string;
-      matchId?: string;
-      reason: ReportReason;
-      detail?: string;
-    }>();
+    const raw = await readJsonBody(c);
+    if (!raw.ok) return raw.response;
+    const parsed = parseJson(c, createReportSchema, raw.data);
+    if (!parsed.ok) return parsed.response;
     const ctx = createContext(c.env, baseUrl(c));
     const report = await ctx.useCases.report.createReport({
       reporterId: userId,
-      targetUserId: body.targetUserId,
-      matchId: body.matchId,
-      reason: body.reason,
-      detail: body.detail,
+      targetUserId: parsed.data.targetUserId,
+      matchId: parsed.data.matchId,
+      reason: parsed.data.reason,
+      detail: parsed.data.detail,
     });
     return c.json({
       reportId: report.id,

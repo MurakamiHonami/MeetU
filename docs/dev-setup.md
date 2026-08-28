@@ -27,7 +27,7 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 |----------|------|
 | `just setup` | 依存関係インストール |
 | `just dev` | バックエンド + フロント同時起動 |
-| `just ci` | format + oxlint + secretlint + db:verify + typecheck + test |
+| `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
@@ -71,11 +71,12 @@ feature/*  →  PR → dev  →  just ci
      main     →  just ci → release-production（本番）
 ```
 
-Dependabot の PR も **dev** 向け。
+Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動マージ（`dependabot-automerge.yml`）。
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
 | `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
+| `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
 | `deploy-staging.yml` | `dev` push | verify job → `release-staging` |
 | `deploy-production.yml` | `main` push | verify job → `release-production` |
 

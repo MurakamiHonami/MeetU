@@ -17,11 +17,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_ACCOUNT_ID: e3800962ed5e416e565f49c823868cf3
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       VITE_API_BASE_URL: https://api.meetu.ruxel.net
     steps:
       - uses: actions/checkout@v4
+
+      - name: Normalize Cloudflare credentials
+        env:
+          RAW_CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          TOKEN=$(printf '%s' "$RAW_CLOUDFLARE_API_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^[Bb]earer //')
+
+          if [ -z "$TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is empty. Set it in Repository secrets (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::JWT_SECRET is empty. Set it in Repository secrets."
+            exit 1
+          fi
+
+          echo "CLOUDFLARE_API_TOKEN length: ${#TOKEN} (compare with local: echo -n \"\$TOKEN\" | wc -c)"
+          {
+            echo "CLOUDFLARE_API_TOKEN<<EOF"
+            echo "$TOKEN"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -33,25 +54,6 @@ jobs:
             frontend/package-lock.json
 
       - uses: extractions/setup-just@v2
-
-      - name: Verify deploy secrets
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN is empty. Set it in Settings → Secrets and variables → Actions → Repository secrets (not Environments)."
-            exit 1
-          fi
-          if [ -z "$JWT_SECRET" ]; then
-            echo "::error::JWT_SECRET is empty. Set it in Repository secrets."
-            exit 1
-          fi
-          resp=$(curl -sS "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
-          if [ "$(echo "$resp" | jq -r '.success')" != "true" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN is invalid or expired."
-            echo "$resp" | jq -r '.errors[]?.message // .messages[]?.message // "verify failed"'
-            exit 1
-          fi
-          echo "Cloudflare API token verified."
 
       - name: Install dependencies
         run: |

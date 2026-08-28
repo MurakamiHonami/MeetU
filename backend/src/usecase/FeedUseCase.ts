@@ -4,6 +4,7 @@ import { ISwipeRepository } from "../domain/feed/ISwipeRepository";
 import { IUserRepository } from "../domain/user/IUserRepository";
 import { FeedRanker } from "../domain/feed/FeedRanker";
 import { Card } from "../domain/card/Card";
+import { NotFoundError, ForbiddenError } from "../domain/shared/DomainError";
 
 const FEED_LIMIT = 30;
 const FEED_DAYS = 7;
@@ -25,7 +26,7 @@ export class FeedUseCase {
 
   async getFeed(userId: string) {
     const user = await this.userRepo.findById(userId);
-    if (!user) throw new Error("ユーザーが見つかりません");
+    if (!user) throw new NotFoundError("ユーザーが見つかりません");
 
     const swiped = await this.swipeRepo.findSwipedCardIds(userId);
     const candidates = (await this.cardRepo.findRecentOpen(FEED_DAYS, 200)).filter(
@@ -49,15 +50,15 @@ export class FeedUseCase {
 
   async saveCard(userId: string, cardId: string): Promise<void> {
     const card = await this.cardRepo.findById(cardId);
-    if (!card) throw new Error("カードが見つかりません");
-    if (card.ownerId === userId) throw new Error("自分のカードは操作できません");
+    if (!card) throw new NotFoundError("カードが見つかりません");
+    if (card.ownerId === userId) throw new ForbiddenError("自分のカードは操作できません");
     await this.swipeRepo.record(userId, cardId, "save");
   }
 
   async skipCard(userId: string, cardId: string): Promise<void> {
     const card = await this.cardRepo.findById(cardId);
-    if (!card) throw new Error("カードが見つかりません");
-    if (card.ownerId === userId) throw new Error("自分のカードは操作できません");
+    if (!card) throw new NotFoundError("カードが見つかりません");
+    if (card.ownerId === userId) throw new ForbiddenError("自分のカードは操作できません");
     await this.swipeRepo.record(userId, cardId, "skip");
   }
 

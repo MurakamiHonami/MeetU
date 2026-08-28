@@ -1,4 +1,5 @@
 import { BY_EXTENSION, GET_EXPIRES_SEC, PUT_EXPIRES_SEC } from "../../domain/upload/UploadPolicy";
+import { NotFoundError, ValidationError } from "../../domain/shared/DomainError";
 
 interface UploadTicket {
   key: string;
@@ -41,10 +42,10 @@ export class R2UploadService {
 
   async handlePut(token: string, body: ReadableStream | ArrayBuffer | null): Promise<void> {
     const raw = await this.kv.get(`upload:${token}`);
-    if (!raw) throw new Error("アップロードの有効期限が切れています");
+    if (!raw) throw new NotFoundError("アップロードの有効期限が切れています");
 
     const ticket = JSON.parse(raw) as UploadTicket;
-    if (!body) throw new Error("画像データがありません");
+    if (!body) throw new ValidationError("画像データがありません");
 
     await this.bucket.put(ticket.key, body, {
       httpMetadata: { contentType: ticket.contentType },

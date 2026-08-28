@@ -1,4 +1,5 @@
 import { Context } from "hono";
+import { DomainError } from "../../domain/shared/DomainError";
 
 type StatusCode = 400 | 401 | 403 | 404 | 409 | 500;
 
@@ -11,23 +12,20 @@ export function baseUrl(c: Context): string {
   return `${url.protocol}//${url.host}`;
 }
 
+/**
+ * ユースケース層から投げられたエラーを HTTP レスポンスに変換する。
+ *
+ * DomainError（NotFoundError / ForbiddenError / ConflictError / ValidationError）は
+ * status/code を自身が持つので instanceof でそのまま使う。エラーメッセージの文言には
+ * 依存しないため、メッセージを変更・追加してもレスポンスの意味は変わらない。
+ *
+ * 素の Error（DomainError でないもの）は原則バグか未分類の入力エラーなので 400 に倒す。
+ * 新しいユースケースエラーは DomainError のサブクラスとして投げること。
+ */
 export function handleError(c: Context, e: unknown) {
+  if (e instanceof DomainError) {
+    return apiError(c, e.status, e.message, e.code);
+  }
   const message = e instanceof Error ? e.message : "サーバーエラーが発生しました";
-  if (message.includes("見つかりません")) return apiError(c, 404, message, "not_found");
-  if (message.includes("当事者") || message.includes("参加者"))
-    return apiError(c, 403, message, "forbidden");
-  if (message.includes("承諾") || message.includes("完了後") || message.includes("評価済み")) {
-    return apiError(c, 409, message, "conflict");
-  }
-  if (message.includes("通報") || message.includes("停止"))
-    return apiError(c, 403, message, "suspended");
-  if (
-    message.includes("入力") ||
-    message.includes("指定") ||
-    message.includes("送れ") ||
-    message.includes("5MB")
-  ) {
-    return apiError(c, 400, message, "bad_request");
-  }
   return apiError(c, 400, message, "error");
 }

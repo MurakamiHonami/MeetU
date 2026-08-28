@@ -4,7 +4,7 @@ import { createContext } from "../container";
 import { ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
 import { Location } from "../../domain/shared/Location";
-import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { zValidator } from "../validation/validator";
 import { updateMeSchema } from "../validation/schemas";
 
 export const meRouter = new Hono<Env>()
@@ -33,29 +33,22 @@ export const meRouter = new Hono<Env>()
     }
   })
 
-  .put("/", async (c) => {
+  .put("/", zValidator("json", updateMeSchema), async (c) => {
     try {
       const userId = c.get("userId");
-      const raw = await readJsonBody(c);
-      if (!raw.ok) return raw.response;
-      const parsed = parseJson(c, updateMeSchema, raw.data);
-      if (!parsed.ok) return parsed.response;
+      const body = c.req.valid("json");
       const ctx = createContext(c.env, baseUrl(c));
 
       let user;
-      if ("favorites" in parsed.data) {
-        user = await ctx.useCases.user.updateFavorites(userId, parsed.data.favorites);
-      } else if ("homeLocation" in parsed.data) {
-        const loc = parsed.data.homeLocation
-          ? (Location.tryParse(parsed.data.homeLocation)?.toJSON() ?? null)
+      if ("favorites" in body) {
+        user = await ctx.useCases.user.updateFavorites(userId, body.favorites);
+      } else if ("homeLocation" in body) {
+        const loc = body.homeLocation
+          ? (Location.tryParse(body.homeLocation)?.toJSON() ?? null)
           : null;
         user = await ctx.useCases.user.updateHome(userId, loc);
       } else {
-        user = await ctx.useCases.user.updateProfile(
-          userId,
-          parsed.data.displayName,
-          parsed.data.pictureUrl,
-        );
+        user = await ctx.useCases.user.updateProfile(userId, body.displayName, body.pictureUrl);
       }
 
       if (!user) return c.json({ message: "ユーザーが見つかりません" }, 404);

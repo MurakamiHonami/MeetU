@@ -4,7 +4,7 @@ import { mockUserIdFromToken } from "../middleware/mockAuth";
 import { AuthService } from "../../infrastructure/auth/AuthService";
 import { createContext } from "../container";
 import { baseUrl, handleError } from "./helpers";
-import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { zValidator } from "../validation/validator";
 import { createUploadTicketSchema } from "../validation/schemas";
 
 async function requireUserId(c: Context<Env>): Promise<string | null> {
@@ -18,16 +18,13 @@ async function requireUserId(c: Context<Env>): Promise<string | null> {
 }
 
 export const uploadsRouter = new Hono<Env>()
-  .post("/", async (c) => {
+  .post("/", zValidator("json", createUploadTicketSchema), async (c) => {
     try {
       const userId = await requireUserId(c);
       if (!userId) return c.json({ message: "Unauthorized" }, 401);
-      const raw = await readJsonBody(c);
-      if (!raw.ok) return raw.response;
-      const parsed = parseJson(c, createUploadTicketSchema, raw.data);
-      if (!parsed.ok) return parsed.response;
+      const body = c.req.valid("json");
       const ctx = createContext(c.env, baseUrl(c));
-      const ticket = await ctx.useCases.upload.createUploadTicket(userId, parsed.data);
+      const ticket = await ctx.useCases.upload.createUploadTicket(userId, body);
       return c.json(ticket);
     } catch (e) {
       return handleError(c, e);

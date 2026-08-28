@@ -7,9 +7,11 @@ import { Card, CardType } from "../domain/card/Card";
 import { TagNormalizer } from "../domain/tag/TagNormalizer";
 import { Tag } from "../domain/tag/Tag";
 import { MatchingEngine } from "../domain/match/MatchingEngine";
+import { Match } from "../domain/match/Match";
 import { CycleFinder } from "../domain/group/CycleFinder";
 import { TradeGroup } from "../domain/group/TradeGroup";
 import { Location, LocationProps } from "../domain/shared/Location";
+import { NotFoundError, ForbiddenError, ValidationError } from "../domain/shared/DomainError";
 
 export interface CreateCardInput {
   ownerId: string;
@@ -186,5 +188,89 @@ export class CardUseCase {
   async searchCards(tagNames: string[], minMatch: number, type?: CardType): Promise<Card[]> {
     const tagIds = tagNames.map((n) => TagNormalizer.normalize(n));
     return this.cardRepo.searchByTags(tagIds, minMatch, type);
+  }
+
+  private counterpartType(type: CardType): CardType {
+    if (type === "GIVE") return "WANT";
+    if (type === "WANT") return "GIVE";
+    return "COMPANION";
+  }
+
+  async getRespondOptions(
+    userId: string,
+    targetCardId: string,
+  ): Promise<{
+    target: Card;
+    options: { card: Card; matchedTags: string[]; matchCount: number }[];
+  } | null> {
+    const target = await this.cardRepo.findById(targetCardId);
+    if (!target || !target.isOpen()) return null;
+    if (target.ownerId === userId) return null;
+
+    const myUser = await this.userRepo.findById(userId);
+    const targetUser = await this.userRepo.findById(target.ownerId);
+    const counterpart = this.counterpartType(target.type);
+    const targetTagSet = new Set(target.tags);
+    const myCards = (await this.cardRepo.findByOwnerId(userId)).filter(
+      (c) => c.isOpen() && c.type === counterpart && c.tags.some((t) => targetTagSet.has(t)),
+    );
+
+    const options: { card: Card; matchedTags: string[]; matchCount: number }[] = [];
+    for (const myCard of myCards) {
+      const matchedTags = myCard.tags.filter((t) => targetTagSet.has(t));
+      const result = MatchingEngine.evaluate(
+        myCard,
+        target,
+        matchedTags,
+        myUser ?? undefined,
+        targetUser ?? undefined,
+      );
+      if (result) {
+        options.push({
+          card: myCard,
+          matchedTags: result.match.matchedLabels,
+          matchCount: result.match.matchCount,
+        });
+      }
+    }
+
+    return { target, options };
+  }
+
+  async respondToCard(
+    userId: string,
+    targetCardId: string,
+    myCardId: string,
+  ): Promise<{ match: Match; created: boolean }> {
+    const target = await this.cardRepo.findById(targetCardId);
+    const myCard = await this.cardRepo.findById(myCardId);
+    if (!target || !target.isOpen()) throw new NotFoundError("相手のカードが見つかりません");
+    if (!myCard || !myCard.isOpen()) throw new NotFoundError("自分のカードが見つかりません");
+    if (target.ownerId === userId) throw new ForbiddenError("自分のカードには応募できません");
+    if (myCard.ownerId !== userId) throw new ForbiddenError("自分のカードを選んでください");
+    if (!myCard.isCounterpart(target.type)) {
+      throw new ValidationError(
+        "カードの種類が合いません（【譲】↔【求】、または【同行者求】同士）",
+      );
+    }
+
+    const matchedTags = myCard.tags.filter((t) => target.tags.includes(t));
+    const myUser = await this.userRepo.findById(userId);
+    const targetUser = await this.userRepo.findById(target.ownerId);
+    const result = MatchingEngine.evaluate(
+      myCard,
+      target,
+      matchedTags,
+      myUser ?? undefined,
+      targetUser ?? undefined,
+    );
+    if (!result)
+      throw new ValidationError("条件が一致しません。タグ・必須タグ・日程を確認してください");
+
+    const existing = await this.matchRepo.findById(result.match.id);
+    if (existing) return { match: existing, created: false };
+
+    await this.matchRepo.save(result.match);
+    return { match: result.match, created: true };
   }
 }

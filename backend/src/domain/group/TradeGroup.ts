@@ -1,3 +1,5 @@
+import { ForbiddenError, ConflictError } from "../shared/DomainError";
+
 export type TradeGroupStatus = "NEW" | "ACCEPTED" | "DECLINED" | "COMPLETED";
 export type GroupResponse = "accept" | "decline";
 
@@ -84,8 +86,8 @@ export class TradeGroup {
 
   /** 誰かの応答を記録する。全員が accept なら成立、1人でも decline なら即解散。 */
   respond(userId: string, answer: GroupResponse): void {
-    if (!this.isMember(userId)) throw new Error("このグループの参加者ではありません");
-    if (this.props.status === "DECLINED") throw new Error("このグループは解散済みです");
+    if (!this.isMember(userId)) throw new ForbiddenError("このグループの参加者ではありません");
+    if (this.props.status === "DECLINED") throw new ConflictError("このグループは解散済みです");
 
     this.props.responses = { ...this.props.responses, [userId]: answer };
     this.props.updatedAt = new Date().toISOString();
@@ -100,7 +102,7 @@ export class TradeGroup {
 
   complete(): void {
     if (this.props.status !== "ACCEPTED" && this.props.status !== "COMPLETED") {
-      throw new Error("成立したグループのみ完了にできます");
+      throw new ConflictError("成立したグループのみ完了にできます");
     }
     this.props.status = "COMPLETED";
     this.props.updatedAt = new Date().toISOString();

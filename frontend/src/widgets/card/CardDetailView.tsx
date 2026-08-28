@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CardItem from "../CardItem";
+import RespondToCardButton from "../RespondToCardButton";
 import { cardApi } from "../../features/card/api";
 import type { Card } from "../../entities/card/model";
 
@@ -28,13 +29,11 @@ export function CardDetailView({ cardId }: Props) {
 
       <section className="panel panel-quiet">
         <p className="hint">
-          やり取りはマッチが成立してから始まります。条件の合うカードを自分で登録しておくと、
-          相手と自動でマッチして通知が届きます。
+          相手の条件に合う【譲/求/同行者求】カードを持っていれば、その場で応募してマッチできます。
+          持っていない場合はカード登録画面へ進みます。
         </p>
         <div className="actions">
-          <button className="primary" onClick={() => navigate("/cards/new")}>
-            自分のカードを登録する
-          </button>
+          <RespondToCardButton card={card} />
           <button onClick={() => navigate(-1)}>戻る</button>
         </div>
       </section>

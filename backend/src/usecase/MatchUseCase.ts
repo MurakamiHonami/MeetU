@@ -4,6 +4,7 @@ import { IUserRepository } from "../domain/user/IUserRepository";
 import { Match, MatchStatus } from "../domain/match/Match";
 import { Card } from "../domain/card/Card";
 import { User } from "../domain/user/User";
+import { ConflictError } from "../domain/shared/DomainError";
 
 export interface MatchDetail {
   match: Match;
@@ -76,7 +77,7 @@ export class MatchUseCase {
     const match = await this.matchRepo.findById(matchId);
     if (!match || !match.isParty(userId)) return null;
     if (match.status !== "ACCEPTED" && match.status !== "COMPLETED") {
-      throw new Error("成立したマッチのみ完了にできます");
+      throw new ConflictError("成立したマッチのみ完了にできます");
     }
     match.complete();
     await this.matchRepo.save(match);

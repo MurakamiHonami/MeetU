@@ -11,5 +11,11 @@ if [ -n "$BLOCKED" ]; then
   exit 1
 fi
 
-# ステージ済みファイルのシークレットスキャン
+# ステージ済みファイルのシークレットスキャン + lint/format
 npx lint-staged
+
+# TS ファイルの変更があるときだけ型チェック（lint は構文レベルなので型崩れは検出できない）
+if echo "$STAGED" | grep -qE '\.(ts|tsx)$'; then
+  echo "Running typecheck (just typecheck)..."
+  just typecheck
+fi

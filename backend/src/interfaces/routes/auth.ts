@@ -8,7 +8,7 @@ import { User } from "../../domain/user/User";
 import { clearRefreshCookie, readRefreshToken, setRefreshCookie } from "../auth/cookies";
 import { toPublicTokens } from "../auth/tokens";
 import { parseBody } from "../validation/parseBody";
-import { parseJson, readJsonBody } from "../validation/parseRequest";
+import { zValidator } from "../validation/validator";
 import { loginSchema, refreshSchema, signupSchema } from "../validation/schemas";
 
 async function resolveRefreshToken(
@@ -31,22 +31,19 @@ const authRateLimit = rateLimit({ key: "auth", limit: 30, windowSec: 60 });
 export const authRouter = new Hono<Env>()
   .use("*", authRateLimit)
 
-  .post("/signup", async (c) => {
-    const raw = await readJsonBody(c);
-    if (!raw.ok) return raw.response;
-    const parsed = parseJson(c, signupSchema, raw.data);
-    if (!parsed.ok) return parsed.response;
+  .post("/signup", zValidator("json", signupSchema), async (c) => {
+    const body = c.req.valid("json");
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
-    const existing = await userRepo.findByEmail(parsed.data.email);
+    const existing = await userRepo.findByEmail(body.email);
     if (existing) {
       return c.json({ error: "Email already registered" }, 409);
     }
 
     const salt = AuthService.generateSalt();
-    const passwordHash = await AuthService.hashPassword(parsed.data.password, salt);
+    const passwordHash = await AuthService.hashPassword(body.password, salt);
 
-    const user = User.create(parsed.data.email, passwordHash, salt, parsed.data.displayName);
+    const user = User.create(body.email, passwordHash, salt, body.displayName);
     await userRepo.save(user);
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
@@ -62,23 +59,16 @@ export const authRouter = new Hono<Env>()
     );
   })
 
-  .post("/login", async (c) => {
-    const raw = await readJsonBody(c);
-    if (!raw.ok) return raw.response;
-    const parsed = parseJson(c, loginSchema, raw.data);
-    if (!parsed.ok) return parsed.response;
+  .post("/login", zValidator("json", loginSchema), async (c) => {
+    const body = c.req.valid("json");
 
     const userRepo = new D1UserRepository(createDb(c.env.DB));
-    const user = await userRepo.findByEmail(parsed.data.email);
+    const user = await userRepo.findByEmail(body.email);
     if (!user) {
       return c.json({ error: "Invalid email or password" }, 401);
     }
 
-    const valid = await AuthService.verifyPassword(
-      parsed.data.password,
-      user.salt,
-      user.passwordHash,
-    );
+    const valid = await AuthService.verifyPassword(body.password, user.salt, user.passwordHash);
     if (!valid) {
       return c.json({ error: "Invalid email or password" }, 401);
     }

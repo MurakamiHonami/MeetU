@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -e
+
+# .env / .dev.vars の誤コミットをブロック（*.example は許可）
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+BLOCKED=$(echo "$STAGED" | grep -E '(^|/)\.env(\.|$)|(^|/)\.dev\.vars$' | grep -v '\.example$' || true)
+if [ -n "$BLOCKED" ]; then
+  echo "❌ シークレットファイルをコミットしようとしています:"
+  echo "$BLOCKED"
+  echo "→ .env.example / .dev.vars.example のみコミット可能です"
+  exit 1
+fi
+
+# ステージ済みファイルのシークレットスキャン
+npx lint-staged

@@ -1,0 +1,18 @@
+PRAGMA foreign_keys=OFF;
+DROP TABLE IF EXISTS trade_group_members;
+DROP TABLE IF EXISTS trade_groups;
+DROP TABLE IF EXISTS swipes;
+DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS match_reads;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS tag_cooccurrences;
+DROP TABLE IF EXISTS card_tags;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS cards;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS kysely_migration;
+DROP TABLE IF EXISTS kysely_migration_lock;
+DROP TABLE IF EXISTS d1_migrations;
+PRAGMA foreign_keys=ON;

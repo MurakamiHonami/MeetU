@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meetu-web",
+  "account_id": "e3800962ed5e416e565f49c823868cf3",
+  "compatibility_date": "2025-02-24",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "meetu.ruxel.net",
+      "custom_domain": true
+    }
+  ]
+}

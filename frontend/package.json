@@ -1,26 +1,31 @@
 {
-  "name": "otaku-match-liff",
+  "name": "otaku-match-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:staging": "tsc -b && vite build --mode staging",
+    "build:production": "tsc -b && vite build --mode production",
+    "deploy:staging": "npm run build:staging && rm -f dist/_redirects && npx --prefix ../backend wrangler deploy --config wrangler.staging.json",
+    "deploy:production": "npm run build:production && rm -f dist/_redirects && npx --prefix ../backend wrangler deploy --config wrangler.production.json",
     "preview": "vite preview"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@line/liff": "^2.24.0",
     "@mui/icons-material": "^9.3.1",
     "@mui/material": "^9.3.1",
     "@types/leaflet": "^1.9.22",
+    "hono": "^4.13.5",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260827.1",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.2",

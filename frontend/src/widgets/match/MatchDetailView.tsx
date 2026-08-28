@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import ChatBubbleRoundedIcon from "@mui/icons-material/ChatBubbleRounded";
 import CardItem from "../CardItem";
 import { matchApi } from "../../features/match/api";
-import { reviewApi } from "../../features/review/api";
+import { reviewApi, type ReportReason } from "../../features/review/api";
 import type { Match } from "../../entities/match/model";
 
-const REPORT_REASONS: { value: string; label: string }[] = [
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
   { value: "NOT_DELIVERED", label: "商品が届かない" },
   { value: "ITEM_CONDITION", label: "商品の状態が説明と違う" },
   { value: "HARASSMENT", label: "迷惑行為・暴言" },
@@ -143,7 +143,7 @@ export function MatchDetailView({ matchId }: Props) {
       {message && <p className="notice">{message}</p>}
       {error && <p className="error">{error}</p>}
 
-      {match.status === "NEW" && (
+      {match.status === "PENDING" && (
         <section className="panel">
           {match.acceptedByMe ? (
             <p className="hint">相手の返事を待っています。</p>
@@ -235,7 +235,11 @@ export function MatchDetailView({ matchId }: Props) {
         {reportOpen ? (
           <>
             <h3>この相手を通報する</h3>
-            <select className="input" value={reason} onChange={(e) => setReason(e.target.value)}>
+            <select
+              className="input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value as ReportReason)}
+            >
               {REPORT_REASONS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}

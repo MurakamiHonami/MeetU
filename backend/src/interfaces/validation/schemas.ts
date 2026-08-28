@@ -52,6 +52,10 @@ export const createCardSchema = z.object({
   location: locationSchema.optional(),
 });
 
+export const respondToCardSchema = z.object({
+  myCardId: z.string().min(1),
+});
+
 export const cardsSearchQuerySchema = z.object({
   tags: z.string().optional().default(""),
   minMatch: z.coerce.number().int().min(1).max(50).optional().default(1),

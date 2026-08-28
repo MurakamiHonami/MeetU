@@ -1,5 +1,6 @@
 import { Card, CardType } from "../card/Card";
 import { Location, MAX_RADIUS_KM } from "../shared/Location";
+import { ValidationError } from "../shared/DomainError";
 
 export const DEFAULT_RADIUS_KM = 3.0;
 export const MAX_RESULTS = 60;
@@ -26,7 +27,7 @@ export class NearbySearch {
     if (raw === undefined || raw === null || raw === "") return DEFAULT_RADIUS_KM;
     const km = Number(raw);
     if (!Number.isFinite(km) || km <= 0) {
-      throw new Error("radius は 0 より大きい数値で指定してください");
+      throw new ValidationError("radius は 0 より大きい数値で指定してください");
     }
     return Math.min(km, MAX_RADIUS_KM);
   }

@@ -1,4 +1,5 @@
 import ngeohash from "ngeohash";
+import { ValidationError } from "./DomainError";
 
 const EARTH_RADIUS_KM = 6371.0;
 
@@ -18,10 +19,10 @@ export interface LocationProps {
 export class Location {
   constructor(private props: LocationProps) {
     if (!Number.isFinite(props.lat) || !Number.isFinite(props.lon)) {
-      throw new Error("緯度経度が数値ではありません");
+      throw new ValidationError("緯度経度が数値ではありません");
     }
     if (props.lat < -90 || props.lat > 90 || props.lon < -180 || props.lon > 180) {
-      throw new Error("緯度経度の範囲が不正です");
+      throw new ValidationError("緯度経度の範囲が不正です");
     }
   }
 

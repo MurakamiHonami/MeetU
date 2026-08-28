@@ -1,5 +1,13 @@
 import { client, unwrap } from "../../shared/api";
 
+export type ReportReason =
+  | "NOT_DELIVERED"
+  | "ITEM_CONDITION"
+  | "HARASSMENT"
+  | "FRAUD"
+  | "NO_SHOW"
+  | "OTHER";
+
 export const reviewApi = {
   review: async (payload: { matchId: string; rating: number; comment?: string }) => {
     const res = await client.api.reviews.$post({ json: payload });
@@ -9,7 +17,7 @@ export const reviewApi = {
   report: async (payload: {
     targetUserId: string;
     matchId?: string;
-    reason: string;
+    reason: ReportReason;
     detail?: string;
   }) => {
     const res = await client.api.reports.$post({ json: payload });

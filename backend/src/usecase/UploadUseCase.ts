@@ -2,6 +2,7 @@ import { IMatchRepository } from "../domain/match/IMatchRepository";
 import { IGroupRepository } from "../domain/group/IGroupRepository";
 import { UploadPolicy } from "../domain/upload/UploadPolicy";
 import { R2UploadService } from "../infrastructure/storage/R2UploadService";
+import { NotFoundError, ForbiddenError, ValidationError } from "../domain/shared/DomainError";
 
 export class UploadUseCase {
   constructor(
@@ -20,16 +21,16 @@ export class UploadUseCase {
     let threadId: string;
     if (input.matchId) {
       const match = await this.matchRepo.findById(input.matchId);
-      if (!match) throw new Error("マッチが見つかりません");
-      if (!match.isParty(userId)) throw new Error("このマッチの当事者ではありません");
+      if (!match) throw new NotFoundError("マッチが見つかりません");
+      if (!match.isParty(userId)) throw new ForbiddenError("このマッチの当事者ではありません");
       threadId = input.matchId;
     } else if (input.groupId) {
       const group = await this.groupRepo.findById(input.groupId);
-      if (!group) throw new Error("グループが見つかりません");
-      if (!group.isMember(userId)) throw new Error("このグループの参加者ではありません");
+      if (!group) throw new NotFoundError("グループが見つかりません");
+      if (!group.isMember(userId)) throw new ForbiddenError("このグループの参加者ではありません");
       threadId = input.groupId;
     } else {
-      throw new Error("matchId か groupId を指定してください");
+      throw new ValidationError("matchId か groupId を指定してください");
     }
 
     const key = UploadPolicy.imageKey(threadId, contentType);

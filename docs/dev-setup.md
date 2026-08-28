@@ -134,6 +134,10 @@ just test-staging-integration   # https://api-meetu-staging.ruxel.net
 
 CI: `deploy-staging` 完了後 / `deploy-production` の release 前に実行。
 
+### Observability
+
+Workers Logs（Cloudflare ダッシュボード内、追加 SaaS なし）: [observability.md](./observability.md)
+
 ---
 
 ## 4. ローカル開発メモ

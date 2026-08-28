@@ -1,3 +1,5 @@
+import { ValidationError } from "../shared/DomainError";
+
 export type ReportReason =
   | "NOT_DELIVERED"
   | "ITEM_CONDITION"
@@ -73,10 +75,12 @@ export class Report {
     detail?: string;
   }): Report {
     if (input.reporterId === input.targetUserId) {
-      throw new Error("自分自身は通報できません");
+      throw new ValidationError("自分自身は通報できません");
     }
     if (!(input.reason in REPORT_REASONS)) {
-      throw new Error(`reason は ${Object.keys(REPORT_REASONS).join("/")} のいずれかです`);
+      throw new ValidationError(
+        `reason は ${Object.keys(REPORT_REASONS).join("/")} のいずれかです`,
+      );
     }
     return new Report({
       id: crypto.randomUUID(),

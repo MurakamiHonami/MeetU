@@ -3,17 +3,21 @@ import { Env } from "../middleware/auth";
 import { createContext } from "../container";
 import { cardView, groupView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
-import { parseJson, parseQueryParams, readJsonBody } from "../validation/parseRequest";
-import { cardsSearchQuerySchema, createCardSchema } from "../validation/schemas";
+import { zValidator } from "../validation/validator";
+import {
+  cardsSearchQuerySchema,
+  createCardSchema,
+  respondToCardSchema,
+} from "../validation/schemas";
+import { matchView } from "../dto/ViewMapper";
 
 export const cardsRouter = new Hono<Env>()
-  .get("/", async (c) => {
+  .get("/", zValidator("query", cardsSearchQuerySchema), async (c) => {
     try {
-      const query = parseQueryParams(c, cardsSearchQuerySchema);
-      if (!query.ok) return query.response;
+      const query = c.req.valid("query");
       const ctx = createContext(c.env, baseUrl(c));
-      const tags = query.data.tags.split(",").filter(Boolean);
-      const cards = await ctx.useCases.card.searchCards(tags, query.data.minMatch, query.data.type);
+      const tags = query.tags.split(",").filter(Boolean);
+      const cards = await ctx.useCases.card.searchCards(tags, query.minMatch, query.type);
 
       const views = [];
       for (const card of cards) {
@@ -26,33 +30,30 @@ export const cardsRouter = new Hono<Env>()
     }
   })
 
-  .post("/", async (c) => {
+  .post("/", zValidator("json", createCardSchema), async (c) => {
     try {
       const userId = c.get("userId");
-      const raw = await readJsonBody(c);
-      if (!raw.ok) return raw.response;
-      const parsed = parseJson(c, createCardSchema, raw.data);
-      if (!parsed.ok) return parsed.response;
+      const body = c.req.valid("json");
       const ctx = createContext(c.env, baseUrl(c));
 
-      const tags = parsed.data.tags.map((t) => ({
+      const tags = body.tags.map((t) => ({
         displayName: t.name || t.displayName || "",
         category: t.category,
       }));
-      const requiredTags = (parsed.data.requiredTags || []).map((t) =>
+      const requiredTags = (body.requiredTags || []).map((t) =>
         typeof t === "string" ? t : t.name,
       );
 
       const result = await ctx.useCases.card.createCard({
         ownerId: userId,
-        type: parsed.data.type,
-        title: parsed.data.title,
-        note: parsed.data.note,
-        minMatchCount: parsed.data.minMatchCount,
+        type: body.type,
+        title: body.title,
+        note: body.note,
+        minMatchCount: body.minMatchCount,
         tags,
         requiredTags,
-        dates: parsed.data.dates,
-        location: parsed.data.location ?? undefined,
+        dates: body.dates,
+        location: body.location ?? undefined,
       });
 
       const owner = await ctx.repos.userRepo.findById(userId);
@@ -108,6 +109,64 @@ export const cardsRouter = new Hono<Env>()
         views.push(cardView(card, owner ?? undefined));
       }
       return c.json({ cards: views, minMatchCount: result.minMatchCount });
+    } catch (e) {
+      return handleError(c, e);
+    }
+  })
+
+  .get("/:id/respond-options", async (c) => {
+    try {
+      const userId = c.get("userId");
+      const id = c.req.param("id");
+      const ctx = createContext(c.env, baseUrl(c));
+      const result = await ctx.useCases.card.getRespondOptions(userId, id);
+      if (!result) return c.json({ message: "カードが見つかりません" }, 404);
+
+      const targetOwner = await ctx.repos.userRepo.findById(result.target.ownerId);
+      const options = [];
+      for (const opt of result.options) {
+        options.push({
+          card: cardView(opt.card),
+          matchedTags: opt.matchedTags,
+          matchCount: opt.matchCount,
+        });
+      }
+      return c.json({
+        targetCard: cardView(result.target, targetOwner ?? undefined),
+        options,
+      });
+    } catch (e) {
+      return handleError(c, e);
+    }
+  })
+
+  .post("/:id/respond", zValidator("json", respondToCardSchema), async (c) => {
+    try {
+      const userId = c.get("userId");
+      const id = c.req.param("id");
+      const body = c.req.valid("json");
+
+      const ctx = createContext(c.env, baseUrl(c));
+      const { match, created } = await ctx.useCases.card.respondToCard(userId, id, body.myCardId);
+      const detail = await ctx.useCases.match.getMatchDetail(match.id, userId);
+      if (!detail) return c.json({ message: "マッチが見つかりません" }, 404);
+
+      return c.json(
+        {
+          created,
+          match: matchView(
+            detail.match,
+            userId,
+            detail.partner,
+            detail.partnerCard,
+            detail.myCard,
+            detail.iGive,
+            detail.iReceive,
+            detail.lastReadAt,
+          ),
+        },
+        created ? 201 : 200,
+      );
     } catch (e) {
       return handleError(c, e);
     }

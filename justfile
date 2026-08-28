@@ -96,19 +96,15 @@ login:
 deploy-staging-backend:
     cd backend && npx wrangler deploy --env staging
 
-# Attach staging custom domains (after worker deploy)
-sync-staging-domains:
-    node scripts/ensure-worker-domains.mjs --env staging
-
 # Deploy staging Web only
 deploy-staging-frontend:
     cd frontend && npm run deploy:staging
 
 # Deploy staging API + Web (日常のデプロイ)
-deploy-staging: deploy-staging-backend deploy-staging-frontend sync-staging-domains
+deploy-staging: deploy-staging-backend deploy-staging-frontend
 
 # API + migrate + Web
-release-staging: deploy-staging-backend d1-migrate-staging deploy-staging-frontend sync-staging-domains
+release-staging: deploy-staging-backend d1-migrate-staging deploy-staging-frontend
 
 # release-staging + demo seed
 staging-setup: release-staging d1-seed-staging
@@ -123,19 +119,15 @@ staging-setup: release-staging d1-seed-staging
 deploy-production-backend:
     cd backend && npx wrangler deploy --env production
 
-# Attach production custom domains (after worker deploy)
-sync-production-domains:
-    node scripts/ensure-worker-domains.mjs --env production
-
 # Deploy production Web only
 deploy-production-frontend:
     cd frontend && npm run deploy:production
 
 # Deploy production API + Web (seed なし)
-deploy-production: deploy-production-backend deploy-production-frontend sync-production-domains
+deploy-production: deploy-production-backend deploy-production-frontend
 
 # API + migrate + Web (seed なし)
-release-production: deploy-production-backend d1-migrate-production deploy-production-frontend sync-production-domains
+release-production: deploy-production-backend d1-migrate-production deploy-production-frontend
 
 # --------------------------------------------------
 # Aliases

@@ -28,7 +28,8 @@
     }
   ],
   "vars": {
-    "APP_ENV": "local"
+    "APP_ENV": "local",
+    "JWT_SECRET": "local-dev-only-not-for-production"
   },
   "env": {
     "staging": {

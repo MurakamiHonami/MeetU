@@ -78,7 +78,6 @@ feature/*  →  PR  →  CI のみ（テスト・型チェック・secret scan�
 | Secret | 必須 | 用途 |
 |--------|------|------|
 | `CLOUDFLARE_API_TOKEN` | ✅ | Wrangler デプロイ |
-| `JWT_SECRET` | 本番のみ | 本番 Worker の JWT 署名鍵（deploy 時に同期） |
 
 `CLOUDFLARE_ACCOUNT_ID` は workflow に直書き（公開情報）。API URL も同様。
 
@@ -92,6 +91,16 @@ curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
 ```
 
 ローカル開発の `JWT_SECRET` は `backend/.dev.vars` に置きます（`.dev.vars.example` をコピー）。
+
+**本番 `JWT_SECRET`（初回のみ）**
+
+本番 Worker の secret は deploy ごとに更新しません。初回またはローテーション時にローカルから設定します:
+
+```bash
+echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
+```
+
+（Dashboard → Workers → meetu-backend → Settings → Variables から設定しても可）
 
 **Environments（未使用）**
 

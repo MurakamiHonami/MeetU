@@ -39,11 +39,5 @@ jobs:
           npm ci --prefix backend
           npm ci --prefix frontend
 
-      - name: Sync JWT secret to Worker
-        working-directory: backend
-        run: echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
       - name: Release to production
         run: just release-production

@@ -28,6 +28,7 @@
     }
   ],
   "vars": {
+    "JWT_SECRET": "local-test-only-not-for-staging-or-production",
     "APP_ENV": "local",
     "CORS_ORIGINS": "http://localhost:5173",
     "COOKIE_DOMAIN": ""

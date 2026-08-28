@@ -20,6 +20,8 @@ import { GroupUseCase } from "../usecase/GroupUseCase";
 import { FeedUseCase } from "../usecase/FeedUseCase";
 import { NearbyUseCase } from "../usecase/NearbyUseCase";
 import { UploadUseCase } from "../usecase/UploadUseCase";
+import { TagInferUseCase } from "../usecase/TagInferUseCase";
+import { TagVisionService } from "../infrastructure/ai/TagVisionService";
 
 export function createContext(env: Env["Bindings"], baseUrl: string) {
   const db = createDb(env.DB);
@@ -33,6 +35,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
   const groupRepo = new D1GroupRepository(db);
   const swipeRepo = new D1SwipeRepository(db);
   const uploadService = new R2UploadService(env.UPLOADS_R2, env.CACHE_KV, baseUrl);
+  const tagVision = env.AI ? new TagVisionService(env.AI) : undefined;
 
   return {
     repos: {
@@ -58,6 +61,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
       feed: new FeedUseCase(cardRepo, tagRepo, swipeRepo, userRepo),
       nearby: new NearbyUseCase(cardRepo, userRepo),
       upload: new UploadUseCase(uploadService, matchRepo, groupRepo),
+      tagInfer: new TagInferUseCase(tagRepo, tagVision),
     },
   };
 }

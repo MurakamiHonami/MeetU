@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import ThresholdSlider from "../ThresholdSlider";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import { cardApi } from "../../features/card/api";
+import { tagApi } from "../../features/tag/api";
 import { TYPE_LABEL, type Card, type CardType } from "../../entities/card/model";
 import type { Group } from "../../entities/group/model";
 import type { GeoPoint } from "../../entities/user/geo";
-import { currentPosition } from "../../shared/lib/device";
+import { currentPosition, shrinkImage } from "../../shared/lib/device";
 
 const TYPE_HELP: Record<CardType, string> = {
   GIVE: "持っているグッズを譲ります。【求】のカードとマッチします。",
@@ -43,8 +45,11 @@ export function CardNewForm() {
   const [placeName, setPlaceName] = useState("");
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [inferring, setInferring] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const threshold = useMemo(
     () => Math.min(Math.max(minMatch, required.length, 1), Math.max(tags.length, 1)),
@@ -73,6 +78,35 @@ export function CardNewForm() {
       alive = false;
     };
   }, [respondTo]);
+
+  async function inferTagsFromPhoto(file: File) {
+    setError("");
+    setInferring(true);
+    try {
+      const shrunk = await shrinkImage(file);
+      const preview = URL.createObjectURL(shrunk);
+      setPhotoPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return preview;
+      });
+
+      const { tags: inferred, titleHint } = await tagApi.inferTagsFromImage(shrunk);
+      const existing = new Set(tags.map((t) => t.name));
+      const merged = [...tags];
+      for (const t of inferred) {
+        if (merged.length >= 10) break;
+        if (existing.has(t.name)) continue;
+        existing.add(t.name);
+        merged.push({ name: t.name, category: t.category });
+      }
+      setTags(merged);
+      if (!title.trim() && titleHint) setTitle(titleHint.slice(0, 60));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setInferring(false);
+    }
+  }
 
   async function submit() {
     setError("");
@@ -198,6 +232,41 @@ export function CardNewForm() {
           onChange={(e) => setTitle(e.target.value)}
         />
       </label>
+
+      <div className="field">
+        <span>写真からタグ推測（任意）</span>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void inferTagsFromPhoto(file);
+          }}
+        />
+        <div className="photo-infer">
+          {photoPreview ? (
+            <img src={photoPreview} alt="アップロードした写真" className="photo-infer-preview" />
+          ) : (
+            <div className="photo-infer-placeholder">グッズの写真</div>
+          )}
+          <button
+            type="button"
+            className="teal"
+            disabled={inferring}
+            onClick={() => photoInputRef.current?.click()}
+          >
+            <PhotoCameraRoundedIcon fontSize="small" />
+            {inferring ? "推測中…" : "写真からタグを推測"}
+          </button>
+        </div>
+        <p className="hint">
+          写真を選ぶと Workers AI
+          が作品名・キャラ・アイテム種別などのタグ候補を提案します。あとから編集できます。
+        </p>
+      </div>
 
       <div className="field">
         <span>条件タグ</span>

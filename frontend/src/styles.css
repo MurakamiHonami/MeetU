@@ -41,8 +41,14 @@ body {
   /* ドットの下地 */
   background-image: radial-gradient(#e3dfe1 1px, transparent 1px);
   background-size: 20px 20px;
-  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Hiragino Sans",
-    "Noto Sans JP", "Yu Gothic UI", sans-serif;
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    "Yu Gothic UI",
+    sans-serif;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.65;
@@ -194,7 +200,9 @@ button {
   border-radius: var(--radius-sm);
   padding: 11px 18px;
   box-shadow: var(--sticker);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 /* 押すと影に沈み込む */
@@ -491,7 +499,9 @@ input[type="range"] {
   padding: 14px;
   margin-bottom: 16px;
   box-shadow: var(--sticker);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .card-clickable {
@@ -1571,7 +1581,9 @@ input[type="range"] {
   border-radius: var(--radius-sm);
   box-shadow: var(--sticker);
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
 }
 
 .btn-primary:active {

@@ -36,6 +36,10 @@ dev-frontend:
 test:
     npm run test
 
+# Backend tests without .dev.vars (same as GitHub Actions)
+test-backend-ci:
+    bash scripts/test-backend-ci.sh
+
 # Run TypeScript type checks (no production build)
 typecheck:
     npm run typecheck
@@ -44,7 +48,8 @@ typecheck:
 check:
     cd backend && npm run db:verify
     just typecheck
-    just test
+    just test-backend-ci
+    npm run test -w meetu-web
 
 # CI / pre-push と同じ検証（npm ci 済み前提）
 ci: format-check lint lint-secrets check

@@ -1,0 +1,14 @@
+{
+  "name": "meetu-nn-matching-slides",
+  "private": true,
+  "scripts": {
+    "dev": "slidev slides.md",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md"
+  },
+  "devDependencies": {
+    "@slidev/cli": "^52",
+    "@slidev/theme-default": "*",
+    "playwright-chromium": "^1.62.1"
+  }
+}

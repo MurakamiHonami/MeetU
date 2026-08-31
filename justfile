@@ -56,7 +56,30 @@ check:
     npm run test -w meetu-web
 
 # CI / pre-push と同じ検証（npm ci 済み前提）
-ci: format-check lint lint-secrets check
+ci: format-check lint lint-secrets check-conventions check
+
+# AGENTS.md のルールを機械的にチェック（DomainError 未使用 / zValidator 未使用）
+# 見つかったら AGENTS.md を読んで直す。lint/typecheck では検出できない規約違反。
+check-conventions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fail=0
+    bare_errors=$(grep -rn "throw new Error(" backend/src --include="*.ts" | grep -v "domain/shared/DomainError.ts" || true)
+    if [ -n "$bare_errors" ]; then
+      echo "❌ 素の 'throw new Error(...)' が見つかりました。NotFoundError/ForbiddenError/ConflictError/ValidationError を使ってください（AGENTS.md 参照）:"
+      echo "$bare_errors"
+      fail=1
+    fi
+    manual_json=$(grep -rln "c.req.json()" backend/src/interfaces/routes --include="*.ts" || true)
+    if [ -n "$manual_json" ]; then
+      echo "❌ ルートで手動 c.req.json() が見つかりました。zValidator(\"json\", schema) を使ってください（AGENTS.md 参照）:"
+      echo "$manual_json"
+      fail=1
+    fi
+    if [ "$fail" -eq 1 ]; then
+      exit 1
+    fi
+    echo "✅ AGENTS.md の規約チェック OK"
 
 # Oxlint (backend + frontend)
 lint:

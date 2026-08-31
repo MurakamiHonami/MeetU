@@ -34,6 +34,19 @@ describe("Security & Validation", () => {
     expect(res.status).not.toBe(401);
   });
 
+  it("rejects mock_ token when APP_ENV is unset (fail-closed, not fail-open)", async () => {
+    const unsetEnv = { ...env, APP_ENV: undefined };
+    const res = await app.request(
+      "/api/me",
+      {
+        headers: { Authorization: "Bearer mock_attacker" },
+      },
+      unsetEnv,
+    );
+
+    expect(res.status).toBe(401);
+  });
+
   it("POST /api/auth/signup rejects invalid email", async () => {
     const res = await app.request(
       "/api/auth/signup",

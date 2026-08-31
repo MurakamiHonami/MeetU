@@ -370,6 +370,35 @@ textarea.input {
   color: var(--white);
 }
 
+.photo-infer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.photo-infer-preview,
+.photo-infer-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.photo-infer-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--pink-tint);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px;
+}
+
 .chip-star,
 .chip-x {
   border: none;

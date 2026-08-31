@@ -7,6 +7,7 @@ export interface Env {
     DB: D1Database;
     CACHE_KV: KVNamespace;
     UPLOADS_R2: R2Bucket;
+    AI?: Ai;
     JWT_SECRET: string;
     APP_ENV?: string;
     CORS_ORIGINS?: string;

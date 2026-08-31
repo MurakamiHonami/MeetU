@@ -29,7 +29,7 @@
     "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,sql,sh,toml}": "secretlint"
   },
   "devDependencies": {
-    "@secretlint/secretlint-rule-preset-recommend": "^11.0.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.5",
     "concurrently": "^9.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.4.1",

@@ -3,9 +3,17 @@ name: PR target
 on:
   pull_request:
     types: [opened, reopened, synchronize, edited]
+  # Once this file is on the base branch, also run for PRs whose head
+  # does not yet contain it (e.g. existing Dependabot branches).
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
 
 permissions:
   pull-requests: write
+
+concurrency:
+  group: pr-target-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   check-pr-target:
@@ -43,5 +51,5 @@ jobs:
           fi
 
           echo "::error::$msg"
-          gh pr close "$PR_NUMBER" --comment "$msg"
+          gh pr close "$PR_NUMBER" --comment "$msg" || true
           exit 1

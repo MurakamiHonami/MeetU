@@ -10,6 +10,8 @@ export default defineConfig({
           include: [
             "tests/domain.test.ts",
             "tests/domain-extended.test.ts",
+            "tests/cycle-cover.test.ts",
+            "tests/cycle-cover.property.test.ts",
             "tests/validation.test.ts",
             "tests/tag-vision.test.ts",
           ],

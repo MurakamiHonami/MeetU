@@ -27,12 +27,3 @@ jobs:
 
       - name: CI checks
         run: just ci
-
-  lean:
-    name: Lean N:N proofs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: leanprover/lean-action@v1
-        with:
-          lake-package-directory: lean

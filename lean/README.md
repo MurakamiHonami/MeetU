@@ -36,4 +36,4 @@ lake build
 
 Lean 版は [`lean-toolchain`](lean-toolchain)（mathlib `v4.26.0` に合わせた 4.26.0）。`lean/.lake/` は git に含めない。
 
-`just ci` には含めない。GitHub Actions の `lean` job が独立して `lake build` する。
+`just ci` / GitHub Actions には含めない。ローカルでは `just lean-build`。

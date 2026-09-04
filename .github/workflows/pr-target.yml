@@ -1,0 +1,55 @@
+name: PR target
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+  # Once this file is on the base branch, also run for PRs whose head
+  # does not yet contain it (e.g. existing Dependabot branches).
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: pr-target-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-pr-target:
+    name: check-pr-target
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR base and head
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          allowed=false
+          if [ "$BASE" = "dev" ]; then
+            allowed=true
+          elif [ "$BASE" = "main" ] && [ "$HEAD" = "dev" ] && [ "$HEAD_REPO" = "$BASE_REPO" ]; then
+            allowed=true
+          fi
+
+          if [ "$allowed" = true ]; then
+            echo "PR $HEAD → $BASE is allowed"
+            exit 0
+          fi
+
+          if [ "$BASE" = "main" ]; then
+            msg="main への PR は同じリポジトリの \`dev\` からのみ作成できます（今回: \`$HEAD\` → \`main\`）。feature はまず \`dev\` へ向けてください。"
+          else
+            msg="PR の向き先は \`dev\` にしてください（今回: \`$HEAD\` → \`$BASE\`）。本番向けは \`dev\` → \`main\` です。"
+          fi
+
+          echo "::error::$msg"
+          gh pr close "$PR_NUMBER" --comment "$msg" || true
+          exit 1

@@ -1,10 +1,9 @@
 name: PR target
 
+# Base branch の workflow を使うので、head にこのファイルが無い PR
+# （Dependabot 等）でも動く。pull_request と併用すると同一 check 名で
+# 二重起動→concurrency が片方を cancel→required check がブロックする。
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, edited]
-  # Once this file is on the base branch, also run for PRs whose head
-  # does not yet contain it (e.g. existing Dependabot branches).
   pull_request_target:
     types: [opened, reopened, synchronize, edited]
 

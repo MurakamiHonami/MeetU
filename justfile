@@ -28,7 +28,7 @@ dev:
 dev-backend:
     npm run dev:backend
 
-# Start Vite frontend dev server (localhost:5173)
+# Start Next.js frontend dev server (localhost:5173)
 dev-frontend:
     npm run dev:frontend
 
@@ -48,6 +48,16 @@ test-staging-integration:
 typecheck:
     npm run typecheck
 
+
+# Lean 4 proofs for unbounded N:N cycle cover (not part of just ci)
+lean-build:
+    cd lean && lake build
+
+# Write theorem witnesses to lean/fixtures/cycle-cover.json for vitest
+lean-export-tests: lean-build
+    mkdir -p lean/fixtures
+    cd lean && lake exe export_tests fixtures/cycle-cover.json
+
 # db:verify + typecheck + tests
 check:
     cd backend && npm run db:verify
@@ -55,8 +65,15 @@ check:
     just test-backend-ci
     npm run test -w meetu-web
 
-# CI / pre-push と同じ検証（npm ci 済み前提）
+# CI / pre-push と同じ検証（GitHub Actions は先に just setup 済み）
 ci: format-check lint lint-secrets check-conventions check
+
+# package.json と lockfile の同期（CI の npm ci が最初に見るもの）
+lockfile-check:
+    npm ci --dry-run --ignore-scripts
+
+# pre-push 用。lockfile ずれを先に落としてから just ci。
+ci-push: lockfile-check ci
 
 # AGENTS.md のルールを機械的にチェック（DomainError 未使用 / zValidator 未使用）
 # 見つかったら AGENTS.md を読んで直す。lint/typecheck では検出できない規約違反。

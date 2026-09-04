@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../../shared/lib/navigation";
 import AddCircleRoundedIcon from "@mui/icons-material/AddCircleRounded";
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../../shared/lib/navigation";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import { matchApi } from "../../features/match/api";
 import { groupApi } from "../../features/group/api";

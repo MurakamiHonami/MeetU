@@ -13,7 +13,7 @@ Email/Password 認証 + React フロント + Cloudflare Workers API（Hono / D1 
 | DB | D1 (SQLite) + Drizzle ORM |
 | キャッシュ | KV（refresh token 等） |
 | ストレージ | R2（画像アップロード） |
-| フロント | React + Vite → Workers Static Assets |
+| フロント | Next.js (Pages Router, output: export) → Workers Static Assets |
 | 設計 | DDD + Clean Architecture |
 | API 契約 | Hono RPC（`hc<AppType>`） |
 

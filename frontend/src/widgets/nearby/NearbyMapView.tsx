@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../../shared/lib/navigation";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";

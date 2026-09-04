@@ -24,9 +24,20 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+          key: node-modules-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - uses: extractions/setup-just@v2
 
       - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
         run: just setup
 
       - name: CI checks
@@ -38,7 +49,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: e3800962ed5e416e565f49c823868cf3
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      VITE_API_BASE_URL: https://api-meetu-staging.ruxel.net
+      NEXT_PUBLIC_API_BASE_URL: https://api-meetu-staging.ruxel.net
     steps:
       - uses: actions/checkout@v4
 
@@ -48,9 +59,20 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache node_modules
+        id: node-modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            backend/node_modules
+            frontend/node_modules
+          key: node-modules-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
       - uses: extractions/setup-just@v2
 
       - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
         run: just setup
 
       - name: Set JWT secret (staging)

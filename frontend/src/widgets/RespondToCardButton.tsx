@@ -1,6 +1,6 @@
 import { useState } from "react";
 import HandshakeRoundedIcon from "@mui/icons-material/HandshakeRounded";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../shared/lib/navigation";
 import CardItem from "./CardItem";
 import { cardApi, type RespondOption } from "../features/card/api";
 import type { Card } from "../entities/card/model";

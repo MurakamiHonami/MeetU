@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useQueryParam } from "../../shared/lib/navigation";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import ThresholdSlider from "../ThresholdSlider";
@@ -32,8 +32,7 @@ type Result = {
 
 export function CardNewForm() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const respondTo = searchParams.get("respondTo");
+  const respondTo = useQueryParam("respondTo");
   const [type, setType] = useState<CardType>("WANT");
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");

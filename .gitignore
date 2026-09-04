@@ -4,6 +4,9 @@ node_modules/
 
 # Build & Output
 dist/
+frontend/out/
+frontend/.next/
+frontend/next-env.d.ts
 build/
 coverage/
 backend/coverage/
@@ -33,6 +36,9 @@ venv/
 .idea/
 *.swp
 *.swo
+
+# Lean build artifacts (mathlib oleans live here; do not commit)
+lean/.lake/
 
 # Logs
 npm-debug.log*

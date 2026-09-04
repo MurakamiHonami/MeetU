@@ -72,11 +72,19 @@ body/query の型がクライアントの型に伝播せず、フロント側で
 ## pre-commit / pre-push
 
 - `pre-commit`: lint-staged（oxfmt + oxlint）+ ステージした `.ts`/`.tsx` があれば `just typecheck`
-- `pre-push`: `just ci`（format-check + lint + lint-secrets + **check-conventions** + db:verify + typecheck + test 一式）
+- `pre-push`: `just ci-push`（**lockfile-check (`npm ci --dry-run`)** + format-check + lint + lint-secrets + **check-conventions** + db:verify + typecheck + test 一式）
 
 lint は構文レベルのチェックであり型崩れは検出しない。型のズレに気づきたいときは
-`just typecheck` を明示的に走らせる（pre-commit で TS ファイル変更時は自動で走る）。
+`just typecheck` を明示的に走らせる（pre-commit で TS ファイル変更時は自動で走る）。frontend の
+typecheck は `tsconfig.tsbuildinfo` を消してから走らせるので、ローカルキャッシュで CI だけ落ちる
+ことはない。
 
 `just check-conventions` はこの AGENTS.md のルール（素の `throw new Error` 禁止 / ルートでの
 手動 `c.req.json()` 禁止）を grep で機械的にチェックする。`just ci` に含まれているので
 `git push` 時に自動で走るが、単体でも実行できる。違反が出たら本ファイルの該当セクションを見て直す。
+
+## Lean（`lean/`）
+
+N:N 交換の頂点分裂と O(n³) コストの形式化専用。mathlib にある補題を再証明しない。
+TypeScript の `CycleFinder` とは別物（ヒューリスティックは証明しない）。ビルドは `just lean-build`。
+`just ci` には含めない。

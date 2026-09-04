@@ -68,8 +68,12 @@ check:
 # CI / pre-push と同じ検証（GitHub Actions は先に just setup 済み）
 ci: format-check lint lint-secrets check-conventions check
 
-# pre-push 用。npm ci から通して Actions と同じ順序にする。
-ci-push: setup ci
+# package.json と lockfile の同期（CI の npm ci が最初に見るもの）
+lockfile-check:
+    npm ci --dry-run --ignore-scripts
+
+# pre-push 用。lockfile ずれを先に落としてから just ci。
+ci-push: lockfile-check ci
 
 # AGENTS.md のルールを機械的にチェック（DomainError 未使用 / zValidator 未使用）
 # 見つかったら AGENTS.md を読んで直す。lint/typecheck では検出できない規約違反。

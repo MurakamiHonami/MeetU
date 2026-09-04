@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 set -e
 
-echo "Running CI checks (just ci-push = npm ci + just ci)..."
+echo "Running CI checks (just ci-push = lockfile-check + just ci)..."
 just ci-push

@@ -72,7 +72,7 @@ body/query の型がクライアントの型に伝播せず、フロント側で
 ## pre-commit / pre-push
 
 - `pre-commit`: lint-staged（oxfmt + oxlint）+ ステージした `.ts`/`.tsx` があれば `just typecheck`
-- `pre-push`: `just ci-push`（**npm ci** + format-check + lint + lint-secrets + **check-conventions** + db:verify + typecheck + test 一式）
+- `pre-push`: `just ci-push`（**lockfile-check (`npm ci --dry-run`)** + format-check + lint + lint-secrets + **check-conventions** + db:verify + typecheck + test 一式）
 
 lint は構文レベルのチェックであり型崩れは検出しない。型のズレに気づきたいときは
 `just typecheck` を明示的に走らせる（pre-commit で TS ファイル変更時は自動で走る）。frontend の

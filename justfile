@@ -65,8 +65,11 @@ check:
     just test-backend-ci
     npm run test -w meetu-web
 
-# CI / pre-push と同じ検証（npm ci 済み前提）
+# CI / pre-push と同じ検証（GitHub Actions は先に just setup 済み）
 ci: format-check lint lint-secrets check-conventions check
+
+# pre-push 用。npm ci から通して Actions と同じ順序にする。
+ci-push: setup ci
 
 # AGENTS.md のルールを機械的にチェック（DomainError 未使用 / zValidator 未使用）
 # 見つかったら AGENTS.md を読んで直す。lint/typecheck では検出できない規約違反。

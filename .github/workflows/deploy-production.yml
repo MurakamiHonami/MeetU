@@ -58,7 +58,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: e3800962ed5e416e565f49c823868cf3
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      VITE_API_BASE_URL: https://api.meetu.ruxel.net
+      NEXT_PUBLIC_API_BASE_URL: https://api.meetu.ruxel.net
     steps:
       - uses: actions/checkout@v4
 

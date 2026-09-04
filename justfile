@@ -28,7 +28,7 @@ dev:
 dev-backend:
     npm run dev:backend
 
-# Start Vite frontend dev server (localhost:5173)
+# Start Next.js frontend dev server (localhost:5173)
 dev-frontend:
     npm run dev:frontend
 
@@ -65,8 +65,15 @@ check:
     just test-backend-ci
     npm run test -w meetu-web
 
-# CI / pre-push と同じ検証（npm ci 済み前提）
+# CI / pre-push と同じ検証（GitHub Actions は先に just setup 済み）
 ci: format-check lint lint-secrets check-conventions check
+
+# package.json と lockfile の同期（CI の npm ci が最初に見るもの）
+lockfile-check:
+    npm ci --dry-run --ignore-scripts
+
+# pre-push 用。lockfile ずれを先に落としてから just ci。
+ci-push: lockfile-check ci
 
 # AGENTS.md のルールを機械的にチェック（DomainError 未使用 / zValidator 未使用）
 # 見つかったら AGENTS.md を読んで直す。lint/typecheck では検出できない規約違反。

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import Link from "next/link";
+import { useNavigate } from "../../shared/lib/navigation";
 import { signup } from "../../features/auth/api";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
@@ -86,7 +87,7 @@ export function SignupForm() {
         </form>
 
         <div className="auth-footer">
-          すでにアカウントをお持ちですか？ <Link to="/login">ログイン</Link>
+          すでにアカウントをお持ちですか？ <Link href="/login">ログイン</Link>
         </div>
       </div>
     </div>

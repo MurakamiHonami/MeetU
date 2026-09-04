@@ -28,7 +28,7 @@ dev:
 dev-backend:
     npm run dev:backend
 
-# Start Vite frontend dev server (localhost:5173)
+# Start Next.js frontend dev server (localhost:5173)
 dev-frontend:
     npm run dev:frontend
 

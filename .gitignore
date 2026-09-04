@@ -4,6 +4,9 @@ node_modules/
 
 # Build & Output
 dist/
+frontend/out/
+frontend/.next/
+frontend/next-env.d.ts
 build/
 coverage/
 backend/coverage/

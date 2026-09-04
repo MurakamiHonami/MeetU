@@ -3,3 +3,5 @@ import MeetUExchange.CycleCover
 import MeetUExchange.VertexSplit
 import MeetUExchange.HungarianCost
 import MeetUExchange.Assignment
+import MeetUExchange.Examples
+import MeetUExchange.ExportTests

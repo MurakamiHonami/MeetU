@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../../shared/lib/navigation";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import { cardApi } from "../../features/card/api";

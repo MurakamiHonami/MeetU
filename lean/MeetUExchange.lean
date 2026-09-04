@@ -2,3 +2,4 @@ import MeetUExchange.Digraph
 import MeetUExchange.CycleCover
 import MeetUExchange.VertexSplit
 import MeetUExchange.HungarianCost
+import MeetUExchange.Assignment

@@ -37,6 +37,9 @@ venv/
 *.swp
 *.swo
 
+# Lean build artifacts (mathlib oleans live here; do not commit)
+lean/.lake/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

@@ -48,6 +48,16 @@ test-staging-integration:
 typecheck:
     npm run typecheck
 
+
+# Lean 4 proofs for unbounded N:N cycle cover (not part of just ci)
+lean-build:
+    cd lean && lake build
+
+# Write theorem witnesses to lean/fixtures/cycle-cover.json for vitest
+lean-export-tests: lean-build
+    mkdir -p lean/fixtures
+    cd lean && lake exe export_tests fixtures/cycle-cover.json
+
 # db:verify + typecheck + tests
 check:
     cd backend && npm run db:verify

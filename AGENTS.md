@@ -80,3 +80,9 @@ lint は構文レベルのチェックであり型崩れは検出しない。型
 `just check-conventions` はこの AGENTS.md のルール（素の `throw new Error` 禁止 / ルートでの
 手動 `c.req.json()` 禁止）を grep で機械的にチェックする。`just ci` に含まれているので
 `git push` 時に自動で走るが、単体でも実行できる。違反が出たら本ファイルの該当セクションを見て直す。
+
+## Lean（`lean/`）
+
+N:N 交換の頂点分裂と O(n³) コストの形式化専用。mathlib にある補題を再証明しない。
+TypeScript の `CycleFinder` とは別物（ヒューリスティックは証明しない）。ビルドは `just lean-build`。
+`just ci` には含めない。

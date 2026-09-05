@@ -64,12 +64,13 @@ just d1-seed-staging      # staging のみ（本番 seed なし）
 ## 3. CI/CD（GitHub Actions）
 
 ```
-feature/*  →  PR → dev  →  just ci
-       ↓ merge
-     dev      →  just ci → release-staging（staging 環境）
-       ↓ PR → main → merge
-     main     →  just ci → release-production（本番）
+feature/*  →  PR → just ci → merge →
+     dev      →  release-staging（staging）
+       ↓ PR → just ci → merge →
+     main     →  staging 疎通 → release-production（本番）
 ```
+
+verify（`just ci`）は PR 時の `ci.yml` だけ。deploy では再実行しない（マージ済み＝verify 済み前提）。
 
 Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動マージ（`dependabot-automerge.yml`）。
 
@@ -77,8 +78,8 @@ Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動�
 |----------|----------|------|
 | `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
 | `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
-| `deploy-staging.yml` | `dev` push | verify job → `release-staging` |
-| `deploy-production.yml` | `main` push | verify job → `release-production` |
+| `deploy-staging.yml` | `dev` push | `release-staging` → staging 疎通 |
+| `deploy-production.yml` | `main` push | staging 疎通 → `release-production` |
 
 **husky**
 

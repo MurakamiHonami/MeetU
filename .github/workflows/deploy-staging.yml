@@ -56,6 +56,17 @@ jobs:
           fi
           echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 
+      - name: Set Gemini API key (staging)
+        working-directory: backend
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Add GEMINI_API_KEY to repository secrets (see docs/dev-setup.md)"
+            exit 1
+          fi
+          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env staging
+
       - name: Release to staging
         run: just release-staging
 

@@ -54,7 +54,7 @@ export const tagsRouter = new Hono<Env>()
 
       const bytes = new Uint8Array(await file.arrayBuffer());
       const tagRepo = new D1TagRepository(createDb(c.env.DB));
-      const vision = c.env.AI ? new TagVisionService(c.env.AI) : undefined;
+      const vision = c.env.GEMINI_API_KEY ? new TagVisionService(c.env.GEMINI_API_KEY) : undefined;
       const useCase = new TagInferUseCase(tagRepo, vision);
       const result = await useCase.inferFromImage(bytes, contentType);
       return c.json(result);

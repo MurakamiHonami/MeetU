@@ -67,6 +67,10 @@
         "binding": "AI",
         "remote": true
       },
+      "websearch": {
+        "binding": "WEBSEARCH",
+        "remote": true
+      },
       "vars": {
         "APP_ENV": "staging",
         "CORS_ORIGINS": "https://meetu.staging.ruxel.net",
@@ -108,6 +112,10 @@
       ],
       "ai": {
         "binding": "AI",
+        "remote": true
+      },
+      "websearch": {
+        "binding": "WEBSEARCH",
         "remote": true
       },
       "vars": {

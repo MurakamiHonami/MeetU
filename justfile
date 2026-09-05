@@ -32,6 +32,28 @@ dev-backend:
 dev-frontend:
     npm run dev:frontend
 
+# Docker: backend (8787) + frontend (5173). Node/just 不要。
+docker-up:
+    docker compose up --build
+
+# Docker: バックグラウンド起動
+docker-up-d:
+    docker compose up --build -d
+
+docker-down:
+    docker compose down
+
+docker-logs:
+    docker compose logs -f
+
+# デモデータ投入（docker-up 後。seed-*@meetu.local / seedpass123）
+docker-seed:
+    docker compose exec backend npm run db:seed -w meetu-backend
+
+# コンテナ停止 + D1/node_modules ボリューム削除
+docker-reset:
+    docker compose down -v
+
 # Run all tests (backend + frontend)
 test:
     npm run test
@@ -123,9 +145,13 @@ lint-secrets:
 db-generate:
     cd backend && npm run db:generate
 
-# Apply migrations to local SQLite
+# Apply migrations to local SQLite (.data/meetu.sqlite; drizzle-kit)
 db-migrate-local:
     cd backend && npm run db:migrate
+
+# Apply migrations to wrangler local D1 (just dev / Docker の API が使う DB)
+db-migrate-d1-local:
+    cd backend && npm run db:migrate:d1-local
 
 # Verify schema.ts matches drizzle/ migrations (CI と同じ)
 db-verify:

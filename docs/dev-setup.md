@@ -7,13 +7,22 @@
 
 ## 1. 前提条件
 
+ネイティブで動かす場合:
+
 - **Node.js**: v22（`.nvmrc` 参照）
 - **just**: タスクランナー (`brew install just`)
-- **Cloudflare アカウント**
+- **Cloudflare アカウント**（デプロイ時）
+
+Docker で動かす場合:
+
+- **Docker Desktop**（Compose V2）
+- **just** は任意（`docker compose` を直接叩いてもよい）
 
 ---
 
 ## 2. 初回セットアップ
+
+### ネイティブ
 
 ```bash
 just setup          # npm ci（workspaces で backend + frontend 一括）
@@ -27,12 +36,40 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 |----------|------|
 | `just setup` | 依存関係インストール |
 | `just dev` | バックエンド + フロント同時起動 |
+| `just docker-up` | Docker で backend + frontend 起動 |
 | `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
 
 個別起動: `just dev-backend` / `just dev-frontend`
+
+### Docker
+
+ホストに Node.js を入れずに、ブラウザから同じポートで触れる。
+
+```bash
+just docker-up          # docker compose up --build
+# http://localhost:5173  — フロント
+# http://127.0.0.1:8787  — API（/health で確認）
+just docker-seed        # デモデータ（任意、backend 起動後）
+just docker-logs        # ログ
+just docker-down        # 停止（D1 データは残る）
+just docker-reset       # 停止 + ボリューム削除（D1 / node_modules を初期化）
+```
+
+| コマンド | 内容 |
+|----------|------|
+| `just docker-up` | イメージビルド + フォアグラウンド起動 |
+| `just docker-up-d` | バックグラウンド起動 |
+| `just docker-seed` | ローカル API へデモデータ投入 |
+| `just docker-reset` | `docker compose down -v` |
+
+ソースは bind-mount するので、ホスト側の編集がコンテナに入る。Linux 用 `node_modules` と wrangler の D1 は named volume（ホストの `node_modules` / `.wrangler` とは別物）。
+
+backend 起動時に `wrangler d1 migrations apply --local` が走る。`just docker-reset` 後も同じ。
+
+初回はイメージの `npm ci` のため数分かかる。lockfile を変えたら `just docker-up` し直す（entrypoint が差分を検知して入れ直す）。
 
 ### デプロイ
 

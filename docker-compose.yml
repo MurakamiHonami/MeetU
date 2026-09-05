@@ -1,0 +1,93 @@
+name: meetu
+
+x-app: &app
+  build: .
+  working_dir: /app
+  init: true
+  entrypoint: ["bash", "/app/scripts/docker-entrypoint.sh"]
+  environment:
+    HUSKY: "0"
+    NEXT_TELEMETRY_DISABLED: "1"
+    WRANGLER_SEND_METRICS: "false"
+    CHOKIDAR_USEPOLLING: "true"
+    CHOKIDAR_INTERVAL: "1000"
+    WATCHPACK_POLLING: "true"
+    WATCHPACK_POLLINTERVAL: "1000"
+  volumes:
+    - .:/app
+    - root-nm:/app/node_modules
+    - backend-nm:/app/backend/node_modules
+    - frontend-nm:/app/frontend/node_modules
+    - wrangler-state:/app/backend/.wrangler
+    - frontend-out:/app/frontend/out
+  # workerd (wrangler) needs ptrace; seccomp unconfined avoids clone3 failures in some Docker setups
+  cap_add:
+    - SYS_PTRACE
+  security_opt:
+    - "seccomp:unconfined"
+
+services:
+  install:
+    <<: *app
+    command: ["true"]
+    restart: "no"
+
+  backend:
+    <<: *app
+    command: ["bash", "/app/scripts/docker-backend.sh"]
+    ports:
+      - "8787:8787"
+    depends_on:
+      install:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 40s
+    tty: true
+
+  frontend:
+    <<: *app
+    command:
+      [
+        "npm",
+        "run",
+        "dev",
+        "-w",
+        "meetu-web",
+        "--",
+        "-H",
+        "0.0.0.0",
+      ]
+    environment:
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      WRANGLER_SEND_METRICS: "false"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+      WATCHPACK_POLLING: "true"
+      WATCHPACK_POLLINTERVAL: "1000"
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8787
+    ports:
+      - "5173:5173"
+    depends_on:
+      install:
+        condition: service_completed_successfully
+      backend:
+        condition: service_healthy
+    tty: true
+
+volumes:
+  root-nm:
+  backend-nm:
+  frontend-nm:
+  wrangler-state:
+  frontend-out:

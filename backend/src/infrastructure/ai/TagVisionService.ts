@@ -1,4 +1,5 @@
 import { ValidationError } from "../../domain/shared/DomainError";
+import { TagNormalizer } from "../../domain/tag/TagNormalizer";
 
 export type InferredTagCandidate = {
   name: string;
@@ -12,6 +13,8 @@ export type TagVisionResult = {
 
 const MAX_TAGS = 8;
 
+const VISION_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+
 const ALLOWED_CATEGORIES = new Set([
   "work",
   "character",
@@ -22,36 +25,54 @@ const ALLOWED_CATEGORIES = new Set([
   "other",
 ]);
 
-const SYSTEM_PROMPT = `You analyze photos of Japanese otaku goods (anime/game merchandise, trading cards, acrylic stands, badges, etc.).
-Return JSON only with tags useful for matching traders on MeetU.
-Use Japanese display names for tags (works, characters, item types, events, areas).
-Categories must be one of: work, character, item, event, area, trade, other.`;
+const SYSTEM_PROMPT = `同人・アニメグッズの写真から交換マッチング用のタグを付ける。
+タグ名は日本語。必ずグッズの種類（アクリルスタンド、缶バッジ、フィギュア、ぬいぐるみ、机、デスクマット 等）を category:item で1つ以上含める。`;
 
-const USER_PROMPT =
-  'Identify works, characters, item types, and other match tags in this photo. Respond with JSON only: {"tags":[{"name":"...","category":"work|character|item|event|area|trade|other"}],"titleHint":"optional short Japanese title"}';
+const USER_PROMPT = "この写真のグッズをタグ付けして。";
 
-export function parseVisionTagJson(raw: unknown): TagVisionResult {
-  if (!raw || typeof raw !== "object") {
-    throw new ValidationError("画像からタグを読み取れませんでした");
-  }
-  const obj = raw as { tags?: unknown; titleHint?: unknown };
-  if (!Array.isArray(obj.tags)) {
-    throw new ValidationError("画像からタグを読み取れませんでした");
-  }
+/** Workers AI JSON Mode。https://developers.cloudflare.com/workers-ai/features/json-mode/ */
+const TAG_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    tags: {
+      type: "array",
+      minItems: 1,
+      maxItems: MAX_TAGS,
+      description:
+        "日本語のタグ。必ずグッズの種類（アクリルスタンド、缶バッジ、机など）を category:item で1つ以上含める",
+      items: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "日本語の表示名（例: アクリルスタンド。Acrylic Stand は不可）",
+          },
+          category: {
+            type: "string",
+            enum: ["work", "character", "item", "event", "area", "trade", "other"],
+          },
+        },
+        required: ["name", "category"],
+      },
+    },
+    titleHint: { type: "string", description: "短い日本語タイトル" },
+  },
+  required: ["tags"],
+};
 
+export function parseVisionTagJson(response: unknown): TagVisionResult {
+  const obj = unwrapJsonMode(response);
   const tags: InferredTagCandidate[] = [];
   const seen = new Set<string>();
+
   for (const entry of obj.tags) {
     if (!entry || typeof entry !== "object") continue;
     const name = String((entry as { name?: unknown }).name ?? "").trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
+    const category = String((entry as { category?: unknown }).category ?? "");
+    if (!name || !ALLOWED_CATEGORIES.has(category)) continue;
+    const key = TagNormalizer.normalize(name);
+    if (!key || seen.has(key)) continue;
     seen.add(key);
-
-    let category = String((entry as { category?: unknown }).category ?? "other").toLowerCase();
-    if (!ALLOWED_CATEGORIES.has(category)) category = "other";
-
     tags.push({ name, category });
     if (tags.length >= MAX_TAGS) break;
   }
@@ -66,6 +87,23 @@ export function parseVisionTagJson(raw: unknown): TagVisionResult {
   return { tags, titleHint };
 }
 
+/** JSON Mode は `{ response: { tags, titleHint } }`。binding 直返しの `{ tags }` も受ける。 */
+function unwrapJsonMode(response: unknown): { tags: unknown[]; titleHint?: unknown } {
+  if (!response || typeof response !== "object") {
+    throw new ValidationError("画像解析に失敗しました");
+  }
+  const r = response as { tags?: unknown; response?: unknown };
+  const payload = Array.isArray(r.tags) ? r : r.response;
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !Array.isArray((payload as { tags?: unknown }).tags)
+  ) {
+    throw new ValidationError("画像解析に失敗しました");
+  }
+  return payload as { tags: unknown[]; titleHint?: unknown };
+}
+
 function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   let binary = "";
   const chunk = 8192;
@@ -75,97 +113,32 @@ function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   return `data:${contentType};base64,${btoa(binary)}`;
 }
 
-function hasTagsArray(value: unknown): value is { tags: unknown[] } {
-  return !!value && typeof value === "object" && Array.isArray((value as { tags?: unknown }).tags);
-}
-
-/**
- * Workers AI は経路によって:
- * - { response: string }
- * - { response: { tags: [...] } }  ← 現行の vision がよく返す
- * - { result: { response: ... } }（REST 封筒）
- * - OpenAI 互換 choices
- * を返す。いずれも tags オブジェクトまで辿る。
- */
-export function extractVisionPayload(response: unknown): unknown {
-  if (typeof response === "string") {
-    return parseJsonLoose(response);
-  }
-  if (!response || typeof response !== "object") {
-    throw new ValidationError("画像解析に失敗しました");
-  }
-
-  const r = response as {
-    tags?: unknown;
-    response?: unknown;
-    result?: { tags?: unknown; response?: unknown };
-    choices?: { message?: { content?: unknown } }[];
-  };
-
-  if (hasTagsArray(r)) return r;
-  if (r.result && hasTagsArray(r.result)) return r.result;
-
-  const candidates: unknown[] = [r.response, r.result?.response, r.choices?.[0]?.message?.content];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim()) {
-      return parseJsonLoose(candidate);
-    }
-    if (hasTagsArray(candidate)) {
-      return candidate;
-    }
-  }
-
-  throw new ValidationError("画像解析に失敗しました");
-}
-
-function parseJsonLoose(text: string): unknown {
-  const trimmed = text
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/, "");
-
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    // 散文に JSON が埋もれている場合、最初のオブジェクトを拾う
-    const start = trimmed.indexOf("{");
-    const end = trimmed.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(trimmed.slice(start, end + 1));
-      } catch {
-        /* fall through */
-      }
-    }
-    throw new ValidationError("画像からタグを読み取れませんでした");
-  }
-}
-
 export class TagVisionService {
   constructor(private ai: Ai) {}
 
   async inferFromImage(bytes: Uint8Array, contentType: string): Promise<TagVisionResult> {
     const dataUrl = bytesToBase64DataUrl(bytes, contentType);
 
-    // トップレベル `image` は number[] / binary。data URL は messages 内 image_url で渡す。
-    const response = await this.ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: USER_PROMPT },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-      max_tokens: 512,
-    });
-
     try {
-      return parseVisionTagJson(extractVisionPayload(response));
+      const response = await this.ai.run(VISION_MODEL, {
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: USER_PROMPT },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        max_tokens: 512,
+        temperature: 0.1,
+        response_format: {
+          type: "json_schema",
+          json_schema: TAG_JSON_SCHEMA,
+        },
+      });
+      return parseVisionTagJson(response);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       throw new ValidationError("画像からタグを読み取れませんでした");

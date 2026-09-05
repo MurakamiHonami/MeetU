@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TAGS_PER_CARD } from "../../domain/tag/Tag";
 
 export const signupSchema = z.object({
   email: z.email(),
@@ -46,7 +47,7 @@ export const createCardSchema = z.object({
   title: z.string().trim().min(1).max(200),
   note: z.string().max(2000).optional(),
   minMatchCount: z.number().int().min(1).max(50).optional(),
-  tags: z.array(tagInputSchema).min(1),
+  tags: z.array(tagInputSchema).min(1).max(MAX_TAGS_PER_CARD),
   requiredTags: z.array(z.union([z.string(), z.object({ name: z.string() })])).optional(),
   dates: z.array(z.string()).optional(),
   location: locationSchema.optional(),

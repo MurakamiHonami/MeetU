@@ -1666,3 +1666,50 @@ input[type="range"] {
   font-weight: 700;
   text-decoration: underline;
 }
+
+/* 写真からタグを読み取っている最中の表示。
+   入力を止めないので、待たせている感じを出さず控えめに置く */
+.infer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--teal-tint);
+  color: var(--teal-dark);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: middle;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+
+.infer-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: infer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes infer-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* 動きを減らす設定の端末では点滅させない */
+@media (prefers-reduced-motion: reduce) {
+  .infer-badge::before {
+    animation: none;
+    opacity: 1;
+  }
+}

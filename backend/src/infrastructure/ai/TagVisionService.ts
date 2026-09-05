@@ -27,6 +27,9 @@ Return JSON only with tags useful for matching traders on MeetU.
 Use Japanese display names for tags (works, characters, item types, events, areas).
 Categories must be one of: work, character, item, event, area, trade, other.`;
 
+const USER_PROMPT =
+  'Identify works, characters, item types, and other match tags in this photo. Respond with JSON only: {"tags":[{"name":"...","category":"work|character|item|event|area|trade|other"}],"titleHint":"optional short Japanese title"}';
+
 export function parseVisionTagJson(raw: unknown): TagVisionResult {
   if (!raw || typeof raw !== "object") {
     throw new ValidationError("画像からタグを読み取れませんでした");
@@ -72,56 +75,46 @@ function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   return `data:${contentType};base64,${btoa(binary)}`;
 }
 
-/**
- * モデルの戻り値から生成テキストを取り出す。
- *
- * 型定義上は { response: string } だが、Workers AI は経路によって
- * result で包んだ形や OpenAI 互換の choices 形を返すことがあるため、
- * 既知の形をひととおり試す。
- */
-function extractModelText(response: unknown): string {
-  if (typeof response === "string") return response;
+/** Workers AI の返答からテキスト／構造化 JSON を取り出す */
+export function extractVisionPayload(response: unknown): unknown {
+  if (typeof response === "string") {
+    return parseJsonLoose(response);
+  }
   if (!response || typeof response !== "object") {
     throw new ValidationError("画像解析に失敗しました");
   }
 
   const r = response as {
+    tags?: unknown;
     response?: unknown;
-    result?: { response?: unknown };
-    choices?: { message?: { content?: unknown } }[];
+    result?: { response?: unknown; tags?: unknown };
   };
 
-  const candidates = [r.response, r.result?.response, r.choices?.[0]?.message?.content];
-  const text = candidates.find((c): c is string => typeof c === "string" && c.trim() !== "");
-
-  if (!text) {
-    // 何が返ってきたのか分からないと直せない。画像やプロンプトは載せず、
-    // 形だけ（キー名と型）を記録する
-    console.error("vision model returned no text", describeShape(response));
-    throw new ValidationError("画像解析に失敗しました");
+  // response_format / 一部モデルはスキーマオブジェクトを直返しする
+  if (Array.isArray(r.tags)) return r;
+  if (r.result && typeof r.result === "object" && Array.isArray(r.result.tags)) {
+    return r.result;
   }
-  return text;
+
+  const text = r.response ?? r.result?.response;
+  if (typeof text === "string" && text.trim()) {
+    return parseJsonLoose(text);
+  }
+
+  throw new ValidationError("画像解析に失敗しました");
 }
 
-/** ログ用にオブジェクトの形だけを表す。値そのものは残さない。 */
-function describeShape(value: unknown, depth = 0): unknown {
-  if (value === null) return "null";
-  if (Array.isArray(value)) {
-    return depth >= 2
-      ? `array(${value.length})`
-      : [`array(${value.length})`, describeShape(value[0], depth + 1)];
+function parseJsonLoose(text: string): unknown {
+  const jsonText = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/, "");
+  try {
+    return JSON.parse(jsonText);
+  } catch {
+    throw new ValidationError("画像からタグを読み取れませんでした");
   }
-  if (typeof value === "object") {
-    if (depth >= 2) return "object";
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
-        k,
-        describeShape(v, depth + 1),
-      ]),
-    );
-  }
-  if (typeof value === "string") return `string(${value.length})`;
-  return typeof value;
 }
 
 export class TagVisionService {
@@ -130,30 +123,25 @@ export class TagVisionService {
   async inferFromImage(bytes: Uint8Array, contentType: string): Promise<TagVisionResult> {
     const dataUrl = bytesToBase64DataUrl(bytes, contentType);
 
+    // トップレベル `image` は number[] / binary。data URL は messages 内 image_url で渡す。
     const response = await this.ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content:
-            'Identify works, characters, item types, and other match tags in this photo. Respond with JSON only: {"tags":[{"name":"...","category":"work|character|item|event|area|trade|other"}],"titleHint":"optional short Japanese title"}',
+          content: [
+            { type: "text", text: USER_PROMPT },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
         },
       ],
-      image: dataUrl,
       max_tokens: 512,
     });
 
-    const text = extractModelText(response);
-    const jsonText = text
-      .trim()
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/, "");
     try {
-      return parseVisionTagJson(JSON.parse(jsonText));
-    } catch {
-      // モデルの言い分が JSON でなかったときは、先頭だけ残して形を掴めるようにする
-      console.error("vision model returned non-JSON text", jsonText.slice(0, 200));
+      return parseVisionTagJson(extractVisionPayload(response));
+    } catch (e) {
+      if (e instanceof ValidationError) throw e;
       throw new ValidationError("画像からタグを読み取れませんでした");
     }
   }

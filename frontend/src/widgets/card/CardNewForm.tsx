@@ -3,6 +3,7 @@ import { useNavigate, useQueryParam } from "../../shared/lib/navigation";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import ThresholdSlider from "../ThresholdSlider";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import { cardApi } from "../../features/card/api";
@@ -17,6 +18,19 @@ const TYPE_HELP: Record<CardType, string> = {
   GIVE: "持っているグッズを譲ります。【求】のカードとマッチします。",
   WANT: "探しているグッズを登録します。【譲】のカードとマッチします。",
   COMPANION: "イベントの同行者を募集します。同じ【同行者求】とマッチします。",
+};
+
+/** 入力例。同行者募集はグッズ交換とは書くことが違うので、種類ごとに出し分ける */
+const TITLE_PLACEHOLDER: Record<CardType, string> = {
+  GIVE: "天馬司のアクスタ譲ります",
+  WANT: "天馬司のアクスタ探しています",
+  COMPANION: "アイドルライブ 東京公演の同行者募集",
+};
+
+const NOTE_PLACEHOLDER: Record<CardType, string> = {
+  GIVE: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
+  WANT: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
+  COMPANION: "現地集合希望 / 開演前に合流したい / 参戦は初めてです など",
 };
 
 const COUNTERPART: Record<CardType, CardType> = {
@@ -248,9 +262,7 @@ export function CardNewForm() {
           className="input"
           value={title}
           maxLength={60}
-          placeholder={
-            type === "GIVE" ? "天馬司のアクスタ譲ります" : "天馬司のアクスタ探しています"
-          }
+          placeholder={TITLE_PLACEHOLDER[type]}
           onChange={(e) => setTitle(e.target.value)}
         />
       </label>
@@ -272,7 +284,9 @@ export function CardNewForm() {
           {photoPreview ? (
             <img src={photoPreview} alt="アップロードした写真" className="photo-infer-preview" />
           ) : (
-            <div className="photo-infer-placeholder">グッズの写真</div>
+            <div className="photo-infer-placeholder" aria-hidden="true">
+              <ImageRoundedIcon />
+            </div>
           )}
           {/* 推定中でも押せる。差し替えたら前の推定は打ち切られる */}
           <button type="button" className="teal" onClick={() => photoInputRef.current?.click()}>
@@ -387,7 +401,7 @@ export function CardNewForm() {
           rows={3}
           maxLength={500}
           value={note}
-          placeholder="郵送のみ / 手渡し希望 / 交換できるものリスト など"
+          placeholder={NOTE_PLACEHOLDER[type]}
           onChange={(e) => setNote(e.target.value)}
         />
       </label>

@@ -3,6 +3,7 @@ import AddCircleRoundedIcon from "@mui/icons-material/AddCircleRounded";
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
 
 /** サービスの流れ。ホームで最初に伝えるのはこの3つだけに絞る */
@@ -10,14 +11,14 @@ const STEPS = [
   {
     icon: StyleRoundedIcon,
     tone: "icon-pink",
-    title: "募集カードを登録する",
-    body: "【譲】【求】【同行者求】と、作品名などのタグを登録します。",
+    title: "お取引カードを登録する",
+    body: "【譲】・【求】のカード種別と、作品名・グループ名・グッズの種類などのタグを登録します。",
   },
   {
     icon: FavoriteRoundedIcon,
     tone: "icon-gold",
     title: "条件が合う相手と自動でマッチ",
-    body: "タグが指定した数だけ一致する相手を探します。3人以上の輪になる交換も見つけます。",
+    body: "マッチ内容を確認し、承認することでマッチングが成立します。3人以上の交換など、複雑な取引もサポートします。",
   },
   {
     icon: ChatRoundedIcon,
@@ -37,15 +38,18 @@ export function HomeView() {
   return (
     <div className="page home-page">
       <section className="hero">
-        <p className="hero-lead">好きな作品のグッズを、</p>
-        <h1 className="hero-title">条件が合う相手と交換する</h1>
+        <p className="hero-lead">グッズ交換をAIがアシストし、</p>
+        <h1 className="hero-title">理想のお取引相手とマッチングする</h1>
         <p className="hero-body">
-          欲しいものと譲れるものをカードにして登録すると、MeetU
-          が条件の合う相手を探します。イベントの同行者も同じ仕組みで見つかります。
+          お取引の条件をカードにして登録すると、MeetU が最適な相手を探してマッチングをアシスト。
         </p>
         <button className="hero-cta primary" onClick={() => navigate("/cards/new")}>
           <AddCircleRoundedIcon />
-          募集カードを登録する
+          お取引カードを登録する
+        </button>
+        <button className="hero-cta hero-cta-sub" onClick={() => navigate("/search")}>
+          <SearchRoundedIcon />
+          お取引カードを探す
         </button>
       </section>
 

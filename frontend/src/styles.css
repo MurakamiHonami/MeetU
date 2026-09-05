@@ -405,11 +405,11 @@ textarea.input {
   display: grid;
   place-items: center;
   background: var(--pink-tint);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  padding: 8px;
+  color: var(--pink);
+}
+
+.photo-infer-placeholder svg {
+  font-size: 34px;
 }
 
 .chip-star,
@@ -1318,6 +1318,13 @@ input[type="range"] {
   place-items: center;
   padding: 16px;
   background: rgb(0 0 0 / 45%);
+  /* ユーザーメニューは .apphead の中に描画される。
+     ヘッダーの白文字・文字影・字送りを引き継ぐと本文が読めなくなるので body の既定に戻す */
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-shadow: none;
 }
 
 .modal {
@@ -1718,6 +1725,12 @@ input[type="range"] {
   box-shadow: var(--sticker-lg);
 }
 
+/* 第2導線。登録より一段弱くしたいので白地＋影を小さく */
+.hero-cta-sub {
+  margin-top: 12px;
+  box-shadow: var(--sticker);
+}
+
 .steps {
   margin-bottom: 8px;
 }
@@ -1884,6 +1897,11 @@ input[type="range"] {
 .usermenu-section {
   padding: 16px 0;
   border-bottom: 2px solid var(--soft);
+}
+
+/* 見出しだけブランドのピンクにして、本文は他画面と同じ --ink に揃える */
+.usermenu-section .fav-head strong {
+  color: var(--pink);
 }
 
 .usermenu-section .actions {

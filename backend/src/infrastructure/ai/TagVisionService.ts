@@ -13,7 +13,7 @@ export type TagVisionResult = {
 
 const MAX_TAGS = 8;
 
-const VISION_MODEL = "@cf/zai-org/glm-5.3-flash";
+const VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
 const ALLOWED_CATEGORIES = new Set([
   "work",
@@ -104,11 +104,14 @@ function unwrapJsonMode(response: unknown): { tags: unknown[]; titleHint?: unkno
     choices?: { message?: { content?: unknown } }[];
   };
   const nested = r.response as { choices?: { message?: { content?: unknown } }[] } | undefined;
+  const result = (r as { result?: { choices?: { message?: { content?: unknown } }[] } }).result;
   for (const candidate of [
     r,
     r.response,
+    result,
     r.choices?.[0]?.message?.content,
     nested?.choices?.[0]?.message?.content,
+    result?.choices?.[0]?.message?.content,
   ]) {
     const obj = asTagsObject(candidate);
     if (obj) return obj;
@@ -158,6 +161,14 @@ function parseJsonObject(text: string): unknown {
   }
 }
 
+function visionUnavailableError(e: unknown): ValidationError {
+  const msg = e instanceof Error ? e.message : "";
+  if (/Workers Free plan|not available on the/i.test(msg)) {
+    return new ValidationError("このビジョンモデルは現在利用できません");
+  }
+  return new ValidationError("画像解析に失敗しました");
+}
+
 function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   let binary = "";
   const chunk = 8192;
@@ -188,12 +199,13 @@ export class TagVisionService {
         max_tokens: 1024,
         temperature: 0.1,
         reasoning_effort: "low",
+        chat_template_kwargs: { enable_thinking: false },
         response_format: JSON_RESPONSE_FORMAT,
       });
       return parseVisionTagJson(response);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
-      throw new ValidationError("画像からタグを読み取れませんでした");
+      throw visionUnavailableError(e);
     }
   }
 }

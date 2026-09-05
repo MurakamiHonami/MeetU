@@ -16,6 +16,22 @@ describe("parseVisionTagJson", () => {
     expect(result.titleHint).toBe("天馬司アクスタ譲ります");
   });
 
+  it("unwraps REST { result: { choices } } envelope", () => {
+    const result = parseVisionTagJson({
+      success: true,
+      result: {
+        choices: [
+          {
+            message: {
+              content: '{"tags":[{"name":"缶バッジ","category":"item"}]}',
+            },
+          },
+        ],
+      },
+    });
+    expect(result.tags[0].name).toBe("缶バッジ");
+  });
+
   it("unwraps JSON Mode { response: object }", () => {
     const result = parseVisionTagJson({
       response: {

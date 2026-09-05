@@ -8,6 +8,7 @@ import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import { cardApi } from "../../features/card/api";
 import { tagApi } from "../../features/tag/api";
 import { TYPE_LABEL, type Card, type CardType } from "../../entities/card/model";
+import { MAX_TAGS_PER_CARD } from "../../entities/tag/model";
 import type { Group } from "../../entities/group/model";
 import type { GeoPoint } from "../../entities/user/geo";
 import { currentPosition, shrinkImage } from "../../shared/lib/device";
@@ -111,7 +112,7 @@ export function CardNewForm() {
         const existing = new Set(prev.map((t) => t.name));
         const merged = [...prev];
         for (const t of inferred) {
-          if (merged.length >= 10) break;
+          if (merged.length >= MAX_TAGS_PER_CARD) break;
           if (existing.has(t.name)) continue;
           existing.add(t.name);
           merged.push({ name: t.name, category: t.category });

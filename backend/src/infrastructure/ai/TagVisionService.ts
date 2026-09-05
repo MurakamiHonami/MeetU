@@ -25,10 +25,32 @@ const ALLOWED_CATEGORIES = new Set([
 const SYSTEM_PROMPT = `You analyze photos of Japanese otaku goods (anime/game merchandise, trading cards, acrylic stands, badges, etc.).
 Return JSON only with tags useful for matching traders on MeetU.
 Use Japanese display names for tags (works, characters, item types, events, areas).
-Categories must be one of: work, character, item, event, area, trade, other.`;
+Categories must be one of: work, character, item, event, area, trade, other.
+Always include at least one "item" category tag naming the merchandise type in Japanese, for example:
+アクリルスタンド/アクスタ, 缶バッジ, 色紙, タペストリー, カード, キーホルダー, フィギュア, 机, ポスター.
+If space is limited, prioritize keeping the item type tag over extra work/character tags.`;
 
 const USER_PROMPT =
-  'Identify works, characters, item types, and other match tags in this photo. Respond with JSON only: {"tags":[{"name":"...","category":"work|character|item|event|area|trade|other"}],"titleHint":"optional short Japanese title"}';
+  'Identify works, characters, item types, and other match tags in this photo. At least one tag must be category "item" naming the merchandise type (e.g. アクリルスタンド/アクスタ, 缶バッジ, 色紙, タペストリー, カード, キーホルダー, フィギュア, 机, ポスター). Respond with JSON only: {"tags":[{"name":"...","category":"work|character|item|event|area|trade|other"}],"titleHint":"optional short Japanese title"}';
+
+/**
+ * MAX_TAGS 超過時、item（種別）タグはマッチングで重要なので work/character より優先して残す。
+ * 元の並び順は維持する。
+ */
+function selectWithinLimit(tags: InferredTagCandidate[]): InferredTagCandidate[] {
+  if (tags.length <= MAX_TAGS) return tags;
+
+  const kept = new Set<InferredTagCandidate>();
+  for (const tag of tags) {
+    if (kept.size >= MAX_TAGS) break;
+    if (tag.category === "item") kept.add(tag);
+  }
+  for (const tag of tags) {
+    if (kept.size >= MAX_TAGS) break;
+    kept.add(tag);
+  }
+  return tags.filter((tag) => kept.has(tag));
+}
 
 export function parseVisionTagJson(raw: unknown): TagVisionResult {
   if (!raw || typeof raw !== "object") {
@@ -39,7 +61,7 @@ export function parseVisionTagJson(raw: unknown): TagVisionResult {
     throw new ValidationError("画像からタグを読み取れませんでした");
   }
 
-  const tags: InferredTagCandidate[] = [];
+  const parsed: InferredTagCandidate[] = [];
   const seen = new Set<string>();
   for (const entry of obj.tags) {
     if (!entry || typeof entry !== "object") continue;
@@ -52,13 +74,14 @@ export function parseVisionTagJson(raw: unknown): TagVisionResult {
     let category = String((entry as { category?: unknown }).category ?? "other").toLowerCase();
     if (!ALLOWED_CATEGORIES.has(category)) category = "other";
 
-    tags.push({ name, category });
-    if (tags.length >= MAX_TAGS) break;
+    parsed.push({ name, category });
   }
 
-  if (tags.length === 0) {
+  if (parsed.length === 0) {
     throw new ValidationError("画像からタグを読み取れませんでした");
   }
+
+  const tags = selectWithinLimit(parsed);
 
   const titleHint =
     typeof obj.titleHint === "string" && obj.titleHint.trim() ? obj.titleHint.trim() : undefined;

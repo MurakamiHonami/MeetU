@@ -39,6 +39,36 @@ describe("parseVisionTagJson", () => {
   it("throws when no tags found", () => {
     expect(() => parseVisionTagJson({ tags: [] })).toThrow("画像からタグを読み取れませんでした");
   });
+
+  it("does not reject or drop tags when no item category is present", () => {
+    const result = parseVisionTagJson({
+      tags: [
+        { name: "プロセカ", category: "work" },
+        { name: "天馬司", category: "character" },
+      ],
+    });
+    expect(result.tags).toHaveLength(2);
+    expect(result.tags.some((t) => t.category === "item")).toBe(false);
+  });
+
+  it("keeps item tags over work/character when truncating to MAX_TAGS", () => {
+    const result = parseVisionTagJson({
+      tags: [
+        { name: "作品1", category: "work" },
+        { name: "作品2", category: "work" },
+        { name: "作品3", category: "work" },
+        { name: "作品4", category: "work" },
+        { name: "作品5", category: "work" },
+        { name: "作品6", category: "work" },
+        { name: "作品7", category: "work" },
+        { name: "作品8", category: "work" },
+        { name: "アクスタ", category: "item" },
+      ],
+    });
+    expect(result.tags).toHaveLength(8);
+    expect(result.tags.some((t) => t.name === "アクスタ" && t.category === "item")).toBe(true);
+    expect(result.tags.some((t) => t.name === "作品8")).toBe(false);
+  });
 });
 
 describe("extractVisionPayload", () => {

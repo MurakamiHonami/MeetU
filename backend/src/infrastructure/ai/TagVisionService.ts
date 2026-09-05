@@ -72,17 +72,56 @@ function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   return `data:${contentType};base64,${btoa(binary)}`;
 }
 
+/**
+ * モデルの戻り値から生成テキストを取り出す。
+ *
+ * 型定義上は { response: string } だが、Workers AI は経路によって
+ * result で包んだ形や OpenAI 互換の choices 形を返すことがあるため、
+ * 既知の形をひととおり試す。
+ */
 function extractModelText(response: unknown): string {
   if (typeof response === "string") return response;
   if (!response || typeof response !== "object") {
     throw new ValidationError("画像解析に失敗しました");
   }
-  const r = response as { response?: string; result?: { response?: string } };
-  const text = r.response ?? r.result?.response;
-  if (typeof text !== "string" || !text.trim()) {
+
+  const r = response as {
+    response?: unknown;
+    result?: { response?: unknown };
+    choices?: { message?: { content?: unknown } }[];
+  };
+
+  const candidates = [r.response, r.result?.response, r.choices?.[0]?.message?.content];
+  const text = candidates.find((c): c is string => typeof c === "string" && c.trim() !== "");
+
+  if (!text) {
+    // 何が返ってきたのか分からないと直せない。画像やプロンプトは載せず、
+    // 形だけ（キー名と型）を記録する
+    console.error("vision model returned no text", describeShape(response));
     throw new ValidationError("画像解析に失敗しました");
   }
   return text;
+}
+
+/** ログ用にオブジェクトの形だけを表す。値そのものは残さない。 */
+function describeShape(value: unknown, depth = 0): unknown {
+  if (value === null) return "null";
+  if (Array.isArray(value)) {
+    return depth >= 2
+      ? `array(${value.length})`
+      : [`array(${value.length})`, describeShape(value[0], depth + 1)];
+  }
+  if (typeof value === "object") {
+    if (depth >= 2) return "object";
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        describeShape(v, depth + 1),
+      ]),
+    );
+  }
+  if (typeof value === "string") return `string(${value.length})`;
+  return typeof value;
 }
 
 export class TagVisionService {
@@ -113,6 +152,8 @@ export class TagVisionService {
     try {
       return parseVisionTagJson(JSON.parse(jsonText));
     } catch {
+      // モデルの言い分が JSON でなかったときは、先頭だけ残して形を掴めるようにする
+      console.error("vision model returned non-JSON text", jsonText.slice(0, 200));
       throw new ValidationError("画像からタグを読み取れませんでした");
     }
   }

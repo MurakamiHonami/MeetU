@@ -1725,7 +1725,7 @@ input[type="range"] {
   box-shadow: var(--sticker-lg);
 }
 
-/* 第2導線。登録より一段弱くしたいので白地＋影を小さく */
+/* 第2導線。ピンクの登録ボタンと対にしてティールを当て、影を一段小さくする */
 .hero-cta-sub {
   margin-top: 12px;
   box-shadow: var(--sticker);

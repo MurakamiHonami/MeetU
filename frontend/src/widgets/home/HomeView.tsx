@@ -47,7 +47,7 @@ export function HomeView() {
           <AddCircleRoundedIcon />
           お取引カードを登録する
         </button>
-        <button className="hero-cta hero-cta-sub" onClick={() => navigate("/search")}>
+        <button className="hero-cta hero-cta-sub teal" onClick={() => navigate("/search")}>
           <SearchRoundedIcon />
           お取引カードを探す
         </button>

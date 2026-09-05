@@ -56,11 +56,34 @@ describe("extractVisionPayload", () => {
     expect(payload).toEqual({ tags: [{ name: "缶バッジ", category: "item" }] });
   });
 
-  it("parses { result: { response } } envelope", () => {
+  it("accepts { response: object } (Workers AI vision JSON mode)", () => {
+    const payload = extractVisionPayload({
+      response: {
+        tags: [{ name: "Acrylic Stand", category: "item" }],
+        titleHint: "アクスタ",
+      },
+    });
+    expect(payload).toEqual({
+      tags: [{ name: "Acrylic Stand", category: "item" }],
+      titleHint: "アクスタ",
+    });
+  });
+
+  it("parses { result: { response } } envelope with string", () => {
     const payload = extractVisionPayload({
       result: { response: '{"tags":[{"name":"イベント","category":"event"}]}' },
     });
     expect(payload).toEqual({ tags: [{ name: "イベント", category: "event" }] });
+  });
+
+  it("parses { result: { response: object } } REST envelope", () => {
+    const payload = extractVisionPayload({
+      success: true,
+      result: {
+        response: { tags: [{ name: "アクスタ", category: "item" }] },
+      },
+    });
+    expect(payload).toEqual({ tags: [{ name: "アクスタ", category: "item" }] });
   });
 
   it("strips markdown fences around JSON", () => {
@@ -68,6 +91,14 @@ describe("extractVisionPayload", () => {
       response: '```json\n{"tags":[{"name":"作品","category":"work"}]}\n```',
     });
     expect(payload).toEqual({ tags: [{ name: "作品", category: "work" }] });
+  });
+
+  it("extracts JSON object buried in prose", () => {
+    const payload = extractVisionPayload({
+      response:
+        'Based on the image:\n\n{"tags":[{"name":"缶バッジ","category":"item"}]}\n\nThat is all.',
+    });
+    expect(payload).toEqual({ tags: [{ name: "缶バッジ", category: "item" }] });
   });
 
   it("throws 画像解析に失敗しました when response text is missing", () => {

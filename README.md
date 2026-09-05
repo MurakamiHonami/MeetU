@@ -46,6 +46,8 @@ frontend/src/
 docs/
   ADR-001.md  ADR-002.md  ADR-003.md  dev-setup.md
 justfile
+Dockerfile
+docker-compose.yml
 ```
 
 ## クイックスタート
@@ -63,6 +65,15 @@ just dev-frontend  # localhost:5173
 
 # CI と同じ検証
 just ci
+```
+
+Docker だけでも起動できる（ホストに Node.js / just は不要）:
+
+```bash
+just docker-up          # または: docker compose up --build
+# ブラウザ: http://localhost:5173  /  API: http://127.0.0.1:8787
+just docker-seed        # デモデータ（任意）
+just docker-down
 ```
 
 ## デプロイ

@@ -13,7 +13,8 @@ export type TagVisionResult = {
 
 const MAX_TAGS = 8;
 
-const VISION_MODEL = "@cf/google/gemma-4-26b-a4b-it";
+const VISION_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
 const ALLOWED_CATEGORIES = new Set([
   "work",
@@ -31,40 +32,33 @@ const SYSTEM_PROMPT = `同人・アニメグッズの写真から交換マッチ
 
 const USER_PROMPT = "この写真のグッズをタグ付けして。";
 
-const JSON_RESPONSE_FORMAT = {
-  type: "json_schema" as const,
-  json_schema: {
-    name: "meetu_tags",
-    schema: {
-      type: "object",
-      properties: {
-        tags: {
-          type: "array",
-          minItems: 1,
-          maxItems: MAX_TAGS,
-          description:
-            "日本語のタグ。必ずグッズの種類（アクリルスタンド、缶バッジ、机など）を category:item で1つ以上含める",
-          items: {
-            type: "object",
-            properties: {
-              name: {
-                type: "string",
-                description: "日本語の表示名（例: アクリルスタンド。Acrylic Stand は不可）",
-              },
-              category: {
-                type: "string",
-                enum: ["work", "character", "item", "event", "area", "trade", "other"],
-              },
-            },
-            required: ["name", "category"],
+const TAG_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    tags: {
+      type: "array",
+      minItems: 1,
+      maxItems: MAX_TAGS,
+      description:
+        "日本語のタグ。必ずグッズの種類（アクリルスタンド、缶バッジ、机など）を category:item で1つ以上含める",
+      items: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "日本語の表示名（例: アクリルスタンド。Acrylic Stand は不可）",
+          },
+          category: {
+            type: "string",
+            enum: ["work", "character", "item", "event", "area", "trade", "other"],
           },
         },
-        titleHint: { type: "string", description: "短い日本語タイトル" },
+        required: ["name", "category"],
       },
-      required: ["tags"],
     },
-    strict: true,
+    titleHint: { type: "string", description: "短い日本語タイトル" },
   },
+  required: ["tags"],
 };
 
 export function parseVisionTagJson(response: unknown): TagVisionResult {
@@ -101,14 +95,17 @@ function unwrapJsonMode(response: unknown): { tags: unknown[]; titleHint?: unkno
   const r = response as {
     tags?: unknown;
     response?: unknown;
+    candidates?: { content?: { parts?: unknown } }[];
     choices?: { message?: { content?: unknown } }[];
   };
   const nested = r.response as { choices?: { message?: { content?: unknown } }[] } | undefined;
   const result = (r as { result?: { choices?: { message?: { content?: unknown } }[] } }).result;
+  const geminiParts = r.candidates?.[0]?.content?.parts;
   for (const candidate of [
     r,
     r.response,
     result,
+    geminiParts,
     r.choices?.[0]?.message?.content,
     nested?.choices?.[0]?.message?.content,
     result?.choices?.[0]?.message?.content,
@@ -161,51 +158,62 @@ function parseJsonObject(text: string): unknown {
   }
 }
 
-function visionUnavailableError(e: unknown): ValidationError {
-  const msg = e instanceof Error ? e.message : "";
-  if (/Workers Free plan|not available on the/i.test(msg)) {
-    return new ValidationError("このビジョンモデルは現在利用できません");
-  }
-  return new ValidationError("画像解析に失敗しました");
-}
-
-function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
+function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunk = 8192;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  return `data:${contentType};base64,${btoa(binary)}`;
+  return btoa(binary);
 }
 
 export class TagVisionService {
-  constructor(private ai: Ai) {}
+  constructor(private apiKey: string) {}
 
   async inferFromImage(bytes: Uint8Array, contentType: string): Promise<TagVisionResult> {
-    const dataUrl = bytesToBase64DataUrl(bytes, contentType);
-
     try {
-      const response = await this.ai.run(VISION_MODEL, {
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: USER_PROMPT },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
+      const response = await fetch(GEMINI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: USER_PROMPT },
+                { inlineData: { mimeType: contentType, data: bytesToBase64(bytes) } },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json",
+            responseSchema: TAG_RESPONSE_SCHEMA,
+            thinkingConfig: { thinkingBudget: 0 },
           },
-        ],
-        max_tokens: 1024,
-        temperature: 0.1,
-        reasoning_effort: "low",
-        chat_template_kwargs: { enable_thinking: false },
-        response_format: JSON_RESPONSE_FORMAT,
+        }),
       });
-      return parseVisionTagJson(response);
+
+      if (!response.ok) {
+        throw geminiHttpError(response.status);
+      }
+
+      return parseVisionTagJson(await response.json());
     } catch (e) {
       if (e instanceof ValidationError) throw e;
-      throw visionUnavailableError(e);
+      throw new ValidationError("画像解析に失敗しました");
     }
   }
+}
+
+function geminiHttpError(status: number): ValidationError {
+  if (status === 401 || status === 403) {
+    return new ValidationError("このビジョンモデルは現在利用できません");
+  }
+  return new ValidationError("画像解析に失敗しました");
 }

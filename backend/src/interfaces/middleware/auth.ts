@@ -8,6 +8,7 @@ export interface Env {
     CACHE_KV: KVNamespace;
     UPLOADS_R2: R2Bucket;
     AI?: Ai;
+    GEMINI_API_KEY?: string;
     JWT_SECRET: string;
     APP_ENV?: string;
     CORS_ORIGINS?: string;

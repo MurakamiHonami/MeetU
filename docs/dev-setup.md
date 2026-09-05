@@ -139,6 +139,7 @@ git checkout -b dev && git push -u origin dev
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
 | `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
+| `GEMINI_API_KEY` | 画像タグ推定（Gemini API。deploy 時に `wrangler secret put`） |
 
 `JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
 

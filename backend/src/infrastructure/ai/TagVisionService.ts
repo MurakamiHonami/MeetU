@@ -75,7 +75,18 @@ function bytesToBase64DataUrl(bytes: Uint8Array, contentType: string): string {
   return `data:${contentType};base64,${btoa(binary)}`;
 }
 
-/** Workers AI の返答からテキスト／構造化 JSON を取り出す */
+function hasTagsArray(value: unknown): value is { tags: unknown[] } {
+  return !!value && typeof value === "object" && Array.isArray((value as { tags?: unknown }).tags);
+}
+
+/**
+ * Workers AI は経路によって:
+ * - { response: string }
+ * - { response: { tags: [...] } }  ← 現行の vision がよく返す
+ * - { result: { response: ... } }（REST 封筒）
+ * - OpenAI 互換 choices
+ * を返す。いずれも tags オブジェクトまで辿る。
+ */
 export function extractVisionPayload(response: unknown): unknown {
   if (typeof response === "string") {
     return parseJsonLoose(response);
@@ -87,32 +98,47 @@ export function extractVisionPayload(response: unknown): unknown {
   const r = response as {
     tags?: unknown;
     response?: unknown;
-    result?: { response?: unknown; tags?: unknown };
+    result?: { tags?: unknown; response?: unknown };
+    choices?: { message?: { content?: unknown } }[];
   };
 
-  // response_format / 一部モデルはスキーマオブジェクトを直返しする
-  if (Array.isArray(r.tags)) return r;
-  if (r.result && typeof r.result === "object" && Array.isArray(r.result.tags)) {
-    return r.result;
-  }
+  if (hasTagsArray(r)) return r;
+  if (r.result && hasTagsArray(r.result)) return r.result;
 
-  const text = r.response ?? r.result?.response;
-  if (typeof text === "string" && text.trim()) {
-    return parseJsonLoose(text);
+  const candidates: unknown[] = [r.response, r.result?.response, r.choices?.[0]?.message?.content];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return parseJsonLoose(candidate);
+    }
+    if (hasTagsArray(candidate)) {
+      return candidate;
+    }
   }
 
   throw new ValidationError("画像解析に失敗しました");
 }
 
 function parseJsonLoose(text: string): unknown {
-  const jsonText = text
+  const trimmed = text
     .trim()
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/, "");
+
   try {
-    return JSON.parse(jsonText);
+    return JSON.parse(trimmed);
   } catch {
+    // 散文に JSON が埋もれている場合、最初のオブジェクトを拾う
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(trimmed.slice(start, end + 1));
+      } catch {
+        /* fall through */
+      }
+    }
     throw new ValidationError("画像からタグを読み取れませんでした");
   }
 }

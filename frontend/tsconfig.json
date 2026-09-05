@@ -37,15 +37,18 @@
     "src",
     "next-env.d.ts",
     "next.config.mjs",
-    "out/types/**/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
+    "out/types/**/*.ts",
     "out/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "vitest.config.ts",
     "out/**/*.js",
-    "out/**/*.html"
+    "out/**/*.html",
+    "out/types/**",
+    "out/dev/types/**",
+    ".next/dev/types/**"
   ]
 }

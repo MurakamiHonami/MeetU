@@ -3,6 +3,11 @@ name: CI
 on:
   pull_request:
     branches: [dev, main]
+  # Populates the node_modules cache on dev. GitHub Actions only lets a PR read
+  # caches from its own ref or its base branch, so without this every PR misses
+  # and pays a full `npm ci` (~7min).
+  push:
+    branches: [dev]
   workflow_dispatch:
 
 concurrency:
@@ -33,9 +38,12 @@ jobs:
 
       - uses: extractions/setup-just@v2
 
+      # Not `just setup`: on a lockfile change the node_modules cache misses and
+      # npm ci re-resolves from the network. setup-node has already restored the
+      # tarball cache, so prefer it and skip the audit/funding round-trips.
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
-        run: just setup
+        run: npm ci --prefer-offline --no-audit --fund=false
 
       - name: CI checks
         run: just ci

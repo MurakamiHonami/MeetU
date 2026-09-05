@@ -33,32 +33,32 @@ const SYSTEM_PROMPT = `同人・アニメグッズの写真から交換マッチ
 const USER_PROMPT = "この写真のグッズをタグ付けして。";
 
 const TAG_RESPONSE_SCHEMA = {
-  type: "object",
+  type: "OBJECT",
   properties: {
     tags: {
-      type: "array",
-      minItems: 1,
-      maxItems: MAX_TAGS,
+      type: "ARRAY",
       description:
         "日本語のタグ。必ずグッズの種類（アクリルスタンド、缶バッジ、机など）を category:item で1つ以上含める",
       items: {
-        type: "object",
+        type: "OBJECT",
         properties: {
           name: {
-            type: "string",
+            type: "STRING",
             description: "日本語の表示名（例: アクリルスタンド。Acrylic Stand は不可）",
           },
           category: {
-            type: "string",
+            type: "STRING",
+            format: "enum",
             enum: ["work", "character", "item", "event", "area", "trade", "other"],
           },
         },
         required: ["name", "category"],
       },
     },
-    titleHint: { type: "string", description: "短い日本語タイトル" },
+    titleHint: { type: "STRING", nullable: true, description: "短い日本語タイトル" },
   },
   required: ["tags"],
+  propertyOrdering: ["tags", "titleHint"],
 };
 
 export function parseVisionTagJson(response: unknown): TagVisionResult {
@@ -194,12 +194,15 @@ export class TagVisionService {
             maxOutputTokens: 1024,
             responseMimeType: "application/json",
             responseSchema: TAG_RESPONSE_SCHEMA,
-            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       });
 
       if (!response.ok) {
+        const errBody = (await response.json().catch(() => null)) as {
+          error?: { message?: string; status?: string };
+        } | null;
+        console.error("gemini infer failed", response.status, errBody?.error?.message);
         throw geminiHttpError(response.status);
       }
 

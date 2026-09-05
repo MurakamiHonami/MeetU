@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "../../shared/lib/navigation";
-import AddCircleRoundedIcon from "@mui/icons-material/AddCircleRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import CardItem from "../CardItem";
@@ -81,16 +80,6 @@ export function SearchView() {
       <section className="start">
         <h2>お取引開始</h2>
         <div className="menu">
-          <button className="menu-item primary" onClick={() => navigate("/cards/new")}>
-            <span className="menu-icon">
-              <AddCircleRoundedIcon />
-            </span>
-            <span className="menu-text">
-              <strong>募集カードを登録</strong>
-              <span>譲りたい・欲しい・同行したいをタグで登録する</span>
-            </span>
-          </button>
-
           <button className="menu-item" onClick={() => startSearch("")}>
             <span className="menu-icon icon-teal">
               <SwapHorizRoundedIcon />

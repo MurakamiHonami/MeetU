@@ -35,7 +35,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
   const groupRepo = new D1GroupRepository(db);
   const swipeRepo = new D1SwipeRepository(db);
   const uploadService = new R2UploadService(env.UPLOADS_R2, env.CACHE_KV, baseUrl);
-  const tagVision = env.AI ? new TagVisionService(env.AI, env.WEBSEARCH) : undefined;
+  const tagVision = env.AI ? new TagVisionService(env.AI) : undefined;
 
   return {
     repos: {

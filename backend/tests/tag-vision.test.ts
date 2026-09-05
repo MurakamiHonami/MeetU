@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  extractToolCalls,
-  formatSearchHits,
-  parseSearchQuery,
-  parseVisionTagJson,
-} from "../src/infrastructure/ai/TagVisionService";
+import { parseVisionTagJson } from "../src/infrastructure/ai/TagVisionService";
 
 describe("parseVisionTagJson", () => {
   it("parses valid tag list", () => {
@@ -58,6 +53,42 @@ describe("parseVisionTagJson", () => {
     expect(result.tags[0].name).toBe("五条悟");
   });
 
+  it("strips think blocks around JSON", () => {
+    const result = parseVisionTagJson({
+      choices: [
+        {
+          message: {
+            content:
+              '<think>見た目を考える</think>\n{"tags":[{"name":"缶バッジ","category":"item"}]}',
+          },
+        },
+      ],
+    });
+    expect(result.tags[0].name).toBe("缶バッジ");
+  });
+
+  it("joins content part arrays", () => {
+    const result = parseVisionTagJson({
+      choices: [
+        {
+          message: {
+            content: [
+              { type: "text", text: '{"tags":[{"name":"アクリルスタンド","category":"item"}]}' },
+            ],
+          },
+        },
+      ],
+    });
+    expect(result.tags[0].name).toBe("アクリルスタンド");
+  });
+
+  it("extracts JSON object buried in prose", () => {
+    const result = parseVisionTagJson({
+      response: 'Sure.\n{"tags":[{"name":"机","category":"item"}]}\n',
+    });
+    expect(result.tags[0].name).toBe("机");
+  });
+
   it("deduplicates tags case-insensitively", () => {
     const result = parseVisionTagJson({
       tags: [
@@ -82,60 +113,5 @@ describe("parseVisionTagJson", () => {
     expect(() => parseVisionTagJson({ success: false, errors: [] })).toThrow(
       "画像解析に失敗しました",
     );
-  });
-});
-
-describe("extractToolCalls", () => {
-  it("reads OpenAI tool_calls", () => {
-    const calls = extractToolCalls({
-      choices: [
-        {
-          message: {
-            tool_calls: [
-              {
-                id: "c1",
-                type: "function",
-                function: { name: "web_search", arguments: '{"query":"天馬司"}' },
-              },
-            ],
-          },
-        },
-      ],
-    });
-    expect(calls).toEqual([{ id: "c1", name: "web_search", arguments: '{"query":"天馬司"}' }]);
-  });
-
-  it("ignores unrelated tools", () => {
-    expect(
-      extractToolCalls({
-        choices: [
-          {
-            message: {
-              tool_calls: [
-                { id: "x", type: "function", function: { name: "other", arguments: "{}" } },
-              ],
-            },
-          },
-        ],
-      }),
-    ).toEqual([]);
-  });
-});
-
-describe("parseSearchQuery", () => {
-  it("reads query from JSON arguments", () => {
-    expect(parseSearchQuery('{"query":"プロセカ 水色の髪"}')).toBe("プロセカ 水色の髪");
-  });
-});
-
-describe("formatSearchHits", () => {
-  it("renders titles for the model", () => {
-    expect(
-      formatSearchHits([{ title: "天馬司", url: "https://example.com", description: "プロセカ" }]),
-    ).toContain("天馬司");
-  });
-
-  it("says 検索結果なし when empty", () => {
-    expect(formatSearchHits([])).toBe("検索結果なし");
   });
 });

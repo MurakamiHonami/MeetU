@@ -16,17 +16,22 @@ describe("parseVisionTagJson", () => {
     expect(result.titleHint).toBe("天馬司アクスタ譲ります");
   });
 
-  it("unwraps Gemini candidates parts", () => {
+  it("unwraps Gemini candidates parts with thoughtSignature", () => {
     const result = parseVisionTagJson({
       candidates: [
         {
           content: {
-            parts: [{ text: '{"tags":[{"name":"天馬司","category":"character"}]}' }],
+            parts: [
+              {
+                text: '{"tags":[{"name":"缶バッジ","category":"item"}]}',
+                thoughtSignature: "opaque",
+              },
+            ],
           },
         },
       ],
     });
-    expect(result.tags[0].name).toBe("天馬司");
+    expect(result.tags[0].name).toBe("缶バッジ");
   });
 
   it("unwraps REST { result: { choices } } envelope", () => {

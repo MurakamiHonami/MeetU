@@ -13,7 +13,7 @@ export type TagVisionResult = {
 
 const MAX_TAGS = 8;
 
-const VISION_MODEL = "gemini-2.5-flash";
+const VISION_MODEL = "gemini-3.6-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
 const ALLOWED_CATEGORIES = new Set([
@@ -202,21 +202,24 @@ export class TagVisionService {
         const errBody = (await response.json().catch(() => null)) as {
           error?: { message?: string; status?: string };
         } | null;
-        console.error("gemini infer failed", response.status, errBody?.error?.message);
-        throw geminiHttpError(response.status);
+        throw geminiHttpError(response.status, errBody?.error?.message);
       }
 
       return parseVisionTagJson(await response.json());
     } catch (e) {
       if (e instanceof ValidationError) throw e;
-      throw new ValidationError("画像解析に失敗しました");
+      const detail = e instanceof Error ? e.message : "";
+      throw new ValidationError(
+        detail ? `画像解析に失敗しました: ${detail}` : "画像解析に失敗しました",
+      );
     }
   }
 }
 
-function geminiHttpError(status: number): ValidationError {
+function geminiHttpError(status: number, detail?: string): ValidationError {
+  const suffix = detail ? `: ${detail}` : "";
   if (status === 401 || status === 403) {
-    return new ValidationError("このビジョンモデルは現在利用できません");
+    return new ValidationError(`このビジョンモデルは現在利用できません${suffix}`);
   }
-  return new ValidationError("画像解析に失敗しました");
+  return new ValidationError(`画像解析に失敗しました (${status})${suffix}`);
 }

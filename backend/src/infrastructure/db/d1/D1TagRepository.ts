@@ -22,6 +22,12 @@ export class D1TagRepository implements ITagRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Tag[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(tags).where(inArray(tags.id, ids)).all();
+    return rows.map((row) => this.mapRow(row));
+  }
+
   async suggest(query: string, limit = 20): Promise<Tag[]> {
     const pattern = `%${query.toLowerCase()}%`;
     const rows = await this.db
@@ -53,23 +59,41 @@ export class D1TagRepository implements ITagRepository {
       .where(inArray(tags.id, tagIds));
   }
 
-  async findRelatedTags(tagId: string, limit = 5): Promise<RelatedTagHit[]> {
+  async findRelatedTagsForMany(tagIds: string[], limit = 5): Promise<Map<string, RelatedTagHit[]>> {
+    const grouped = new Map<string, RelatedTagHit[]>();
+    if (tagIds.length === 0) return grouped;
+
     const rowsA = await this.db
-      .select({ related: tagCooccurrences.tagB, hits: tagCooccurrences.hits })
+      .select({
+        tagId: tagCooccurrences.tagA,
+        related: tagCooccurrences.tagB,
+        hits: tagCooccurrences.hits,
+      })
       .from(tagCooccurrences)
-      .where(eq(tagCooccurrences.tagA, tagId))
-      .orderBy(desc(tagCooccurrences.hits))
-      .limit(limit)
+      .where(inArray(tagCooccurrences.tagA, tagIds))
       .all();
     const rowsB = await this.db
-      .select({ related: tagCooccurrences.tagA, hits: tagCooccurrences.hits })
+      .select({
+        tagId: tagCooccurrences.tagB,
+        related: tagCooccurrences.tagA,
+        hits: tagCooccurrences.hits,
+      })
       .from(tagCooccurrences)
-      .where(eq(tagCooccurrences.tagB, tagId))
-      .orderBy(desc(tagCooccurrences.hits))
-      .limit(limit)
+      .where(inArray(tagCooccurrences.tagB, tagIds))
       .all();
-    const merged = [...rowsA, ...rowsB].sort((a, b) => b.hits - a.hits).slice(0, limit);
-    return merged.map((r) => ({ tagId: r.related, hits: r.hits }));
+
+    for (const row of [...rowsA, ...rowsB]) {
+      const list = grouped.get(row.tagId) ?? [];
+      list.push({ tagId: row.related, hits: row.hits });
+      grouped.set(row.tagId, list);
+    }
+
+    const result = new Map<string, RelatedTagHit[]>();
+    for (const tagId of tagIds) {
+      const hits = (grouped.get(tagId) ?? []).sort((a, b) => b.hits - a.hits).slice(0, limit);
+      result.set(tagId, hits);
+    }
+    return result;
   }
 
   async recordCooccurrences(tagIds: string[]): Promise<void> {

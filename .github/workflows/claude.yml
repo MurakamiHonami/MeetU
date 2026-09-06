@@ -20,9 +20,10 @@ jobs:
   claude:
     # issue の open は無条件で着手する。コメント経由は @claude が要る。
     # bot 起因のイベントには反応しない（dependabot の issue や自分のコメントで
-    # 無限に走らせないため）。ただし claude-scan.yml が立てた issue だけは
+    # 無限に走らせないため）。ただし専用スキャンが立てた issue だけは
     # bot 作成でも着手する（auto-scan ラベルで判別。スキャン自身は issue を
     # 作るだけでコメントしないので、ここから無限ループにはならない）。
+    # libraries スキャンは proposal のみで auto-scan を付けない（自動実装しない）。
     if: |
       (
         github.event.sender.type != 'Bot' ||

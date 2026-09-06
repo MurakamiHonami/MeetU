@@ -75,6 +75,11 @@ jobs:
           # ブランチは dev から切る。pr-target.yml が base=dev 以外の PR を
           # 自動クローズするため、ここを外すと PR が即閉じられる。
           base_branch: dev
+          # ジョブの if は auto-scan issue（claude[bot] 作成）を通すが、
+          # action 側にも bot 拒否がある。ここを空のままにすると
+          # 「Workflow initiated by non-human actor: claude」で即死する。
+          # `*` は使わない（外部 App が issue を開いて起動できてしまう）。
+          allowed_bots: claude
           additional_permissions: |
             actions: read
           prompt: |

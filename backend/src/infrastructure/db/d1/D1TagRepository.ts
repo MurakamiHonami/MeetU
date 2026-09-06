@@ -22,6 +22,12 @@ export class D1TagRepository implements ITagRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Tag[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(tags).where(inArray(tags.id, ids)).all();
+    return rows.map((row) => this.mapRow(row));
+  }
+
   async suggest(query: string, limit = 20): Promise<Tag[]> {
     const pattern = `%${query.toLowerCase()}%`;
     const rows = await this.db

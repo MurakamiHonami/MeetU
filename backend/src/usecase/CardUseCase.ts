@@ -43,15 +43,18 @@ export class CardUseCase {
   async createCard(input: CreateCardInput): Promise<CreateCardResult> {
     const tagIds: string[] = [];
     const tagLabels: Record<string, string> = {};
+    const tagsById = new Map<string, { displayName: string; category?: string }>();
     for (const t of input.tags) {
       const tagId = TagNormalizer.normalize(t.displayName);
       tagIds.push(tagId);
       tagLabels[tagId] = t.displayName;
-      const existing = await this.tagRepo.findById(tagId);
-      if (!existing) {
-        await this.tagRepo.save(Tag.create(t.displayName, t.category || "other"));
-      }
+      tagsById.set(tagId, t);
     }
+    const existingIds = new Set((await this.tagRepo.findByIds(tagIds)).map((tag) => tag.id));
+    const newTags = [...tagsById.entries()]
+      .filter(([tagId]) => !existingIds.has(tagId))
+      .map(([, t]) => Tag.create(t.displayName, t.category || "other"));
+    await this.tagRepo.saveMany(newTags);
     await this.tagRepo.incrementCounts(tagIds);
     await this.tagRepo.recordCooccurrences(tagIds);
 

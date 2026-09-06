@@ -61,6 +61,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 既定ではモデルの出力がログに出ず、PR もコメントも出ないまま success
+          # で終わった時に原因が追えない。private リポジトリなのでログを読めるのは
+          # 元から権限のある人だけ。
+          show_full_output: true
           # ブランチは dev から切る。pr-target.yml が base=dev 以外の PR を
           # 自動クローズするため、ここを外すと PR が即閉じられる。
           base_branch: dev

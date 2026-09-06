@@ -183,7 +183,8 @@ Workers Logs（Cloudflare ダッシュボード内、追加 SaaS なし）: [obs
 
 - フロント API クライアント: `frontend/src/shared/api/client.ts`（`@meetu/backend` から `AppType` を import）
 - モック認証: `Authorization: Bearer mock_<userId>` は **local のみ** 有効
-- Vite proxy: `/api` → `http://127.0.0.1:8787`
+- API 接続先: `NEXT_PUBLIC_API_BASE_URL`（既定 `http://127.0.0.1:8787`）による絶対 URL 指定。
+  Next.js の `output: "export"` では `next.config` の rewrites が使えないため、dev でもプロキシは使わない設計
 
 ---
 

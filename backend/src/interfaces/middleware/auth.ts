@@ -13,6 +13,9 @@ export interface Env {
     APP_ENV?: string;
     CORS_ORIGINS?: string;
     COOKIE_DOMAIN?: string;
+    X_CLIENT_ID?: string;
+    X_CLIENT_SECRET?: string;
+    X_REDIRECT_URI?: string;
   };
   Variables: {
     userId: string;

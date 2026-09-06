@@ -31,7 +31,10 @@
     "JWT_SECRET": "local-test-only-not-for-staging-or-production",
     "APP_ENV": "local",
     "CORS_ORIGINS": "http://localhost:5173",
-    "COOKIE_DOMAIN": ""
+    "COOKIE_DOMAIN": "",
+    "X_CLIENT_ID": "local-test-only-not-for-staging-or-production",
+    "X_CLIENT_SECRET": "local-test-only-not-for-staging-or-production",
+    "X_REDIRECT_URI": "http://localhost:8787/api/auth/x/callback"
   },
   "env": {
     "staging": {
@@ -70,7 +73,8 @@
       "vars": {
         "APP_ENV": "staging",
         "CORS_ORIGINS": "https://meetu.staging.ruxel.net",
-        "COOKIE_DOMAIN": ".ruxel.net"
+        "COOKIE_DOMAIN": ".ruxel.net",
+        "X_REDIRECT_URI": "https://api-meetu-staging.ruxel.net/api/auth/x/callback"
       },
       "observability": {
         "enabled": true,
@@ -113,7 +117,8 @@
       "vars": {
         "APP_ENV": "production",
         "CORS_ORIGINS": "https://meetu.ruxel.net",
-        "COOKIE_DOMAIN": ".ruxel.net"
+        "COOKIE_DOMAIN": ".ruxel.net",
+        "X_REDIRECT_URI": "https://api.meetu.ruxel.net/api/auth/x/callback"
       },
       "observability": {
         "enabled": true,

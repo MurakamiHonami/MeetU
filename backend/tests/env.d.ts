@@ -16,6 +16,10 @@ declare global {
       LINE_LOGIN_CHANNEL_ID: string;
       LINE_CHANNEL_ACCESS_TOKEN: string;
       LINE_CHANNEL_SECRET: string;
+      X_CLIENT_ID?: string;
+      X_CLIENT_SECRET?: string;
+      X_REDIRECT_URI?: string;
+      CORS_ORIGINS?: string;
     }
   }
 }
@@ -30,5 +34,9 @@ declare module "cloudflare:workers" {
     LINE_LOGIN_CHANNEL_ID: string;
     LINE_CHANNEL_ACCESS_TOKEN: string;
     LINE_CHANNEL_SECRET: string;
+    X_CLIENT_ID?: string;
+    X_CLIENT_SECRET?: string;
+    X_REDIRECT_URI?: string;
+    CORS_ORIGINS?: string;
   }
 }

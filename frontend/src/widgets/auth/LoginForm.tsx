@@ -1,14 +1,24 @@
 import { useState } from "react";
 import Link from "next/link";
-import { useNavigate } from "../../shared/lib/navigation";
+import { useNavigate, useQueryParam } from "../../shared/lib/navigation";
 import { login } from "../../features/auth/api";
+import { API_BASE } from "../../shared/api";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import XIcon from "@mui/icons-material/X";
+
+const X_LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  x_oauth_failed: "Xログインに失敗しました。もう一度お試しください",
+  account_suspended: "このアカウントは停止されています",
+};
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const oauthError = useQueryParam("error");
+  const [error, setError] = useState(
+    oauthError ? (X_LOGIN_ERROR_MESSAGES[oauthError] ?? "ログインに失敗しました") : "",
+  );
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -70,6 +80,12 @@ export function LoginForm() {
             {loading ? "ログイン中..." : "ログイン"}
           </button>
         </form>
+
+        <div className="auth-divider">または</div>
+
+        <a href={`${API_BASE}/api/auth/x/login`} className="btn-x">
+          <XIcon fontSize="small" /> Xでログイン
+        </a>
 
         <div className="auth-footer">
           アカウントをお持ちでないですか？ <Link href="/signup">新規会員登録</Link>

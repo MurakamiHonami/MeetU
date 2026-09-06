@@ -1,15 +1,15 @@
 name: Claude Scan
 
-# 2 時間ごとに専用スキャンを 1 種類ずつ回す（UTC 偶数時）。
+# 3 時間ごとに専用スキャンを 1 種類ずつ回す。
 # 同じ時刻に 4 本並列だと課金が膨らむのでローテーションする。
-#   0,8,16 UTC  → security
-#   2,10,18 UTC → optimization
-#   4,12,20 UTC → dx
-#   6,14,22 UTC → libraries（proposal のみ。自動 PR しない）
+#   0,12 UTC  → security
+#   3,15 UTC  → optimization
+#   6,18 UTC  → dx
+#   9,21 UTC  → libraries（proposal のみ。自動 PR しない）
 # 立てた auto-scan issue は claude.yml が拾って PR にする。
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       scan_type:
@@ -61,7 +61,7 @@ jobs:
             exit 0
           fi
           hour=$(date -u +%H)
-          idx=$((10#$hour / 2 % 4))
+          idx=$((10#$hour / 3 % 4))
           types=(security optimization dx libraries)
           echo "type=${types[$idx]}" >> "$GITHUB_OUTPUT"
 

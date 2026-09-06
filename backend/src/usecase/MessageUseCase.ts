@@ -87,11 +87,7 @@ export class MessageUseCase {
     const now = new Date().toISOString();
     await this.groupRepo.markRead(groupId, userId, now);
 
-    const members: User[] = [];
-    for (const mid of group.members) {
-      const u = await this.userRepo.findById(mid);
-      if (u) members.push(u);
-    }
+    const members = await this.userRepo.findByIds(group.members);
 
     return {
       messages,

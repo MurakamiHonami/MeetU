@@ -3,11 +3,12 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const login = vi.fn();
 const navigate = vi.fn();
+let queryParam: string | null = null;
 
 vi.mock("../../features/auth/api", () => ({ login: (...a: unknown[]) => login(...a) }));
 vi.mock("../../shared/lib/navigation", () => ({
   useNavigate: () => navigate,
-  useQueryParam: () => null,
+  useQueryParam: () => queryParam,
 }));
 
 import { LoginForm } from "./LoginForm";
@@ -27,6 +28,7 @@ function fill(email = "a@example.com", password = "pw12345678") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  queryParam = null;
   login.mockResolvedValue({ user: {}, tokens: {} });
 });
 
@@ -41,6 +43,26 @@ describe("LoginForm", () => {
   it("links to the signup page", () => {
     setup();
     expect(screen.getByRole("link", { name: "新規会員登録" })).toHaveAttribute("href", "/signup");
+  });
+
+  it("links to the X OAuth login endpoint", () => {
+    setup();
+    expect(screen.getByRole("link", { name: /Xでログイン/ })).toHaveAttribute(
+      "href",
+      "/api/auth/x/login",
+    );
+  });
+
+  it("shows an error banner when redirected back with an X OAuth failure", () => {
+    queryParam = "x_oauth_failed";
+    setup();
+    expect(screen.getByText("Xログインに失敗しました。もう一度お試しください")).toBeInTheDocument();
+  });
+
+  it("shows an error banner when the X account is suspended", () => {
+    queryParam = "account_suspended";
+    setup();
+    expect(screen.getByText("このアカウントは停止されています")).toBeInTheDocument();
   });
 
   it("shows no error before submitting", () => {

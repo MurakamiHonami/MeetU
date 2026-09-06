@@ -7,6 +7,7 @@ export interface UserProps {
   email: string;
   passwordHash: string;
   salt: string;
+  xId?: string;
   displayName: string;
   pictureUrl?: string;
   ratingAvg: number;
@@ -35,6 +36,9 @@ export class User {
   }
   get salt(): string {
     return this.props.salt;
+  }
+  get xId(): string | undefined {
+    return this.props.xId;
   }
   get displayName(): string {
     return this.props.displayName;
@@ -141,6 +145,7 @@ export class User {
     salt: string,
     displayName: string,
     pictureUrl?: string,
+    xId?: string,
   ): User {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -149,6 +154,7 @@ export class User {
       email,
       passwordHash,
       salt,
+      xId,
       displayName,
       pictureUrl,
       ratingAvg: 0.0,

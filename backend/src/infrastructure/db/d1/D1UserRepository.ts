@@ -13,6 +13,7 @@ export class D1UserRepository implements IUserRepository {
       email: row.email,
       passwordHash: row.passwordHash,
       salt: row.salt,
+      xId: row.xId ?? undefined,
       displayName: row.displayName,
       pictureUrl: row.pictureUrl ?? undefined,
       ratingAvg: row.ratingAvg,
@@ -41,6 +42,11 @@ export class D1UserRepository implements IUserRepository {
     return row ? new User(this.rowToProps(row)) : null;
   }
 
+  async findByXId(xId: string): Promise<User | null> {
+    const row = await this.db.select().from(users).where(eq(users.xId, xId)).get();
+    return row ? new User(this.rowToProps(row)) : null;
+  }
+
   async save(user: User): Promise<void> {
     const p = user.toProps();
     const home = p.homeLocation;
@@ -49,6 +55,7 @@ export class D1UserRepository implements IUserRepository {
       email: p.email,
       passwordHash: p.passwordHash,
       salt: p.salt,
+      xId: p.xId ?? null,
       displayName: p.displayName,
       pictureUrl: p.pictureUrl ?? null,
       ratingAvg: p.ratingAvg,

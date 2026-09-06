@@ -1622,6 +1622,49 @@ input[type="range"] {
   text-decoration: underline;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.15;
+}
+
+.btn-x {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--sticker);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+.btn-x:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
 /* 写真からタグを読み取っている最中の表示。
    入力を止めないので、待たせている感じを出さず控えめに置く */
 .infer-badge {

@@ -15,6 +15,7 @@ export const users = sqliteTable(
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
     salt: text("salt").notNull(),
+    xId: text("x_id").unique(),
     displayName: text("display_name").notNull(),
     pictureUrl: text("picture_url"),
     ratingAvg: real("rating_avg").notNull().default(0),

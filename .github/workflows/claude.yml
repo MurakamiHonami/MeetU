@@ -60,6 +60,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --fund=false
 
+      - name: Record time before Claude runs
+        # 実行前の時刻を基準に、後段で「このジョブがコメントを残したか」を判定する。
+        id: before_claude
+        run: echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@v1
         # action は Claude の実行環境に GH_TOKEN を渡さないので、`gh pr create` /
         # `gh issue comment` を使わせるためにここで入れる。
@@ -107,3 +112,34 @@ jobs:
           # denied になり、issue 着手が 1 ターンで落ちる。
           claude_args: |
             --allowedTools "Bash,Read,Edit,Write,Grep,Glob,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"
+
+      - name: Guarantee a response (fallback for silent runs)
+        # プロンプトは必ず gh issue comment で締めるよう指示しているが、モデルが
+        # 手順を最後まで実行しない・action 自体が途中で失敗/キャンセルされる、
+        # といったケースでは無言のまま終わることがある(issue #109)。
+        # このジョブ開始後に claude[bot] が本 issue/PR にコメントしていなければ、
+        # 「無言で終わった」ことだけでも分かるようにフォールバックのコメントを残す。
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number="${{ github.event.issue.number || github.event.pull_request.number }}"
+          since="${{ steps.before_claude.outputs.time }}"
+          if [ -z "$number" ]; then
+            echo "No issue/PR number; skip fallback"
+            exit 0
+          fi
+          # since が空（記録ステップ自体が走らなかった）なら、このジョブのコメントは無いとみなす。
+          # comments API はデフォルト30件なので since クエリでページネーション漏れを避ける。
+          if [ -n "$since" ]; then
+            count=$(gh api "repos/${{ github.repository }}/issues/${number}/comments?since=${since}&per_page=100" \
+              --jq "[.[] | select(.user.login == \"claude[bot]\")] | length")
+          else
+            count=0
+          fi
+          if [ "$count" -eq 0 ]; then
+            run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            gh issue comment "$number" --repo "${{ github.repository }}" \
+              --body "⚠️ 自動処理がコメントを残さずに終了しました(エラー・タイムアウト・キャンセル、またはモデルが手順を完了しなかった可能性があります)。ログ: ${run_url}"
+          fi

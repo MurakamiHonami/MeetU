@@ -57,15 +57,13 @@ export const cardsRouter = new Hono<Env>()
       });
 
       const owner = await ctx.repos.userRepo.findById(userId);
-      const groupViews = [];
-      for (const g of result.newGroups) {
-        const detail = await ctx.useCases.group.getGroupDetail(g.id, userId);
-        if (detail) {
-          groupViews.push(
-            groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
-          );
-        }
-      }
+      const { users, cards, readAts } = await ctx.useCases.group.loadGroupContext(
+        result.newGroups,
+        userId,
+      );
+      const groupViews = result.newGroups.map((g) =>
+        groupView(g, userId, users, cards, readAts.get(g.id) ?? null),
+      );
 
       return c.json(
         {

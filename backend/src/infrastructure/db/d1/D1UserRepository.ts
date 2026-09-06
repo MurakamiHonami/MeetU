@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { IUserRepository } from "../../../domain/user/IUserRepository";
 import { User, UserProps } from "../../../domain/user/User";
 import { AppDatabase, parseJson } from "../database";
@@ -35,6 +35,12 @@ export class D1UserRepository implements IUserRepository {
   async findById(id: string): Promise<User | null> {
     const row = await this.db.select().from(users).where(eq(users.id, id)).get();
     return row ? new User(this.rowToProps(row)) : null;
+  }
+
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(users).where(inArray(users.id, ids)).all();
+    return rows.map((row) => new User(this.rowToProps(row)));
   }
 
   async findByEmail(email: string): Promise<User | null> {

@@ -30,15 +30,12 @@ export class GroupUseCase {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
 
-    for (const memberId of group.members) {
-      const u = await this.userRepo.findById(memberId);
-      if (u) users.set(memberId, u);
+    for (const u of await this.userRepo.findByIds(group.members)) {
+      users.set(u.id, u);
     }
-    for (const step of group.steps) {
-      if (!cards.has(step.giveCardId)) {
-        const c = await this.cardRepo.findById(step.giveCardId);
-        if (c) cards.set(step.giveCardId, c);
-      }
+    const cardIds = [...new Set(group.steps.map((step) => step.giveCardId))];
+    for (const c of await this.cardRepo.findByIds(cardIds)) {
+      cards.set(c.id, c);
     }
 
     const lastReadAt = await this.groupRepo.getLastReadAt(groupId, userId);
@@ -77,20 +74,21 @@ export class GroupUseCase {
     const cards = new Map<string, Card>();
     const readAts = new Map<string, string | null>();
 
+    const memberIds = new Set<string>();
+    const cardIds = new Set<string>();
+    for (const group of groups) {
+      for (const memberId of group.members) memberIds.add(memberId);
+      for (const step of group.steps) cardIds.add(step.giveCardId);
+    }
+    for (const u of await this.userRepo.findByIds([...memberIds])) {
+      users.set(u.id, u);
+    }
+    for (const c of await this.cardRepo.findByIds([...cardIds])) {
+      cards.set(c.id, c);
+    }
+
     for (const group of groups) {
       readAts.set(group.id, await this.groupRepo.getLastReadAt(group.id, userId));
-      for (const memberId of group.members) {
-        if (!users.has(memberId)) {
-          const u = await this.userRepo.findById(memberId);
-          if (u) users.set(memberId, u);
-        }
-      }
-      for (const step of group.steps) {
-        if (!cards.has(step.giveCardId)) {
-          const c = await this.cardRepo.findById(step.giveCardId);
-          if (c) cards.set(step.giveCardId, c);
-        }
-      }
     }
     return { users, cards, readAts };
   }

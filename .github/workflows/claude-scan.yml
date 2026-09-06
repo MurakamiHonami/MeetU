@@ -1,0 +1,114 @@
+name: Claude Scan
+
+# 定期的にリポジトリを調べ、実在する問題だけを issue にする。
+# 立てた issue は claude.yml が拾って自動で PR まで出す。
+on:
+  schedule:
+    # 毎週月曜 09:00 JST (00:00 UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'issue を作らず、見つけた内容をログに出すだけ'
+        type: boolean
+        default: false
+
+concurrency:
+  group: claude-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read # スキャンするだけ。ブランチは作らない
+      issues: write # 見つけた問題を issue にする
+      id-token: write
+      actions: read # ワークフローのログから警告を拾う
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            ${{ github.repository }} を調べて、実在する問題だけを issue にしてください。
+
+            ## 最優先の原則
+
+            **確認できていないことは書かない。問題が見つからなければ何も作らない。**
+
+            issue を作ることがゴールではありません。0 件で終わるのは正常な結果であり、
+            望ましい結果ですらあります。「せっかく走ったから何か出そう」と考えて、
+            確認していない推測や、些細で誰も困っていないことを issue にしないでください。
+            水増しは、本当に対応が必要な issue を埋もれさせるので有害です。
+
+            ## 調べる対象
+
+            1. CI / GitHub Actions の警告・非推奨・失敗
+               - `gh run list --limit 20` と `gh run view <id> --log` で実際のログを読む
+               - deprecation warning や繰り返し失敗しているジョブを拾う
+            2. 依存関係
+               - `npm outdated`、`npm audit` の実際の出力
+               - どこからも import されていない依存（grep で裏を取る）
+            3. テストカバレッジ
+               - `just ci` などで実際にカバレッジレポートを出し、低い箇所を拾う
+            4. コード中の TODO / FIXME
+               - `grep -rn "TODO\|FIXME" --include=... ` で実際に存在するものだけ
+
+            ## 事実確認の手順（必須）
+
+            issue にする前に、1 件ずつ次を満たすこと。満たせないものは捨てる。
+
+            - コマンドを実際に実行し、その出力を自分の目で見た。「たぶんそうだろう」で書かない
+            - 根拠として、実行したコマンドと出力の該当部分を issue 本文に引用できる
+            - ファイルパスや行番号を書く場合、そのファイルを Read して実在を確認した
+            - 既に直っていないか確認した（過去のログではなく最新の状態を見る）
+            - 同じ内容の issue が既に無いか `gh issue list --state all --search "..."` で確認した
+
+            エラーで情報が取れなかった項目は、推測で埋めずに落としてください。
+
+            ## issue の作り方
+
+            上の確認を通ったものだけ、1 件につき 1 つの issue を
+            `gh issue create --label auto-scan --title "..." --body "..."` で作成します。
+
+            - 本文には「症状」「根拠（実行したコマンドと出力）」「期待する対応」を書く
+            - 根拠のない issue は作らない
+            - 1 回のスキャンで作る issue は最大 3 件。多く見つかっても、影響の大きい
+              順に 3 件までに絞る（レビューする人間の処理量を超えさせないため）
+            - 取り消しの効かない操作（ブランチやタグの削除、force push、リリースの削除、
+              本番設定の変更）を求める issue は作らない。claude.yml がそれを自動で
+              実行してしまうため。報告や提案に留める内容であれば作ってよい
+
+            環境変数 DRY_RUN が "true" の場合は、issue を一切作らず、
+            作るはずだった内容をそのまま出力して終了してください。
+
+            ## 最後に必ず行うこと
+
+            作業の締めとして、必ず次のどちらかを実行してください。無言で終了しないこと。
+
+            - issue を作った場合: 作成した issue の番号と URL を一覧で出力する
+            - 0 件だった場合: 何を調べて、なぜ issue にしなかったのかを出力する
+              （この場合も issue は作らない。「特に問題は見つかりませんでした」で構わない）
+          claude_args: |
+            --allowedTools "Bash,Read,Grep,Glob,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"

@@ -13,8 +13,16 @@ export type TagVisionResult = {
 
 const MAX_TAGS = 8;
 
-const VISION_MODEL = "gemini-3.6-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
+// 先頭が本命。429/503（高負荷・レート制限）のときだけ次のモデルへフォールバックする。
+const VISION_MODELS = ["gemini-3.6-flash", "gemini-3.6-flash-lite"] as const;
+const RETRYABLE_STATUSES = new Set([429, 503]);
+
+function geminiUrl(model: string): string {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+/** 429/503 のときだけ送出する。呼び出し側はこれを見て次のモデルにフォールバックする */
+class RetryableGeminiError extends ValidationError {}
 
 const ALLOWED_CATEGORIES = new Set([
   "work",
@@ -171,48 +179,62 @@ export class TagVisionService {
   constructor(private apiKey: string) {}
 
   async inferFromImage(bytes: Uint8Array, contentType: string): Promise<TagVisionResult> {
-    try {
-      const response = await fetch(GEMINI_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: USER_PROMPT },
-                { inlineData: { mimeType: contentType, data: bytesToBase64(bytes) } },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 1024,
-            responseMimeType: "application/json",
-            responseSchema: TAG_RESPONSE_SCHEMA,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errBody = (await response.json().catch(() => null)) as {
-          error?: { message?: string; status?: string };
-        } | null;
-        throw geminiHttpError(response.status, errBody?.error?.message);
+    let lastError: unknown;
+    for (let i = 0; i < VISION_MODELS.length; i++) {
+      try {
+        return await this.callModel(VISION_MODELS[i], bytes, contentType);
+      } catch (e) {
+        lastError = e;
+        const hasNextModel = i < VISION_MODELS.length - 1;
+        if (!hasNextModel || !(e instanceof RetryableGeminiError)) break;
       }
-
-      return parseVisionTagJson(await response.json());
-    } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      const detail = e instanceof Error ? e.message : "";
-      throw new ValidationError(
-        detail ? `画像解析に失敗しました: ${detail}` : "画像解析に失敗しました",
-      );
     }
+    if (lastError instanceof ValidationError) throw lastError;
+    const detail = lastError instanceof Error ? lastError.message : "";
+    throw new ValidationError(
+      detail ? `画像解析に失敗しました: ${detail}` : "画像解析に失敗しました",
+    );
+  }
+
+  private async callModel(
+    model: string,
+    bytes: Uint8Array,
+    contentType: string,
+  ): Promise<TagVisionResult> {
+    const response = await fetch(geminiUrl(model), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": this.apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: USER_PROMPT },
+              { inlineData: { mimeType: contentType, data: bytesToBase64(bytes) } },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+          responseMimeType: "application/json",
+          responseSchema: TAG_RESPONSE_SCHEMA,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = (await response.json().catch(() => null)) as {
+        error?: { message?: string; status?: string };
+      } | null;
+      throw geminiHttpError(response.status, errBody?.error?.message);
+    }
+
+    return parseVisionTagJson(await response.json());
   }
 }
 
@@ -221,5 +243,8 @@ function geminiHttpError(status: number, detail?: string): ValidationError {
   if (status === 401 || status === 403) {
     return new ValidationError(`このビジョンモデルは現在利用できません${suffix}`);
   }
-  return new ValidationError(`画像解析に失敗しました (${status})${suffix}`);
+  const message = `画像解析に失敗しました (${status})${suffix}`;
+  return RETRYABLE_STATUSES.has(status)
+    ? new RetryableGeminiError(message)
+    : new ValidationError(message);
 }

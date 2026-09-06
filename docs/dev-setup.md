@@ -140,8 +140,10 @@ git checkout -b dev && git push -u origin dev
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
 | `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
 | `GEMINI_API_KEY` | 画像タグ推定（Gemini API。deploy 時に `wrangler secret put`） |
+| `X_CLIENT_ID` | X (Twitter) OAuth ログイン（staging / production deploy 時に `wrangler secret put`） |
+| `X_CLIENT_SECRET` | X (Twitter) OAuth ログイン（staging / production deploy 時に `wrangler secret put`） |
 
-`JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
+`JWT_SECRET` / `X_CLIENT_ID` / `X_CLIENT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。未設定のままだと `/api/auth/x/login` が 503 (`X login is not configured`) を返し続ける。
 
 トークン確認:
 
@@ -162,6 +164,23 @@ curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
 ```
+
+### X (Twitter) OAuth Secret
+
+| 環境 | 設定方法 |
+|------|----------|
+| Local | `backend/.dev.vars`（`X_CLIENT_ID` / `X_CLIENT_SECRET`） |
+| Staging | `X_CLIENT_ID` / `X_CLIENT_SECRET` GitHub Secret（deploy-staging で自動設定） |
+| Production | `X_CLIENT_ID` / `X_CLIENT_SECRET` GitHub Secret（deploy-production で自動設定） |
+
+```bash
+echo "$X_CLIENT_ID" | npx wrangler secret put X_CLIENT_ID --env staging
+echo "$X_CLIENT_SECRET" | npx wrangler secret put X_CLIENT_SECRET --env staging
+echo "$X_CLIENT_ID" | npx wrangler secret put X_CLIENT_ID --env production
+echo "$X_CLIENT_SECRET" | npx wrangler secret put X_CLIENT_SECRET --env production
+```
+
+`X_REDIRECT_URI` は機密ではないため `wrangler.json` の `env.staging.vars` / `env.production.vars` にそのまま書かれている。
 
 ### Staging integration tests
 

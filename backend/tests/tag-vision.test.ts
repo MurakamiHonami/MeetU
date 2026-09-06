@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { parseVisionTagJson } from "../src/infrastructure/ai/TagVisionService";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseVisionTagJson, TagVisionService } from "../src/infrastructure/ai/TagVisionService";
+
+function geminiOkResponse(tags: { name: string; category: string }[]): Response {
+  return {
+    ok: true,
+    json: async () => ({
+      candidates: [{ content: { parts: [{ text: JSON.stringify({ tags }) }] } }],
+    }),
+  } as Response;
+}
+
+function geminiErrorResponse(status: number, message: string): Response {
+  return { ok: false, status, json: async () => ({ error: { message } }) } as Response;
+}
 
 describe("parseVisionTagJson", () => {
   it("parses valid tag list", () => {
@@ -147,5 +160,65 @@ describe("parseVisionTagJson", () => {
     expect(() => parseVisionTagJson({ success: false, errors: [] })).toThrow(
       "画像解析に失敗しました",
     );
+  });
+});
+
+describe("TagVisionService.inferFromImage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to the next model when the first is overloaded (503)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(geminiErrorResponse(503, "high demand"))
+      .mockResolvedValueOnce(geminiOkResponse([{ name: "缶バッジ", category: "item" }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new TagVisionService("key").inferFromImage(
+      new Uint8Array([1]),
+      "image/png",
+    );
+
+    expect(result.tags[0].name).toBe("缶バッジ");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0][0])).toContain("gemini-3.6-flash:");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("gemini-3.6-flash-lite:");
+  });
+
+  it("falls back on rate limiting (429) too", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(geminiErrorResponse(429, "rate limited"))
+      .mockResolvedValueOnce(geminiOkResponse([{ name: "缶バッジ", category: "item" }]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new TagVisionService("key").inferFromImage(
+      new Uint8Array([1]),
+      "image/png",
+    );
+
+    expect(result.tags[0].name).toBe("缶バッジ");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not fall back on 403 (auth failure affects every model equally)", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(geminiErrorResponse(403, "no access"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      new TagVisionService("key").inferFromImage(new Uint8Array([1]), "image/png"),
+    ).rejects.toThrow("このビジョンモデルは現在利用できません");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces the last error when every model is overloaded", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(geminiErrorResponse(503, "high demand"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      new TagVisionService("key").inferFromImage(new Uint8Array([1]), "image/png"),
+    ).rejects.toThrow("画像解析に失敗しました (503)");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

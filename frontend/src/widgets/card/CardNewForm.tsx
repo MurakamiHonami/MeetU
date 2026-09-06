@@ -60,6 +60,7 @@ export function CardNewForm() {
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inferring, setInferring] = useState(false);
+  const [inferError, setInferError] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -105,7 +106,7 @@ export function CardNewForm() {
     inferAbort.current = ac;
     const isCurrent = () => inferAbort.current === ac;
 
-    setError("");
+    setInferError("");
     setInferring(true);
     try {
       const shrunk = await shrinkImage(file);
@@ -137,7 +138,7 @@ export function CardNewForm() {
     } catch (e) {
       // 差し替えで打ち切った分のエラーは表に出さない
       if (!isCurrent() || ac.signal.aborted) return;
-      setError((e as Error).message);
+      setInferError((e as Error).message);
     } finally {
       // 古い推定が新しい推定の表示を消してしまわないようにする
       if (isCurrent()) setInferring(false);
@@ -315,6 +316,7 @@ export function CardNewForm() {
           required={required}
           onRequiredChange={setRequired}
         />
+        {inferError && <p className="error">{inferError}</p>}
       </div>
 
       <div className="field">

@@ -27,6 +27,7 @@ Docker で動かす場合:
 ```bash
 just setup          # npm ci（workspaces で backend + frontend 一括）
 cp backend/.dev.vars.example backend/.dev.vars   # JWT_SECRET を設定
+just db-migrate-d1-local   # ローカル D1 にマイグレーション適用（未実行だと signup 等が 500 になる）
 just dev            # backend:8787 + frontend:5173 を同時起動
 ```
 
@@ -35,6 +36,7 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 | コマンド | 内容 |
 |----------|------|
 | `just setup` | 依存関係インストール |
+| `just db-migrate-d1-local` | ローカル D1（`just dev` が使う DB）にマイグレーション適用 |
 | `just dev` | バックエンド + フロント同時起動 |
 | `just docker-up` | Docker で backend + frontend 起動 |
 | `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |

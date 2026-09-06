@@ -26,19 +26,24 @@ export class TagInferUseCase {
     }
 
     const result = await this.vision.inferFromImage(bytes, contentType);
-    const tags: InferredTagView[] = [];
+    const candidates = result.tags.map((candidate) => ({
+      tagId: TagNormalizer.normalize(candidate.name),
+      candidate,
+    }));
 
-    for (const candidate of result.tags) {
-      const tagId = TagNormalizer.normalize(candidate.name);
-      const existing = await this.tagRepo.findById(tagId);
-      tags.push({
+    const existingTags = await this.tagRepo.findByIds(candidates.map((c) => c.tagId));
+    const existingById = new Map(existingTags.map((tag) => [tag.id, tag]));
+
+    const tags: InferredTagView[] = candidates.map(({ tagId, candidate }) => {
+      const existing = existingById.get(tagId);
+      return {
         tagId,
         name: existing?.displayName ?? candidate.name.trim(),
         category: existing?.category ?? candidate.category,
         useCount: existing?.useCount ?? 0,
         isNew: !existing,
-      });
-    }
+      };
+    });
 
     return { tags, titleHint: result.titleHint };
   }

@@ -7,6 +7,7 @@ export interface RelatedTagHit {
 
 export interface ITagRepository {
   findById(id: string): Promise<Tag | null>;
+  findByIds(ids: string[]): Promise<Tag[]>;
   suggest(query: string, limit?: number): Promise<Tag[]>;
   findRelatedTags(tagId: string, limit?: number): Promise<RelatedTagHit[]>;
   recordCooccurrences(tagIds: string[]): Promise<void>;

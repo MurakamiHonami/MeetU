@@ -113,7 +113,7 @@ Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動�
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
-| `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
+| `ci.yml` | PR（dev / main など） | `npm ci`（lockfile 変更時のみ、`just setup` とは別の高速インストール）→ `just ci` |
 | `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
 | `deploy-staging.yml` | `dev` push | `release-staging` → staging 疎通 |
 | `deploy-production.yml` | `main` push | staging 疎通 → `release-production` |

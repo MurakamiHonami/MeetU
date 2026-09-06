@@ -8,7 +8,7 @@
     "build": "next build",
     "build:staging": "APP_ENV=staging next build",
     "build:production": "APP_ENV=production next build",
-    "typecheck": "rm -f tsconfig.tsbuildinfo && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "deploy:staging": "npm run build:staging && npx --prefix ../backend wrangler deploy --config wrangler.staging.json",
     "deploy:production": "npm run build:production && npx --prefix ../backend wrangler deploy --config wrangler.production.json",
     "preview": "next start",

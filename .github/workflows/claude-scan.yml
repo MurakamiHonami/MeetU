@@ -28,17 +28,17 @@ jobs:
       id-token: write
       actions: read # ワークフローのログから警告を拾う
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v4
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --fund=false

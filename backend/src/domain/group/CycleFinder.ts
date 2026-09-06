@@ -47,10 +47,9 @@ export class CycleFinder {
       hits.filter((h) => h.ownerId !== giveCard.ownerId).map((h) => h.cardId),
     );
 
+    const wantCards = await this.cardRepo.findByIds(Array.from(candidateIds));
     const edges: Edge[] = [];
-    for (const cardId of candidateIds) {
-      const wantCard = await this.cardRepo.findById(cardId);
-      if (!wantCard) continue;
+    for (const wantCard of wantCards) {
       const matched = MatchingEngine.satisfies(wantCard, giveCard);
       if (matched) edges.push({ wantCard, matchedTags: matched });
     }

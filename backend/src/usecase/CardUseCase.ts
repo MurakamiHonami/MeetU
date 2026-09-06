@@ -90,11 +90,13 @@ export class CardUseCase {
     }
 
     const ownerUser = await this.userRepo.findById(card.ownerId);
+    const targetCards = await this.cardRepo.findByIds(Array.from(candidateMatches.keys()));
+    const targetCardById = new Map(targetCards.map((c) => [c.id, c]));
     const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] =
       [];
 
     for (const [targetCardId, matchedTagSet] of candidateMatches.entries()) {
-      const targetCard = await this.cardRepo.findById(targetCardId);
+      const targetCard = targetCardById.get(targetCardId);
       if (!targetCard) continue;
 
       const targetUser = await this.userRepo.findById(targetCard.ownerId);
@@ -167,9 +169,12 @@ export class CardUseCase {
       byCard.get(h.cardId)!.add(h.tagId);
     }
 
+    const otherCards = await this.cardRepo.findByIds(Array.from(byCard.keys()));
+    const otherCardById = new Map(otherCards.map((c) => [c.id, c]));
+
     const matched: Card[] = [];
     for (const [cid, tags] of byCard.entries()) {
-      const other = await this.cardRepo.findById(cid);
+      const other = otherCardById.get(cid);
       if (!other) continue;
       const matchedTags = Array.from(tags);
       let ok = false;

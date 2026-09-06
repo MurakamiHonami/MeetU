@@ -76,8 +76,9 @@ body/query の型がクライアントの型に伝播せず、フロント側で
 
 lint は構文レベルのチェックであり型崩れは検出しない。型のズレに気づきたいときは
 `just typecheck` を明示的に走らせる（pre-commit で TS ファイル変更時は自動で走る）。frontend の
-typecheck は `tsconfig.tsbuildinfo` を消してから走らせるので、ローカルキャッシュで CI だけ落ちる
-ことはない。
+typecheck は `tsconfig.tsbuildinfo`（incremental キャッシュ）を消さずに走る。CI は毎回クリーンな
+チェックアウトからなので tsbuildinfo が存在せず常にフルスキャンになる一方、ローカルでは差分のみ
+再チェックされて高速化される。
 
 `just check-conventions` はこの AGENTS.md のルール（素の `throw new Error` 禁止 / ルートでの
 手動 `c.req.json()` 禁止）を grep で機械的にチェックする。`just ci` に含まれているので

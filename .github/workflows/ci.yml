@@ -22,9 +22,9 @@ jobs:
     # 直前の push(dev) 実行の verify で既に検証済み。二重に回すだけ無駄。
     if: github.event_name != 'pull_request' || github.event.pull_request.base.ref != 'main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -40,7 +40,7 @@ jobs:
             frontend/node_modules
           key: node-modules-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
 
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v4
 
       # Not `just setup`: on a lockfile change the node_modules cache misses and
       # npm ci re-resolves from the network. setup-node has already restored the

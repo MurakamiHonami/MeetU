@@ -22,17 +22,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pick:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          set -euo pipefail
+          requested="${{ github.event.inputs.scan_type || 'all' }}"
+          if [ "$requested" = "all" ]; then
+            echo 'matrix=["security","optimization","dx","libraries"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix=[\"${requested}\"]" >> "$GITHUB_OUTPUT"
+          fi
+
   scan:
-    if: |
-      github.event_name != 'workflow_dispatch' ||
-      inputs.scan_type == 'all' ||
-      inputs.scan_type == matrix.scan_type
+    needs: pick
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        scan_type: [security, optimization, dx, libraries]
+        scan_type: ${{ fromJSON(needs.pick.outputs.matrix) }}
     permissions:
       contents: read
       issues: write

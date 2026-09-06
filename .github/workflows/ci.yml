@@ -17,6 +17,10 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # dev → main の PR は skip する。pr-target.yml が main への PR を
+    # 「同一リポジトリの dev からのみ」に制限しているため、この diff は
+    # 直前の push(dev) 実行の verify で既に検証済み。二重に回すだけ無駄。
+    if: github.event_name != 'pull_request' || github.event.pull_request.base.ref != 'main'
     steps:
       - uses: actions/checkout@v4
 

@@ -146,10 +146,11 @@ export const matchesRouter = new Hono<Env>()
       const query = c.req.valid("query");
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.message.listMatchMessages(id, userId, query.after);
-      const messages = [];
-      for (const m of result.messages) {
-        messages.push(await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key)));
-      }
+      const messages = await Promise.all(
+        result.messages.map((m) =>
+          messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key)),
+        ),
+      );
       return c.json({
         messages,
         canSend: result.canSend,

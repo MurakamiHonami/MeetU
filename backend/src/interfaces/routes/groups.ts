@@ -95,12 +95,13 @@ export const groupsRouter = new Hono<Env>()
       const query = c.req.valid("query");
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.message.listGroupMessages(id, userId, query.after);
-      const messages = [];
-      for (const m of result.messages) {
-        const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
-        const sender = await ctx.repos.userRepo.findById(m.senderId);
-        messages.push({ ...view, sender: sender ? ownerView(sender) : null });
-      }
+      const messages = await Promise.all(
+        result.messages.map(async (m) => {
+          const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
+          const sender = await ctx.repos.userRepo.findById(m.senderId);
+          return { ...view, sender: sender ? ownerView(sender) : null };
+        }),
+      );
       return c.json({
         messages,
         canSend: result.canSend,

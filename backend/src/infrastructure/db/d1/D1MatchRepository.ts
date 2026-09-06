@@ -1,4 +1,4 @@
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { IMatchRepository } from "../../../domain/match/IMatchRepository";
 import { Match, MatchProps } from "../../../domain/match/Match";
 import { AppDatabase, parseJson } from "../database";
@@ -90,6 +90,19 @@ export class D1MatchRepository implements IMatchRepository {
       .where(and(eq(matchReads.matchId, matchId), eq(matchReads.userId, userId)))
       .get();
     return row?.lastReadAt ?? null;
+  }
+
+  async getLastReadAtBatch(
+    matchIds: string[],
+    userId: string,
+  ): Promise<Map<string, string | null>> {
+    if (matchIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ matchId: matchReads.matchId, lastReadAt: matchReads.lastReadAt })
+      .from(matchReads)
+      .where(and(inArray(matchReads.matchId, matchIds), eq(matchReads.userId, userId)))
+      .all();
+    return new Map(rows.map((row) => [row.matchId, row.lastReadAt]));
   }
 
   async markRead(matchId: string, userId: string, at: string): Promise<void> {

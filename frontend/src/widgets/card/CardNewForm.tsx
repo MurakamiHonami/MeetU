@@ -3,11 +3,13 @@ import { useNavigate, useQueryParam } from "../../shared/lib/navigation";
 import CardItem from "../CardItem";
 import TagInput, { type PickedTag } from "../TagInput";
 import ThresholdSlider from "../ThresholdSlider";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import { cardApi } from "../../features/card/api";
 import { tagApi } from "../../features/tag/api";
 import { TYPE_LABEL, type Card, type CardType } from "../../entities/card/model";
+import { MAX_TAGS_PER_CARD } from "../../entities/tag/model";
 import type { Group } from "../../entities/group/model";
 import type { GeoPoint } from "../../entities/user/geo";
 import { currentPosition, shrinkImage } from "../../shared/lib/device";
@@ -16,6 +18,19 @@ const TYPE_HELP: Record<CardType, string> = {
   GIVE: "持っているグッズを譲ります。【求】のカードとマッチします。",
   WANT: "探しているグッズを登録します。【譲】のカードとマッチします。",
   COMPANION: "イベントの同行者を募集します。同じ【同行者求】とマッチします。",
+};
+
+/** 入力例。同行者募集はグッズ交換とは書くことが違うので、種類ごとに出し分ける */
+const TITLE_PLACEHOLDER: Record<CardType, string> = {
+  GIVE: "天馬司のアクスタ譲ります",
+  WANT: "天馬司のアクスタ探しています",
+  COMPANION: "アイドルライブ 東京公演の同行者募集",
+};
+
+const NOTE_PLACEHOLDER: Record<CardType, string> = {
+  GIVE: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
+  WANT: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
+  COMPANION: "現地集合希望 / 開演前に合流したい / 参戦は初めてです など",
 };
 
 const COUNTERPART: Record<CardType, CardType> = {
@@ -49,6 +64,11 @@ export function CardNewForm() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // 進行中のタグ推定。写真を差し替えたら打ち切る
+  const inferAbort = useRef<AbortController | null>(null);
+
+  // 画面を離れたら推定を止める（結果を捨てるだけでなく通信も切る）
+  useEffect(() => () => inferAbort.current?.abort(), []);
 
   const threshold = useMemo(
     () => Math.min(Math.max(minMatch, required.length, 1), Math.max(tags.length, 1)),
@@ -79,31 +99,48 @@ export function CardNewForm() {
   }, [respondTo]);
 
   async function inferTagsFromPhoto(file: File) {
+    // 写真を差し替えたら前の推定は用済み。打ち切って結果も捨てる
+    inferAbort.current?.abort();
+    const ac = new AbortController();
+    inferAbort.current = ac;
+    const isCurrent = () => inferAbort.current === ac;
+
     setError("");
     setInferring(true);
     try {
       const shrunk = await shrinkImage(file);
+      if (!isCurrent()) return;
+
+      // プレビューは「最後に選んだ写真」を映すだけなので、応答を待たずに出す
       const preview = URL.createObjectURL(shrunk);
       setPhotoPreview((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return preview;
       });
 
-      const { tags: inferred, titleHint } = await tagApi.inferTagsFromImage(shrunk);
-      const existing = new Set(tags.map((t) => t.name));
-      const merged = [...tags];
-      for (const t of inferred) {
-        if (merged.length >= 10) break;
-        if (existing.has(t.name)) continue;
-        existing.add(t.name);
-        merged.push({ name: t.name, category: t.category });
-      }
-      setTags(merged);
-      if (!title.trim() && titleHint) setTitle(titleHint.slice(0, 60));
+      const { tags: inferred, titleHint } = await tagApi.inferTagsFromImage(shrunk, ac.signal);
+      if (!isCurrent()) return;
+
+      // 推定を待つ間にユーザーが足したタグを消さないよう、常に最新の状態から合成する
+      setTags((prev) => {
+        const existing = new Set(prev.map((t) => t.name));
+        const merged = [...prev];
+        for (const t of inferred) {
+          if (merged.length >= MAX_TAGS_PER_CARD) break;
+          if (existing.has(t.name)) continue;
+          existing.add(t.name);
+          merged.push({ name: t.name, category: t.category });
+        }
+        return merged;
+      });
+      setTitle((prev) => (prev.trim() || !titleHint ? prev : titleHint.slice(0, 60)));
     } catch (e) {
+      // 差し替えで打ち切った分のエラーは表に出さない
+      if (!isCurrent() || ac.signal.aborted) return;
       setError((e as Error).message);
     } finally {
-      setInferring(false);
+      // 古い推定が新しい推定の表示を消してしまわないようにする
+      if (isCurrent()) setInferring(false);
     }
   }
 
@@ -225,9 +262,7 @@ export function CardNewForm() {
           className="input"
           value={title}
           maxLength={60}
-          placeholder={
-            type === "GIVE" ? "天馬司のアクスタ譲ります" : "天馬司のアクスタ探しています"
-          }
+          placeholder={TITLE_PLACEHOLDER[type]}
           onChange={(e) => setTitle(e.target.value)}
         />
       </label>
@@ -249,26 +284,31 @@ export function CardNewForm() {
           {photoPreview ? (
             <img src={photoPreview} alt="アップロードした写真" className="photo-infer-preview" />
           ) : (
-            <div className="photo-infer-placeholder">グッズの写真</div>
+            <div className="photo-infer-placeholder" aria-hidden="true">
+              <ImageRoundedIcon />
+            </div>
           )}
-          <button
-            type="button"
-            className="teal"
-            disabled={inferring}
-            onClick={() => photoInputRef.current?.click()}
-          >
+          {/* 推定中でも押せる。差し替えたら前の推定は打ち切られる */}
+          <button type="button" className="teal" onClick={() => photoInputRef.current?.click()}>
             <PhotoCameraRoundedIcon fontSize="small" />
-            {inferring ? "推測中…" : "写真からタグを推測"}
+            {photoPreview ? "写真を撮り直す" : "写真からタグを推測"}
           </button>
         </div>
         <p className="hint">
           写真を選ぶと Workers AI
-          が作品名・キャラ・アイテム種別などのタグ候補を提案します。あとから編集できます。
+          が作品名・キャラ・アイテム種別などのタグ候補を提案します。読み取りを待たずに入力を続けられます。
         </p>
       </div>
 
       <div className="field">
-        <span>条件タグ</span>
+        <span>
+          条件タグ
+          {inferring && (
+            <span className="infer-badge" role="status">
+              AIが写真を読み取り中…
+            </span>
+          )}
+        </span>
         <TagInput
           value={tags}
           onChange={setTags}
@@ -361,7 +401,7 @@ export function CardNewForm() {
           rows={3}
           maxLength={500}
           value={note}
-          placeholder="郵送のみ / 手渡し希望 / 交換できるものリスト など"
+          placeholder={NOTE_PLACEHOLDER[type]}
           onChange={(e) => setNote(e.target.value)}
         />
       </label>

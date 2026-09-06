@@ -13,38 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Cache node_modules
-        id: node-modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            backend/node_modules
-            frontend/node_modules
-          key: node-modules-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
-
-      - uses: extractions/setup-just@v2
-
-      - name: Install dependencies
-        if: steps.node-modules.outputs.cache-hit != 'true'
-        run: just setup
-
-      - name: CI checks
-        run: just ci
-
+  # PR merge 前に ci.yml の verify が通っている前提。ここでは再実行しない。
   staging-integration:
-    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +45,7 @@ jobs:
         run: just test-staging-integration
 
   release:
-    needs: [verify, staging-integration]
+    needs: [staging-integration]
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_ACCOUNT_ID: e3800962ed5e416e565f49c823868cf3
@@ -116,6 +86,17 @@ jobs:
             exit 1
           fi
           echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
+
+      - name: Set Gemini API key (production)
+        working-directory: backend
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Add GEMINI_API_KEY to repository secrets (see docs/dev-setup.md)"
+            exit 1
+          fi
+          echo "$GEMINI_API_KEY" | npx wrangler secret put GEMINI_API_KEY --env production
 
       - name: Release to production
         run: just release-production

@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:d1-local": "wrangler d1 migrations apply meetu-db --local",
     "db:migrate:staging": "wrangler d1 migrations apply meetu-db-staging --remote --env staging",
     "db:migrate:production": "wrangler d1 migrations apply meetu-db --remote --env production",
     "db:verify": "drizzle-kit check",

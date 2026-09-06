@@ -84,26 +84,39 @@ body {
   flex: 1;
 }
 
-.apphead-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  padding: 5px 10px;
+/* 右上のユーザーアイコン。画像がなければ表示名の頭文字を出す */
+.apphead-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  overflow: hidden;
   background: var(--white);
-  color: var(--ink);
+  color: var(--pink);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
   border: 2px solid var(--ink);
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
   text-shadow: none;
 }
 
-.apphead-logout:disabled {
-  opacity: 0.7;
-  cursor: wait;
+.apphead-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 読み込み中はレイアウトを保つためのプレースホルダー */
+.apphead-avatar-empty {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: none;
+  cursor: default;
 }
 
 .page {
@@ -392,11 +405,11 @@ textarea.input {
   display: grid;
   place-items: center;
   background: var(--pink-tint);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  padding: 8px;
+  color: var(--pink);
+}
+
+.photo-infer-placeholder svg {
+  font-size: 34px;
 }
 
 .chip-star,
@@ -671,26 +684,6 @@ input[type="range"] {
 }
 
 /* ---------- ホーム ---------- */
-
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--surface);
-  border: var(--bw) solid var(--ink);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 20px;
-  box-shadow: var(--sticker-lg);
-}
-
-.profile h2 {
-  /* ホームの名前見出しはシールにしない */
-  all: unset;
-  font-size: 17px;
-  font-weight: 800;
-  display: block;
-}
 
 .profile-meta {
   margin: 2px 0 0;
@@ -1224,59 +1217,14 @@ input[type="range"] {
   font-weight: 800;
 }
 
-/* ---------- ホーム（スワイプ優先） ---------- */
+/* ---------- 新着スワイプ（「探す」タブ） ---------- */
 
-.home-page .home-feed {
+.home-feed {
   margin-bottom: 8px;
 }
 
-.home-page .home-feed h2 {
+.home-feed h2 {
   margin-bottom: 8px;
-}
-
-.home-settings-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin: 0 0 12px;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-weight: 800;
-  background: var(--surface);
-  border: var(--bw) solid var(--ink);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--sticker-sm);
-  cursor: pointer;
-}
-
-.home-settings-toggle svg {
-  transition: transform 0.2s ease;
-}
-
-.home-settings-toggle svg.is-open {
-  transform: rotate(180deg);
-}
-
-.home-settings {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.profile-compact {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-}
-
-.profile-compact h2 {
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-
-.avatar-sm {
-  width: 44px;
-  height: 44px;
 }
 
 /* ---------- スワイプ ---------- */
@@ -1370,6 +1318,13 @@ input[type="range"] {
   place-items: center;
   padding: 16px;
   background: rgb(0 0 0 / 45%);
+  /* ユーザーメニューは .apphead の中に描画される。
+     ヘッダーの白文字・文字影・字送りを引き継ぐと本文が読めなくなるので body の既定に戻す */
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-shadow: none;
 }
 
 .modal {
@@ -1665,4 +1620,320 @@ input[type="range"] {
   color: var(--teal-dark);
   font-weight: 700;
   text-decoration: underline;
+}
+
+/* 写真からタグを読み取っている最中の表示。
+   入力を止めないので、待たせている感じを出さず控えめに置く */
+.infer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--teal-tint);
+  color: var(--teal-dark);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: middle;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+
+.infer-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: infer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes infer-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* 動きを減らす設定の端末では点滅させない */
+@media (prefers-reduced-motion: reduce) {
+  .infer-badge::before {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ---------- ホームの価値訴求 ---------- */
+
+/* サービスで何ができるかを最初の一画面で伝える。実績の数値は出さない */
+.hero {
+  background: var(--surface);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius);
+  padding: 20px 18px;
+  margin-bottom: 28px;
+  box-shadow: var(--sticker-lg);
+}
+
+.hero-lead {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.hero-title {
+  margin: 2px 0 0;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+/* 見出しの下にピンクの下線を引いて、ブランド色を1本だけ効かせる */
+.hero-title::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 5px;
+  margin-top: 10px;
+  background: var(--pink);
+  border-radius: 3px;
+}
+
+.hero-body {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.75;
+}
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+  font-size: 16px;
+  box-shadow: var(--sticker-lg);
+}
+
+/* 第2導線。ピンクの登録ボタンと対にしてティールを当て、影を一段小さくする */
+.hero-cta-sub {
+  margin-top: 12px;
+  box-shadow: var(--sticker);
+}
+
+.steps {
+  margin-bottom: 8px;
+}
+
+.steplist {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface);
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--sticker-sm);
+}
+
+.step-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: rotate(-5deg);
+}
+
+.step-icon svg {
+  font-size: 22px;
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.step-text strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* 手順の番号。丸バッジで順序をはっきりさせる */
+.step-no {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 13px;
+  background: var(--ink);
+  color: var(--white);
+  border-radius: 50%;
+}
+
+.step-text > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+/* 安心材料。仕組みとして実在するものだけを書く */
+.trust {
+  background: var(--teal-tint);
+}
+
+.trust strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.trust ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.trust li {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.trust li + li {
+  margin-top: 4px;
+}
+
+/* タブバーに入っていない画面への控えめな導線 */
+.quicklinks {
+  display: flex;
+  gap: 12px;
+}
+
+.quicklink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 11px 12px;
+  font-size: 13px;
+  box-shadow: var(--sticker-sm);
+}
+
+/* ---------- ユーザーメニュー（右上アイコンのモーダル） ---------- */
+
+.usermenu {
+  margin: 0;
+  padding: 18px 16px;
+  box-shadow: var(--sticker-lg);
+}
+
+.usermenu-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--soft);
+}
+
+.usermenu-id {
+  flex: 1;
+  min-width: 0;
+}
+
+.usermenu-id strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+/* 画像未設定のときの頭文字アバター */
+.avatar-initial {
+  display: grid;
+  place-items: center;
+  background: var(--pink);
+  color: var(--white);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.usermenu-close {
+  align-self: flex-start;
+  flex-shrink: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.usermenu-section {
+  padding: 16px 0;
+  border-bottom: 2px solid var(--soft);
+}
+
+/* 見出しだけブランドのピンクにして、本文は他画面と同じ --ink に揃える */
+.usermenu-section .fav-head strong {
+  color: var(--pink);
+}
+
+.usermenu-section .actions {
+  margin: 12px 0 0;
+}
+
+.usermenu-section .hint {
+  margin-top: 6px;
+}
+
+.usermenu-bio {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.usermenu-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+/* ---------- 「探す」のお取引開始 ---------- */
+
+.start {
+  margin-bottom: 28px;
 }

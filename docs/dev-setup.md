@@ -7,13 +7,22 @@
 
 ## 1. 前提条件
 
+ネイティブで動かす場合:
+
 - **Node.js**: v22（`.nvmrc` 参照）
 - **just**: タスクランナー (`brew install just`)
-- **Cloudflare アカウント**
+- **Cloudflare アカウント**（デプロイ時）
+
+Docker で動かす場合:
+
+- **Docker Desktop**（Compose V2）
+- **just** は任意（`docker compose` を直接叩いてもよい）
 
 ---
 
 ## 2. 初回セットアップ
+
+### ネイティブ
 
 ```bash
 just setup          # npm ci（workspaces で backend + frontend 一括）
@@ -27,12 +36,40 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 |----------|------|
 | `just setup` | 依存関係インストール |
 | `just dev` | バックエンド + フロント同時起動 |
+| `just docker-up` | Docker で backend + frontend 起動 |
 | `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
 
 個別起動: `just dev-backend` / `just dev-frontend`
+
+### Docker
+
+ホストに Node.js を入れずに、ブラウザから同じポートで触れる。
+
+```bash
+just docker-up          # docker compose up --build
+# http://localhost:5173  — フロント
+# http://127.0.0.1:8787  — API（/health で確認）
+just docker-seed        # デモデータ（任意、backend 起動後）
+just docker-logs        # ログ
+just docker-down        # 停止（D1 データは残る）
+just docker-reset       # 停止 + ボリューム削除（D1 / node_modules を初期化）
+```
+
+| コマンド | 内容 |
+|----------|------|
+| `just docker-up` | イメージビルド + フォアグラウンド起動 |
+| `just docker-up-d` | バックグラウンド起動 |
+| `just docker-seed` | ローカル API へデモデータ投入 |
+| `just docker-reset` | `docker compose down -v` |
+
+ソースは bind-mount するので、ホスト側の編集がコンテナに入る。Linux 用 `node_modules` と wrangler の D1 は named volume（ホストの `node_modules` / `.wrangler` とは別物）。
+
+backend 起動時に `wrangler d1 migrations apply --local` が走る。`just docker-reset` 後も同じ。
+
+初回はイメージの `npm ci` のため数分かかる。lockfile を変えたら `just docker-up` し直す（entrypoint が差分を検知して入れ直す）。
 
 ### デプロイ
 
@@ -64,12 +101,13 @@ just d1-seed-staging      # staging のみ（本番 seed なし）
 ## 3. CI/CD（GitHub Actions）
 
 ```
-feature/*  →  PR → dev  →  just ci
-       ↓ merge
-     dev      →  just ci → release-staging（staging 環境）
-       ↓ PR → main → merge
-     main     →  just ci → release-production（本番）
+feature/*  →  PR → just ci → merge →
+     dev      →  release-staging（staging）
+       ↓ PR → just ci → merge →
+     main     →  staging 疎通 → release-production（本番）
 ```
+
+verify（`just ci`）は PR 時の `ci.yml` だけ。deploy では再実行しない（マージ済み＝verify 済み前提）。
 
 Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動マージ（`dependabot-automerge.yml`）。
 
@@ -77,8 +115,8 @@ Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動�
 |----------|----------|------|
 | `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
 | `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
-| `deploy-staging.yml` | `dev` push | verify job → `release-staging` |
-| `deploy-production.yml` | `main` push | verify job → `release-production` |
+| `deploy-staging.yml` | `dev` push | `release-staging` → staging 疎通 |
+| `deploy-production.yml` | `main` push | staging 疎通 → `release-production` |
 
 **husky**
 
@@ -101,6 +139,7 @@ git checkout -b dev && git push -u origin dev
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
 | `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
+| `GEMINI_API_KEY` | 画像タグ推定（Gemini API。deploy 時に `wrangler secret put`） |
 
 `JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
 

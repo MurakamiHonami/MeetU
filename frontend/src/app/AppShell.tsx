@@ -1,13 +1,11 @@
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
-import { signOut } from "../features/auth/api";
+import { UserMenu } from "../widgets/user/UserMenu";
 
 const TABS = [
   { to: "/", label: "ホーム", icon: HomeRoundedIcon, tone: "tab-pink" },
@@ -35,33 +33,12 @@ function TabBar() {
   );
 }
 
+/** タイトルとユーザーアイコンだけ。プロフィールとログアウトは UserMenu のモーダルに集約する */
 function AppHeader() {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-
-  const handleLogout = async () => {
-    setBusy(true);
-    try {
-      await signOut();
-      void router.replace("/login");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <header className="apphead">
       <span className="apphead-title">MeetU</span>
-      <button
-        type="button"
-        className="apphead-logout"
-        onClick={handleLogout}
-        disabled={busy}
-        aria-label="ログアウト"
-      >
-        <LogoutRoundedIcon fontSize="small" />
-        {busy ? "…" : "ログアウト"}
-      </button>
+      <UserMenu />
     </header>
   );
 }

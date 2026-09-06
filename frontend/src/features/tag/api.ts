@@ -10,12 +10,19 @@ export const tagApi = {
     return unwrap<{ tags: Tag[]; createCandidate?: Tag & { isNew: boolean } }>(res);
   },
 
-  inferTagsFromImage: async (file: File) => {
+  /**
+   * 写真からタグ候補を推定する。
+   *
+   * 推論に時間がかかるので、写真を差し替えたときに前の要求を打ち切れるよう
+   * signal を受け取る。渡さなければ従来どおり中断なしで走る。
+   */
+  inferTagsFromImage: async (file: File, signal?: AbortSignal) => {
     const form = new FormData();
     form.append("image", file);
     const res = await authenticatedFetch(`${API_BASE}/api/tags/infer-image`, {
       method: "POST",
       body: form,
+      signal,
     });
     return unwrap<{ tags: InferredTag[]; titleHint?: string }>(res);
   },

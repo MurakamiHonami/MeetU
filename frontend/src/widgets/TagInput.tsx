@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { tagApi } from "../features/tag/api";
-import type { Tag } from "../entities/tag/model";
+import { MAX_TAGS_PER_CARD, type Tag } from "../entities/tag/model";
 
 export type PickedTag = { name: string; category?: string };
 
@@ -16,7 +16,13 @@ type Props = {
  * 条件をタグで入力する。既存タグはサジェストから選び、無ければその場で作れる。
  * 各タグは「必須」に切り替えられる（必須タグは相手が必ず持っている必要がある）。
  */
-export default function TagInput({ value, onChange, required, onRequiredChange, max = 10 }: Props) {
+export default function TagInput({
+  value,
+  onChange,
+  required,
+  onRequiredChange,
+  max = MAX_TAGS_PER_CARD,
+}: Props) {
   const [text, setText] = useState("");
   const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [canCreate, setCanCreate] = useState(false);

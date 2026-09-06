@@ -55,6 +55,10 @@ jobs:
         run: npm ci --prefer-offline --no-audit --fund=false
 
       - uses: anthropics/claude-code-action@v1
+        # action は Claude の実行環境に GH_TOKEN を渡さないので、`gh pr create` /
+        # `gh issue comment` を使わせるためにここで入れる。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # ブランチは dev から切る。pr-target.yml が base=dev 以外の PR を
@@ -63,7 +67,10 @@ jobs:
           additional_permissions: |
             actions: read
           prompt: |
-            この issue / コメントの内容に対応してください。
+            対象は ${{ github.repository }} の
+            #${{ github.event.issue.number || github.event.pull_request.number }} です。
+            内容は `gh issue view ${{ github.event.issue.number || github.event.pull_request.number }} --comments`
+            で読めます。この issue / コメントの内容に対応してください。
 
             守ること:
             - リポジトリ規約は AGENTS.md に書いてある。必ず読んでから着手する
@@ -71,9 +78,26 @@ jobs:
             - コミット前に `just ci` を通す
             - 変更は issue で求められた範囲に留める
 
+            コード変更を伴う issue では、調べて終わりにせず必ず最後まで実行すること:
+            1. `git checkout -b <branch> dev` で dev から作業ブランチを切る
+            2. 変更を入れて `just ci` を通す
+            3. `git commit` して `git push -u origin <branch>`
+            4. `gh pr create --base dev` で PR を出す
+            5. 出した PR の URL を
+               `gh issue comment ${{ github.event.issue.number || github.event.pull_request.number }} --body "..."`
+               で報告する
+
             issue の内容がコード変更を伴わない場合（質問・議論・報告のみ）は、
-            PR を作らずコメントで回答するだけに留めてください。
+            PR を作らず `gh issue comment` で回答するだけに留めてください。
+            いずれの場合も必ず issue にコメントを残すこと（無言で終了しない）。
+          # `prompt` を渡すと action は agent mode になり、トラッキングコメントを
+          # 作らない（modes/agent/index.ts の claudeCommentId: undefined）。
+          # そのため mcp__github_comment__update_claude_comment は
+          # CLAUDE_COMMENT_ID 未設定で必ず失敗する。issue へのコメントは
+          # Bash の `gh issue comment` で書かせること。
+          # CI 系ツールは agent mode でも allowedTools に明示した分だけ
+          # MCP サーバーが入る（mcp/install-mcp-server.ts）ので列挙しておく。
           # just/npm/git/gh だけ許可すると、ls や mkdir、docker が permission
           # denied になり、issue 着手が 1 ターンで落ちる。
           claude_args: |
-            --allowedTools "Bash,Read,Edit,Write,Grep,Glob"
+            --allowedTools "Bash,Read,Edit,Write,Grep,Glob,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log"

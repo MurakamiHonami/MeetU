@@ -29,20 +29,29 @@ export interface RelatedTag {
  */
 export class FeedRanker {
   constructor(
-    private getTag: (tagId: string) => Promise<Tag | null>,
-    private getRelatedTags: (tagId: string, limit: number) => Promise<RelatedTag[]>,
+    private getTagsByIds: (tagIds: string[]) => Promise<Tag[]>,
+    private getRelatedTagsForMany: (
+      tagIds: string[],
+      limit: number,
+    ) => Promise<Map<string, RelatedTag[]>>,
   ) {}
 
   private tagWeightCache = new Map<string, number>();
 
-  private async tagWeight(tagId: string): Promise<number> {
-    const cached = this.tagWeightCache.get(tagId);
-    if (cached !== undefined) return cached;
-    const tag = await this.getTag(tagId);
-    const uses = tag?.useCount ?? 0;
-    const weight = 1.0 / Math.log(2.0 + uses);
-    this.tagWeightCache.set(tagId, weight);
-    return weight;
+  private async loadTagWeights(tagIds: Iterable<string>): Promise<void> {
+    const missing = [...new Set(tagIds)].filter((id) => !this.tagWeightCache.has(id));
+    if (missing.length === 0) return;
+    const tags = await this.getTagsByIds(missing);
+    const byId = new Map(tags.map((tag) => [tag.id, tag]));
+    for (const id of missing) {
+      const uses = byId.get(id)?.useCount ?? 0;
+      this.tagWeightCache.set(id, 1.0 / Math.log(2.0 + uses));
+    }
+  }
+
+  private tagWeight(tagId: string): number {
+    // rank() が事前に loadTagWeights でまとめて埋めているので、ここは Map 参照のみ。
+    return this.tagWeightCache.get(tagId) ?? 1.0 / Math.log(2.0);
   }
 
   buildProfile(profile: FeedProfile): Record<string, number> {
@@ -57,10 +66,13 @@ export class FeedRanker {
   }
 
   async expandProfile(profile: Record<string, number>): Promise<Record<string, number>> {
-    if (Object.keys(profile).length === 0) return {};
+    const tags = Object.keys(profile);
+    if (tags.length === 0) return {};
     const expanded = { ...profile };
-    for (const [tag, weight] of Object.entries(profile)) {
-      const related = await this.getRelatedTags(tag, EXPAND_TOP);
+    const relatedByTag = await this.getRelatedTagsForMany(tags, EXPAND_TOP);
+    for (const tag of tags) {
+      const weight = profile[tag];
+      const related = relatedByTag.get(tag) ?? [];
       if (related.length === 0) continue;
       const topHits = related[0].hits || 1;
       for (const { tagId: other, hits } of related) {
@@ -87,7 +99,7 @@ export class FeedRanker {
     for (const tag of cardTags) {
       const interest = profile[tag];
       if (!interest) continue;
-      const weight = await this.tagWeight(tag);
+      const weight = this.tagWeight(tag);
       dot += interest * weight;
       if (interest >= OWN_CARD_WEIGHT) hits.push(tag);
     }
@@ -95,7 +107,7 @@ export class FeedRanker {
 
     let cardNormSq = 0;
     for (const tag of cardTags) {
-      const w = await this.tagWeight(tag);
+      const w = this.tagWeight(tag);
       cardNormSq += w * w;
     }
     const cardNorm = Math.sqrt(cardNormSq);
@@ -114,6 +126,13 @@ export class FeedRanker {
   ): Promise<RankedCard[]> {
     const base = this.buildProfile(profile);
     const expanded = await this.expandProfile(base);
+
+    const allTagIds = new Set<string>(Object.keys(expanded));
+    for (const card of cards) {
+      for (const tag of card.tags) allTagIds.add(tag);
+    }
+    await this.loadTagWeights(allTagIds);
+
     const newestMs = newestAt ? new Date(newestAt).getTime() : Date.now();
     const oldestMs = cards.reduce(
       (min, c) => Math.min(min, new Date(c.createdAt).getTime()),

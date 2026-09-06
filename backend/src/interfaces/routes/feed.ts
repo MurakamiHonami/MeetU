@@ -10,16 +10,15 @@ export const feedRouter = new Hono<Env>()
       const userId = c.get("userId");
       const ctx = createContext(c.env, baseUrl(c));
       const feed = await ctx.useCases.feed.getFeed(userId);
-      const cards = [];
-      for (const row of feed.cards) {
-        const owner = await ctx.repos.userRepo.findById(row.card.ownerId);
-        cards.push(
-          cardView(row.card, owner ?? undefined, row.reasonTags, {
-            score: row.score,
-            reasonTags: row.reasonTags.map((t) => row.card.tagLabels[t] ?? t),
-          }),
-        );
-      }
+      const owners = await Promise.all(
+        feed.cards.map((row) => ctx.repos.userRepo.findById(row.card.ownerId)),
+      );
+      const cards = feed.cards.map((row, i) =>
+        cardView(row.card, owners[i] ?? undefined, row.reasonTags, {
+          score: row.score,
+          reasonTags: row.reasonTags.map((t) => row.card.tagLabels[t] ?? t),
+        }),
+      );
       return c.json({ cards, hasFavorites: feed.hasFavorites });
     } catch (e) {
       return handleError(c, e);
@@ -56,11 +55,10 @@ export const savedRouter = new Hono<Env>()
       const userId = c.get("userId");
       const ctx = createContext(c.env, baseUrl(c));
       const cards = await ctx.useCases.feed.getSavedCards(userId);
-      const views = [];
-      for (const card of cards) {
-        const owner = await ctx.repos.userRepo.findById(card.ownerId);
-        views.push(cardView(card, owner ?? undefined));
-      }
+      const owners = await Promise.all(
+        cards.map((card) => ctx.repos.userRepo.findById(card.ownerId)),
+      );
+      const views = cards.map((card, i) => cardView(card, owners[i] ?? undefined));
       return c.json({ cards: views });
     } catch (e) {
       return handleError(c, e);

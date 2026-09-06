@@ -49,6 +49,41 @@ export class D1CardRepository implements ICardRepository {
     return { tags, tagLabels };
   }
 
+  private async loadTagsForCards(
+    cardIds: string[],
+  ): Promise<Map<string, { tags: string[]; tagLabels: Record<string, string> }>> {
+    const map = new Map<string, { tags: string[]; tagLabels: Record<string, string> }>();
+    if (cardIds.length === 0) return map;
+    const results = await this.db
+      .select({
+        cardId: cardTags.cardId,
+        tagId: cardTags.tagId,
+        displayName: cardTags.displayName,
+      })
+      .from(cardTags)
+      .where(inArray(cardTags.cardId, cardIds))
+      .all();
+    for (const r of results) {
+      let entry = map.get(r.cardId);
+      if (!entry) {
+        entry = { tags: [], tagLabels: {} };
+        map.set(r.cardId, entry);
+      }
+      entry.tags.push(r.tagId);
+      entry.tagLabels[r.tagId] = r.displayName || r.tagId;
+    }
+    return map;
+  }
+
+  /** 複数カード行をまとめてタグ付きの Card に変換する（タグは1クエリでバッチ取得）。 */
+  private async mapRows(rows: (typeof cards.$inferSelect)[]): Promise<Card[]> {
+    const tagsByCard = await this.loadTagsForCards(rows.map((r) => r.id));
+    return rows.map((row) => {
+      const entry = tagsByCard.get(row.id) ?? { tags: [], tagLabels: {} };
+      return this.mapRowToCard(row, entry.tags, entry.tagLabels);
+    });
+  }
+
   async findById(id: string): Promise<Card | null> {
     const cardRow = await this.db.select().from(cards).where(eq(cards.id, id)).get();
     if (!cardRow) return null;
@@ -58,17 +93,12 @@ export class D1CardRepository implements ICardRepository {
 
   async findByOwnerId(ownerId: string): Promise<Card[]> {
     const rows = await this.db
-      .select({ id: cards.id })
+      .select()
       .from(cards)
       .where(eq(cards.ownerId, ownerId))
       .orderBy(desc(cards.createdAt))
       .all();
-    const result: Card[] = [];
-    for (const r of rows) {
-      const card = await this.findById(r.id);
-      if (card) result.push(card);
-    }
-    return result;
+    return this.mapRows(rows);
   }
 
   async findCandidateCardIdsByTags(
@@ -94,42 +124,34 @@ export class D1CardRepository implements ICardRepository {
   async findRecentOpen(days: number, limit: number): Promise<Card[]> {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const rows = await this.db
-      .select({ id: cards.id })
+      .select()
       .from(cards)
       .where(and(eq(cards.status, "OPEN"), gte(cards.createdAt, since)))
       .orderBy(desc(cards.createdAt))
       .limit(limit)
       .all();
-    const result: Card[] = [];
-    for (const r of rows) {
-      const card = await this.findById(r.id);
-      if (card) result.push(card);
-    }
-    return result;
+    return this.mapRows(rows);
   }
 
   async findByGeohashCells(cells: string[]): Promise<Card[]> {
     if (cells.length === 0) return [];
     const rows = await this.db
-      .select({ id: cards.id })
+      .select()
       .from(cards)
       .where(and(eq(cards.status, "OPEN"), inArray(cards.geohash, cells)))
       .all();
-    const result: Card[] = [];
-    for (const r of rows) {
-      const card = await this.findById(r.id);
-      if (card) result.push(card);
-    }
-    return result;
+    return this.mapRows(rows);
   }
 
   async findByIds(ids: string[]): Promise<Card[]> {
-    const result: Card[] = [];
-    for (const id of ids) {
-      const card = await this.findById(id);
-      if (card) result.push(card);
-    }
-    return result;
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(cards).where(inArray(cards.id, ids)).all();
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const ordered = ids.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [row] : [];
+    });
+    return this.mapRows(ordered);
   }
 
   async searchByTags(tagIds: string[], minMatch: number, type?: CardType): Promise<Card[]> {
@@ -149,12 +171,16 @@ export class D1CardRepository implements ICardRepository {
       .orderBy(desc(hitCount))
       .limit(60)
       .all();
-    const result: Card[] = [];
-    for (const r of rows) {
-      const card = await this.findById(r.cardId);
-      if (card) result.push(card);
-    }
-    return result;
+    if (rows.length === 0) return [];
+
+    const cardIds = rows.map((r) => r.cardId);
+    const cardRows = await this.db.select().from(cards).where(inArray(cards.id, cardIds)).all();
+    const byId = new Map(cardRows.map((r) => [r.id, r]));
+    const ordered = cardIds.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [row] : [];
+    });
+    return this.mapRows(ordered);
   }
 
   async save(card: Card): Promise<void> {

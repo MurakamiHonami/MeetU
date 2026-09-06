@@ -1,35 +1,38 @@
 name: Claude Scan
 
-# 3 時間ごとに専用スキャンを 1 種類ずつ回す。
-# 同じ時刻に 4 本並列だと課金が膨らむのでローテーションする。
-#   0,12 UTC  → security
-#   3,15 UTC  → optimization
-#   6,18 UTC  → dx
-#   9,21 UTC  → libraries（proposal のみ。自動 PR しない）
-# 立てた auto-scan issue は claude.yml が拾って PR にする。
+# 3 時間ごとに専用スキャン 4 種類を全部走らせる。
+# libraries だけ proposal（自動 PR しない）。他は auto-scan を claude.yml が拾う。
 on:
   schedule:
     - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       scan_type:
-        description: '回すスキャン。rotate は時刻どおり'
+        description: '回すスキャン。all は 4 種類まとめて'
         type: choice
-        options: [rotate, security, optimization, dx, libraries]
-        default: rotate
+        options: [all, security, optimization, dx, libraries]
+        default: all
       dry_run:
         description: 'issue を作らず、見つけた内容をログに出すだけ'
         type: boolean
         default: false
 
 concurrency:
-  group: claude-scan
+  group: claude-scan-${{ github.event.inputs.scan_type || 'all' }}
   cancel-in-progress: false
 
 jobs:
   scan:
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      inputs.scan_type == 'all' ||
+      inputs.scan_type == matrix.scan_type
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scan_type: [security, optimization, dx, libraries]
     permissions:
       contents: read
       issues: write
@@ -51,38 +54,24 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --fund=false
 
-      - name: Pick scan type
-        id: pick
-        run: |
-          set -euo pipefail
-          requested="${{ github.event.inputs.scan_type || 'rotate' }}"
-          if [ "$requested" != "rotate" ]; then
-            echo "type=$requested" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          hour=$(date -u +%H)
-          idx=$((10#$hour / 3 % 4))
-          types=(security optimization dx libraries)
-          echo "type=${types[$idx]}" >> "$GITHUB_OUTPUT"
-
       - uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-          SCAN_TYPE: ${{ steps.pick.outputs.type }}
+          SCAN_TYPE: ${{ matrix.scan_type }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
           prompt: |
-            対象は ${{ github.repository }}。スキャン種別は ${{ steps.pick.outputs.type }}。
+            対象は ${{ github.repository }}。スキャン種別は ${{ matrix.scan_type }}。
             環境変数 DRY_RUN は "${{ github.event.inputs.dry_run || 'false' }}"。
 
             次の 2 ファイルを Read し、そこに書いてある指示だけに従え。
             書いてない種類の問題は、見つかっても今は出さない。
 
             - `.github/claude-scans/shared.md`
-            - `.github/claude-scans/${{ steps.pick.outputs.type }}.md`
+            - `.github/claude-scans/${{ matrix.scan_type }}.md`
 
             最後に、作った issue の番号と URL を一覧する。
             0 件なら、何を調べてなぜ出さなかったかを出力する。無言で終了しない。

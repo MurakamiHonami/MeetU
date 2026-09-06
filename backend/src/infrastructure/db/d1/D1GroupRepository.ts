@@ -59,8 +59,10 @@ export class D1GroupRepository implements IGroupRepository {
       updatedAt: now,
     });
 
-    for (const memberId of p.members) {
-      await this.db.insert(tradeGroupMembers).values({ groupId: p.id, userId: memberId });
+    if (p.members.length > 0) {
+      await this.db
+        .insert(tradeGroupMembers)
+        .values(p.members.map((memberId) => ({ groupId: p.id, userId: memberId })));
     }
     return true;
   }

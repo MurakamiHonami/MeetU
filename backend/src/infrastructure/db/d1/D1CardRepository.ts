@@ -206,15 +206,17 @@ export class D1CardRepository implements ICardRepository {
     });
 
     const labels = props.tagLabels ?? {};
-    for (const tagId of props.tags) {
-      await this.db.insert(cardTags).values({
-        cardId: props.id,
-        tagId,
-        ownerId: props.ownerId,
-        cardType: props.type,
-        displayName: labels[tagId] ?? tagId,
-        createdAt: props.createdAt,
-      });
+    if (props.tags.length > 0) {
+      await this.db.insert(cardTags).values(
+        props.tags.map((tagId) => ({
+          cardId: props.id,
+          tagId,
+          ownerId: props.ownerId,
+          cardType: props.type,
+          displayName: labels[tagId] ?? tagId,
+          createdAt: props.createdAt,
+        })),
+      );
     }
   }
 

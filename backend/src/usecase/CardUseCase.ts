@@ -92,6 +92,9 @@ export class CardUseCase {
     const ownerUser = await this.userRepo.findById(card.ownerId);
     const targetCards = await this.cardRepo.findByIds(Array.from(candidateMatches.keys()));
     const targetCardById = new Map(targetCards.map((c) => [c.id, c]));
+    const targetOwnerIds = Array.from(new Set(targetCards.map((c) => c.ownerId)));
+    const targetUsers = await this.userRepo.findByIds(targetOwnerIds);
+    const targetUserById = new Map(targetUsers.map((u) => [u.id, u]));
     const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] =
       [];
 
@@ -99,7 +102,7 @@ export class CardUseCase {
       const targetCard = targetCardById.get(targetCardId);
       if (!targetCard) continue;
 
-      const targetUser = await this.userRepo.findById(targetCard.ownerId);
+      const targetUser = targetUserById.get(targetCard.ownerId);
       const matchedTags = Array.from(matchedTagSet);
 
       const result = MatchingEngine.evaluate(

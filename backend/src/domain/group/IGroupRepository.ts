@@ -7,6 +7,7 @@ export interface IGroupRepository {
   create(group: TradeGroup): Promise<boolean>;
   update(group: TradeGroup): Promise<void>;
   getLastReadAt(groupId: string, userId: string): Promise<string | null>;
+  getLastReadAtBatch(groupIds: string[], userId: string): Promise<Map<string, string | null>>;
   markRead(groupId: string, userId: string, at: string): Promise<void>;
   ensureMember(groupId: string, userId: string): Promise<void>;
 }

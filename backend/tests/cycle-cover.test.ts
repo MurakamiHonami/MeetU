@@ -50,6 +50,11 @@ class MemoryCardRepo implements ICardRepository {
     return this.cards.filter((c) => c.ownerId === ownerId);
   }
 
+  async findByOwnerIds(ownerIds: string[]): Promise<Card[]> {
+    const want = new Set(ownerIds);
+    return this.cards.filter((c) => want.has(c.ownerId));
+  }
+
   async findCandidateCardIdsByTags(
     tagIds: string[],
     targetType: CardType | readonly CardType[],

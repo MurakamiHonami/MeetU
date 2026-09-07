@@ -9,6 +9,8 @@ export interface CardTagHit {
 export interface ICardRepository {
   findById(id: string): Promise<Card | null>;
   findByOwnerId(ownerId: string): Promise<Card[]>;
+  /** 複数ユーザーの所有カードをまとめて取得する（CycleFinder のバッチ探索用）。 */
+  findByOwnerIds(ownerIds: string[]): Promise<Card[]>;
   findCandidateCardIdsByTags(
     tagIds: string[],
     targetType: CardType | readonly CardType[],

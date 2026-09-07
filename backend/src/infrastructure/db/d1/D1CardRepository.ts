@@ -101,6 +101,17 @@ export class D1CardRepository implements ICardRepository {
     return this.mapRows(rows);
   }
 
+  async findByOwnerIds(ownerIds: string[]): Promise<Card[]> {
+    if (ownerIds.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(cards)
+      .where(inArray(cards.ownerId, ownerIds))
+      .orderBy(desc(cards.createdAt))
+      .all();
+    return this.mapRows(rows);
+  }
+
   async findCandidateCardIdsByTags(
     tagIds: string[],
     targetType: CardType | readonly CardType[],

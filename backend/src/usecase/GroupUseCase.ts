@@ -72,7 +72,6 @@ export class GroupUseCase {
   async loadGroupContext(groups: TradeGroup[], userId: string) {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
-    const readAts = new Map<string, string | null>();
 
     const memberIds = new Set<string>();
     const cardIds = new Set<string>();
@@ -87,8 +86,12 @@ export class GroupUseCase {
       cards.set(c.id, c);
     }
 
+    const readAts = await this.groupRepo.getLastReadAtBatch(
+      groups.map((group) => group.id),
+      userId,
+    );
     for (const group of groups) {
-      readAts.set(group.id, await this.groupRepo.getLastReadAt(group.id, userId));
+      if (!readAts.has(group.id)) readAts.set(group.id, null);
     }
     return { users, cards, readAts };
   }

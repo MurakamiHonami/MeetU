@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { IGroupRepository } from "../../../domain/group/IGroupRepository";
 import { TradeGroup, TradeGroupProps } from "../../../domain/group/TradeGroup";
 import { AppDatabase, parseJson } from "../database";
@@ -89,6 +89,26 @@ export class D1GroupRepository implements IGroupRepository {
       .where(and(eq(tradeGroupMembers.groupId, groupId), eq(tradeGroupMembers.userId, userId)))
       .get();
     return row?.lastReadAt ?? null;
+  }
+
+  async getLastReadAtBatch(
+    groupIds: string[],
+    userId: string,
+  ): Promise<Map<string, string | null>> {
+    const result = new Map<string, string | null>();
+    if (groupIds.length === 0) return result;
+
+    const rows = await this.db
+      .select({ groupId: tradeGroupMembers.groupId, lastReadAt: tradeGroupMembers.lastReadAt })
+      .from(tradeGroupMembers)
+      .where(
+        and(inArray(tradeGroupMembers.groupId, groupIds), eq(tradeGroupMembers.userId, userId)),
+      )
+      .all();
+    for (const row of rows) {
+      result.set(row.groupId, row.lastReadAt ?? null);
+    }
+    return result;
   }
 
   async markRead(groupId: string, userId: string, at: string): Promise<void> {

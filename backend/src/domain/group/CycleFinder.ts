@@ -20,6 +20,10 @@ interface Edge {
  * 1対1では成立しない組み合わせでも、輪にすれば全員の希望が満たせることがある。
  * 有向グラフの閉路探索として解く: ノード=ユーザー、辺 X→Y = X が出せるカードが Y の求める条件を満たす。
  * 探索は深さ・分岐・訪問数に上限を設けて打ち切る（全閉路の列挙は組合せ爆発するため）。
+ *
+ * 探索は鎖長（=グラフ上の深さ）ごとに幅優先で進める。各階層に登場するユーザー・カードをまとめて
+ * バッチ取得することで、鎖の本数に比例してD1往復が増えないようにしている（ノード単位・辺単位の
+ * 逐次 await だと MAX_VISITS まで積み重なりうるため）。
  */
 export class CycleFinder {
   constructor(private cardRepo: ICardRepository) {}
@@ -27,37 +31,66 @@ export class CycleFinder {
   private giveCardCache = new Map<string, Card[]>();
   private edgeCache = new Map<string, Edge[]>();
 
-  private async openGiveCards(userId: string): Promise<Card[]> {
-    const cached = this.giveCardCache.get(userId);
-    if (cached) return cached;
-    const cards = (await this.cardRepo.findByOwnerId(userId)).filter(
-      (c) => c.type === "GIVE" && c.isOpen(),
-    );
-    this.giveCardCache.set(userId, cards);
-    return cards;
+  /** 未キャッシュのユーザーの譲カードをまとめて取得し、キャッシュへ反映する。 */
+  private async loadGiveCards(userIds: string[]): Promise<void> {
+    const uncached = [...new Set(userIds)].filter((id) => !this.giveCardCache.has(id));
+    if (uncached.length === 0) return;
+
+    const cards = await this.cardRepo.findByOwnerIds(uncached);
+    const byOwner = new Map<string, Card[]>();
+    for (const card of cards) {
+      if (card.type !== "GIVE" || !card.isOpen()) continue;
+      const list = byOwner.get(card.ownerId);
+      if (list) list.push(card);
+      else byOwner.set(card.ownerId, [card]);
+    }
+    for (const userId of uncached) {
+      this.giveCardCache.set(userId, byOwner.get(userId) ?? []);
+    }
   }
 
-  /** この譲カードを受け取れる相手（求カード）の辺。 */
-  private async outgoing(giveCard: Card): Promise<Edge[]> {
-    const cached = this.edgeCache.get(giveCard.id);
-    if (cached) return cached;
+  /** 未キャッシュの譲カード群について、辿れる辺（求カード）をまとめて取得しキャッシュへ反映する。 */
+  private async loadEdges(giveCards: Card[]): Promise<void> {
+    const uncached = giveCards.filter((c) => !this.edgeCache.has(c.id));
+    if (uncached.length === 0) return;
 
-    const hits = await this.cardRepo.findCandidateCardIdsByTags(giveCard.tags, "WANT");
-    const candidateIds = new Set(
-      hits.filter((h) => h.ownerId !== giveCard.ownerId).map((h) => h.cardId),
-    );
-
-    const wantCards = await this.cardRepo.findByIds(Array.from(candidateIds));
-    const edges: Edge[] = [];
-    for (const wantCard of wantCards) {
-      const matched = MatchingEngine.satisfies(wantCard, giveCard);
-      if (matched) edges.push({ wantCard, matchedTags: matched });
+    const allTags = [...new Set(uncached.flatMap((c) => c.tags))];
+    const hits = await this.cardRepo.findCandidateCardIdsByTags(allTags, "WANT");
+    const hitsByTag = new Map<string, { cardId: string; ownerId: string }[]>();
+    for (const hit of hits) {
+      const list = hitsByTag.get(hit.tagId);
+      if (list) list.push(hit);
+      else hitsByTag.set(hit.tagId, [hit]);
     }
 
-    edges.sort((a, b) => b.matchedTags.length - a.matchedTags.length);
-    const limited = edges.slice(0, MAX_BRANCH);
-    this.edgeCache.set(giveCard.id, limited);
-    return limited;
+    const candidateIdsByCard = new Map<string, Set<string>>();
+    const allCandidateIds = new Set<string>();
+    for (const giveCard of uncached) {
+      const ids = new Set<string>();
+      for (const tag of giveCard.tags) {
+        for (const hit of hitsByTag.get(tag) ?? []) {
+          if (hit.ownerId === giveCard.ownerId) continue;
+          ids.add(hit.cardId);
+          allCandidateIds.add(hit.cardId);
+        }
+      }
+      candidateIdsByCard.set(giveCard.id, ids);
+    }
+
+    const wantCards = await this.cardRepo.findByIds(Array.from(allCandidateIds));
+    const wantCardById = new Map(wantCards.map((c) => [c.id, c]));
+
+    for (const giveCard of uncached) {
+      const edges: Edge[] = [];
+      for (const id of candidateIdsByCard.get(giveCard.id) ?? []) {
+        const wantCard = wantCardById.get(id);
+        if (!wantCard) continue;
+        const matched = MatchingEngine.satisfies(wantCard, giveCard);
+        if (matched) edges.push({ wantCard, matchedTags: matched });
+      }
+      edges.sort((a, b) => b.matchedTags.length - a.matchedTags.length);
+      this.edgeCache.set(giveCard.id, edges.slice(0, MAX_BRANCH));
+    }
   }
 
   private toStep(giveCard: Card, edge: Edge): TradeStep {
@@ -87,18 +120,35 @@ export class CycleFinder {
     const visits = { count: 0 };
     const found = new Map<string, TradeStep[]>();
 
-    const walk = async (chain: TradeStep[]): Promise<void> => {
-      if (found.size >= limit || visits.count >= MAX_VISITS) return;
-      if (chain.length >= maxLen) return;
+    await this.loadEdges([startCard]);
+    let frontier: TradeStep[][] = [];
+    for (const edge of this.edgeCache.get(startCard.id) ?? []) {
+      if (edge.wantCard.ownerId === startUser) continue;
+      frontier.push([this.toStep(startCard, edge)]);
+    }
 
-      const currentUser = chain[chain.length - 1].toUserId;
-      const usedUsers = new Set(chain.map((s) => s.fromUserId));
+    // 鎖長が同じ（=同じ階層の）鎖をまとめて処理し、必要なD1往復を階層ごとに1回にまとめる。
+    while (frontier.length > 0 && found.size < limit && visits.count < MAX_VISITS) {
+      if (frontier[0].length >= maxLen) break;
 
-      for (const giveCard of await this.openGiveCards(currentUser)) {
-        if (visits.count >= MAX_VISITS) return;
-        visits.count += 1;
+      await this.loadGiveCards(frontier.map((chain) => chain[chain.length - 1].toUserId));
 
-        for (const edge of await this.outgoing(giveCard)) {
+      const pending: { chain: TradeStep[]; giveCard: Card }[] = [];
+      outer: for (const chain of frontier) {
+        const currentUser = chain[chain.length - 1].toUserId;
+        for (const giveCard of this.giveCardCache.get(currentUser) ?? []) {
+          if (visits.count >= MAX_VISITS) break outer;
+          visits.count += 1;
+          pending.push({ chain, giveCard });
+        }
+      }
+
+      await this.loadEdges(pending.map((p) => p.giveCard));
+
+      const nextFrontier: TradeStep[][] = [];
+      for (const { chain, giveCard } of pending) {
+        const usedUsers = new Set(chain.map((s) => s.fromUserId));
+        for (const edge of this.edgeCache.get(giveCard.id) ?? []) {
           const receiver = edge.wantCard.ownerId;
           const step = this.toStep(giveCard, edge);
 
@@ -115,14 +165,10 @@ export class CycleFinder {
           }
           if (usedUsers.has(receiver)) continue; // 同じ人を二度通らない
 
-          await walk([...chain, step]);
+          nextFrontier.push([...chain, step]);
         }
       }
-    };
-
-    for (const edge of await this.outgoing(startCard)) {
-      if (edge.wantCard.ownerId === startUser) continue;
-      await walk([this.toStep(startCard, edge)]);
+      frontier = nextFrontier;
     }
 
     // 短い輪ほど成立しやすいので前に出す

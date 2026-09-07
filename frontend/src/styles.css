@@ -80,8 +80,39 @@ body {
   text-shadow: 2px 2px 0 rgba(28, 27, 27, 0.35);
 }
 
-.apphead-title {
+/* ロゴ＋ワードマーク。ヘッダー左側全体をホームへのリンクにする */
+.apphead-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.apphead-logo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: rotate(-4deg);
+}
+
+.apphead-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.apphead-title {
+  min-width: 0;
 }
 
 /* 右上のユーザーアイコン。画像がなければ表示名の頭文字を出す */

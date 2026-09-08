@@ -67,8 +67,7 @@ export const matchesRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.match.accept(id, userId);
       if (!result) return c.json({ message: "マッチが見つかりません" }, 404);
-      const detail = await ctx.useCases.match.getMatchDetail(id, userId);
-      if (!detail) return c.json({ message: "マッチが見つかりません" }, 404);
+      const detail = await ctx.useCases.match.buildMatchDetail(result.match, userId);
       return c.json({
         match: matchView(
           detail.match,
@@ -94,8 +93,7 @@ export const matchesRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const match = await ctx.useCases.match.decline(id, userId);
       if (!match) return c.json({ message: "マッチが見つかりません" }, 404);
-      const detail = await ctx.useCases.match.getMatchDetail(id, userId);
-      if (!detail) return c.json({ message: "マッチが見つかりません" }, 404);
+      const detail = await ctx.useCases.match.buildMatchDetail(match, userId);
       return c.json({
         match: matchView(
           detail.match,
@@ -120,8 +118,7 @@ export const matchesRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const match = await ctx.useCases.match.complete(id, userId);
       if (!match) return c.json({ message: "マッチが見つかりません" }, 404);
-      const detail = await ctx.useCases.match.getMatchDetail(id, userId);
-      if (!detail) return c.json({ message: "マッチが見つかりません" }, 404);
+      const detail = await ctx.useCases.match.buildMatchDetail(match, userId);
       return c.json({
         match: matchView(
           detail.match,

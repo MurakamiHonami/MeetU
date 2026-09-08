@@ -26,7 +26,10 @@ export class GroupUseCase {
   async getGroupDetail(groupId: string, userId: string): Promise<GroupDetail | null> {
     const group = await this.groupRepo.findById(groupId);
     if (!group || !group.isMember(userId)) return null;
+    return this.buildGroupDetail(group, userId);
+  }
 
+  async buildGroupDetail(group: TradeGroup, userId: string): Promise<GroupDetail> {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
 
@@ -38,7 +41,7 @@ export class GroupUseCase {
       cards.set(c.id, c);
     }
 
-    const lastReadAt = await this.groupRepo.getLastReadAt(groupId, userId);
+    const lastReadAt = await this.groupRepo.getLastReadAt(group.id, userId);
     return { group, users, cards, lastReadAt };
   }
 

@@ -95,12 +95,12 @@ body {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  padding: 4px;
+  width: 46px;
+  height: 46px;
+  padding: 3px;
   background: var(--white);
   border: 2px solid var(--ink);
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 2px 2px 0 var(--ink);
   transform: rotate(-4deg);
 }

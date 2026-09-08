@@ -43,8 +43,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.group.accept(id, userId);
       if (!result) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(result.group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
         established: result.established,
@@ -61,8 +60,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const group = await ctx.useCases.group.decline(id, userId);
       if (!group) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
       });
@@ -78,8 +76,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const group = await ctx.useCases.group.complete(id, userId);
       if (!group) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
       });

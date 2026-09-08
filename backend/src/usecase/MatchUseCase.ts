@@ -30,7 +30,10 @@ export class MatchUseCase {
   async getMatchDetail(matchId: string, userId: string): Promise<MatchDetail | null> {
     const match = await this.matchRepo.findById(matchId);
     if (!match || !match.isParty(userId)) return null;
+    return this.buildMatchDetail(match, userId);
+  }
 
+  async buildMatchDetail(match: Match, userId: string): Promise<MatchDetail> {
     const partnerId = match.partnerOf(userId);
     const partner = await this.userRepo.findById(partnerId);
     const isA = match.userAId === userId;
@@ -49,7 +52,7 @@ export class MatchUseCase {
     if (partnerCard?.type === "GIVE" && myCard?.type === "WANT") iReceive = partnerCard;
     if (partnerCard?.type === "WANT" && myCard?.type === "GIVE") iGive = myCard;
 
-    const lastReadAt = await this.matchRepo.getLastReadAt(matchId, userId);
+    const lastReadAt = await this.matchRepo.getLastReadAt(match.id, userId);
     return { match, partner, partnerCard, myCard, iGive, iReceive, lastReadAt };
   }
 

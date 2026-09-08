@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Env } from "../middleware/auth";
 import { createContext } from "../container";
-import { matchView, messageView } from "../dto/ViewMapper";
+import { matchView, messageView, ownerView } from "../dto/ViewMapper";
 import { baseUrl, handleError } from "./helpers";
 import { zValidator } from "../validation/validator";
 import { messagesAfterQuerySchema, sendMessageSchema } from "../validation/schemas";
@@ -154,9 +154,7 @@ export const matchesRouter = new Hono<Env>()
         messages,
         canSend: result.canSend,
         status: result.status,
-        partner: result.partner
-          ? (await import("../dto/ViewMapper")).ownerView(result.partner)
-          : null,
+        partner: result.partner ? ownerView(result.partner) : null,
       });
     } catch (e) {
       return handleError(c, e);

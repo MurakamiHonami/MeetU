@@ -23,9 +23,8 @@ export class UploadPolicy {
     return normalized;
   }
 
-  static validateSize(size: number | undefined): void {
-    if (size === undefined) return;
-    if (!Number.isFinite(size) || size > MAX_UPLOAD_BYTES) {
+  static validateSize(size: number): void {
+    if (!Number.isFinite(size) || size <= 0 || size > MAX_UPLOAD_BYTES) {
       throw new ValidationError("画像は 5MB 以内にしてください");
     }
   }

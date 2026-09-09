@@ -89,7 +89,7 @@ backend 起動時に `wrangler d1 migrations apply --local` が走る。`just do
 
 ```bash
 just db-generate
-just db-migrate-local
+just db-migrate-d1-local
 just db-verify
 just d1-migrate-staging
 just d1-migrate-production
@@ -201,7 +201,7 @@ cd backend && npx wrangler r2 bucket create meetu-uploads
 
 ```bash
 just db-generate
-just db-migrate-local
+just db-migrate-d1-local
 just db-verify
 just d1-migrate-staging
 just deploy-staging-backend

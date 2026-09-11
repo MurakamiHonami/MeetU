@@ -182,13 +182,16 @@ export const reports = sqliteTable(
     id: text("id").primaryKey(),
     reporterId: text("reporter_id").notNull(),
     targetUserId: text("target_user_id").notNull(),
-    matchId: text("match_id"),
+    matchId: text("match_id").notNull(),
     reason: text("reason").notNull(),
     detail: text("detail"),
     status: text("status").notNull().default("PENDING"),
     createdAt: text("created_at").notNull(),
   },
-  (t) => [index("idx_reports_target").on(t.targetUserId)],
+  (t) => [
+    index("idx_reports_target").on(t.targetUserId),
+    unique("reports_reporter_match_unique").on(t.reporterId, t.matchId),
+  ],
 );
 
 export const swipes = sqliteTable(

@@ -268,7 +268,7 @@ describe("Report", () => {
     expect(report.reporterId).toBe("u1");
     expect(report.toProps().targetUserId).toBe("u2");
     expect(() =>
-      Report.create({ reporterId: "u1", targetUserId: "u1", reason: "OTHER" }),
+      Report.create({ reporterId: "u1", targetUserId: "u1", matchId: "m1", reason: "OTHER" }),
     ).toThrow();
   });
 });

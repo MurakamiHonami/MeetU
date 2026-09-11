@@ -15,6 +15,13 @@
       "when": 1788693034234,
       "tag": "0001_add_x_id",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789143842087,
+      "tag": "0002_happy_tusk",
+      "breakpoints": true
     }
   ]
 }

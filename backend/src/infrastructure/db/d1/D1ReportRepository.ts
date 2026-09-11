@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { IReportRepository } from "../../../domain/report/IReportRepository";
 import { Report } from "../../../domain/report/Report";
 import { AppDatabase } from "../database";
@@ -13,7 +13,7 @@ export class D1ReportRepository implements IReportRepository {
       id: p.id,
       reporterId: p.reporterId,
       targetUserId: p.targetUserId,
-      matchId: p.matchId ?? null,
+      matchId: p.matchId,
       reason: p.reason,
       detail: p.detail ?? null,
       status: p.status,
@@ -21,12 +21,12 @@ export class D1ReportRepository implements IReportRepository {
     });
   }
 
-  async countByTarget(targetUserId: string): Promise<number> {
+  async existsByReporterAndMatch(reporterId: string, matchId: string): Promise<boolean> {
     const row = await this.db
-      .select({ cnt: count() })
+      .select({ id: reports.id })
       .from(reports)
-      .where(eq(reports.targetUserId, targetUserId))
+      .where(and(eq(reports.reporterId, reporterId), eq(reports.matchId, matchId)))
       .get();
-    return row?.cnt ?? 0;
+    return !!row;
   }
 }

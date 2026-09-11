@@ -16,7 +16,7 @@ export const reviewApi = {
 
   report: async (payload: {
     targetUserId: string;
-    matchId?: string;
+    matchId: string;
     reason: ReportReason;
     detail?: string;
   }) => {

@@ -126,13 +126,9 @@ export class CardUseCase {
     if (card.type !== "GIVE") return [];
     const finder = new CycleFinder(this.cardRepo);
     const cycles = await finder.findCycles(card);
-    const created: TradeGroup[] = [];
-    for (const steps of cycles) {
-      const group = TradeGroup.create(steps, card.ownerId);
-      const ok = await this.groupRepo.create(group);
-      if (ok) created.push(group);
-    }
-    return created;
+    const groups = cycles.map((steps) => TradeGroup.create(steps, card.ownerId));
+    const oks = await Promise.all(groups.map((group) => this.groupRepo.create(group)));
+    return groups.filter((_, i) => oks[i]);
   }
 
   async getMyCards(ownerId: string): Promise<Card[]> {

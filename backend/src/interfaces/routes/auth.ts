@@ -108,13 +108,30 @@ export const authRouter = new Hono<Env>()
     }
 
     const authService = new AuthService(c.env.CACHE_KV, c.env.JWT_SECRET);
-    const newTokens = await authService.refreshTokenPair(refreshToken);
-
-    if (!newTokens) {
+    const resolved = await authService.peekRefreshToken(refreshToken);
+    if (!resolved) {
       clearRefreshCookie(c);
       return c.json({ error: "Invalid or expired refresh token" }, 401);
     }
 
+    const userRepo = new D1UserRepository(createDb(c.env.DB));
+    const user = await userRepo.findById(resolved.userId);
+    if (!user) {
+      await authService.revokeRefreshToken(refreshToken);
+      clearRefreshCookie(c);
+      return c.json({ error: "Invalid or expired refresh token" }, 401);
+    }
+    if (user.isSuspended()) {
+      await authService.revokeRefreshToken(refreshToken);
+      clearRefreshCookie(c);
+      return c.json({ error: "Account is suspended" }, 403);
+    }
+
+    const newTokens = await authService.rotateRefreshToken(
+      refreshToken,
+      resolved.userId,
+      resolved.email,
+    );
     setRefreshCookie(c, newTokens.refreshToken);
     return c.json({ tokens: toPublicTokens(newTokens) });
   })

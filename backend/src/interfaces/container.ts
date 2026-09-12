@@ -10,6 +10,7 @@ import { D1ReportRepository } from "../infrastructure/db/d1/D1ReportRepository";
 import { D1GroupRepository } from "../infrastructure/db/d1/D1GroupRepository";
 import { D1SwipeRepository } from "../infrastructure/db/d1/D1SwipeRepository";
 import { R2UploadService } from "../infrastructure/storage/R2UploadService";
+import { AuthService } from "../infrastructure/auth/AuthService";
 import { CardUseCase } from "../usecase/CardUseCase";
 import { MatchUseCase } from "../usecase/MatchUseCase";
 import { UserUseCase } from "../usecase/UserUseCase";
@@ -35,6 +36,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
   const groupRepo = new D1GroupRepository(db);
   const swipeRepo = new D1SwipeRepository(db);
   const uploadService = new R2UploadService(env.UPLOADS_R2, env.CACHE_KV, baseUrl);
+  const authService = new AuthService(env.CACHE_KV, env.JWT_SECRET);
   const tagVision = env.GEMINI_API_KEY ? new TagVisionService(env.GEMINI_API_KEY) : undefined;
 
   return {
@@ -56,7 +58,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
       user: new UserUseCase(userRepo, cardRepo, reviewRepo),
       message: new MessageUseCase(messageRepo, matchRepo, groupRepo, userRepo, uploadService),
       review: new ReviewUseCase(reviewRepo, matchRepo, userRepo),
-      report: new ReportUseCase(reportRepo, userRepo),
+      report: new ReportUseCase(reportRepo, userRepo, authService),
       group: new GroupUseCase(groupRepo, cardRepo, userRepo),
       feed: new FeedUseCase(cardRepo, tagRepo, swipeRepo, userRepo),
       nearby: new NearbyUseCase(cardRepo, userRepo),

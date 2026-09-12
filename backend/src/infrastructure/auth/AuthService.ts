@@ -54,24 +54,63 @@ export class AuthService {
     const accessToken = await this.createAccessToken(userId, email);
     const refreshToken = crypto.randomUUID();
 
-    await this.kv.put(`refresh:${refreshToken}`, JSON.stringify({ userId, email }), {
-      expirationTtl: REFRESH_TOKEN_TTL,
-    });
+    await Promise.all([
+      this.kv.put(`refresh:${refreshToken}`, JSON.stringify({ userId, email }), {
+        expirationTtl: REFRESH_TOKEN_TTL,
+      }),
+      this.kv.put(this.refreshIndexKey(userId, refreshToken), "1", {
+        expirationTtl: REFRESH_TOKEN_TTL,
+      }),
+    ]);
 
     return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL };
   }
 
-  async refreshTokenPair(oldRefreshToken: string): Promise<TokenPair | null> {
-    const key = `refresh:${oldRefreshToken}`;
-    const stored = await this.kv.get(key);
+  /** リフレッシュトークンを消費・回転せずに、紐づくユーザー情報だけを覗き見る。 */
+  async peekRefreshToken(refreshToken: string): Promise<{ userId: string; email: string } | null> {
+    const stored = await this.kv.get(`refresh:${refreshToken}`);
     if (!stored) return null;
+    return JSON.parse(stored);
+  }
 
-    const { userId, email } = JSON.parse(stored);
-    await this.kv.delete(key);
+  async rotateRefreshToken(
+    oldRefreshToken: string,
+    userId: string,
+    email: string,
+  ): Promise<TokenPair> {
+    await this.kv.delete(`refresh:${oldRefreshToken}`);
+    await this.kv.delete(this.refreshIndexKey(userId, oldRefreshToken));
     return this.createTokenPair(userId, email);
   }
 
   async revokeRefreshToken(refreshToken: string): Promise<void> {
-    await this.kv.delete(`refresh:${refreshToken}`);
+    const key = `refresh:${refreshToken}`;
+    const stored = await this.kv.get(key);
+    await this.kv.delete(key);
+    if (stored) {
+      const { userId } = JSON.parse(stored);
+      await this.kv.delete(this.refreshIndexKey(userId, refreshToken));
+    }
+  }
+
+  /** suspend されたユーザーの既存セッションを全て無効化する。 */
+  async revokeAllRefreshTokensForUser(userId: string): Promise<void> {
+    const prefix = this.refreshIndexKey(userId, "");
+    let cursor: string | undefined;
+    do {
+      const page = await this.kv.list({ prefix, cursor });
+      await Promise.all(
+        page.keys.map(async ({ name }) => {
+          const refreshToken = name.slice(prefix.length);
+          await this.kv.delete(`refresh:${refreshToken}`);
+          await this.kv.delete(name);
+        }),
+      );
+      cursor = page.list_complete ? undefined : page.cursor;
+    } while (cursor);
+  }
+
+  private refreshIndexKey(userId: string, refreshToken: string): string {
+    return `refresh_index:${userId}:${refreshToken}`;
   }
 }

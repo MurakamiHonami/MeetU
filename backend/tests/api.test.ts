@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { env } from "cloudflare:test";
 import { migrateToLatest } from "../src/infrastructure/db/migrate";
+import { createDb } from "../src/infrastructure/db/database";
+import { D1UserRepository } from "../src/infrastructure/db/d1/D1UserRepository";
 import app from "../src/index";
 import { REFRESH_COOKIE } from "../src/interfaces/auth/cookies";
 
@@ -128,6 +130,114 @@ describe("Web App Auth & API Integration Tests", () => {
     expect(logoutRes.status).toBe(200);
     const loggedOutKV = await env.CACHE_KV.get(`refresh:${newRefreshToken}`);
     expect(loggedOutKV).toBeNull();
+  });
+
+  it("POST /api/auth/refresh rejects a suspended user's still-valid refresh token", async () => {
+    const targetRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "suspend-target@example.com",
+          password: "password123",
+          displayName: "停止されるユーザー",
+        }),
+      },
+      env,
+    );
+    expect(targetRes.status).toBe(201);
+    const targetData = (await targetRes.json()) as any;
+    const targetRefreshToken = readRefreshCookie(targetRes);
+    expect(targetRefreshToken).toBeDefined();
+
+    // モデレーション操作などで status が直接 SUSPENDED になったケースを想定し、
+    // KV 側の revoke には頼らず /refresh 自身の suspend チェックを検証する。
+    const userRepo = new D1UserRepository(createDb(env.DB));
+    const user = await userRepo.findById(targetData.user.id);
+    expect(user).not.toBeNull();
+    user!.incrementReport();
+    user!.incrementReport();
+    user!.incrementReport();
+    expect(user!.isSuspended()).toBe(true);
+    await userRepo.update(user!);
+
+    const preRefreshKV = await env.CACHE_KV.get(`refresh:${targetRefreshToken}`);
+    expect(preRefreshKV).not.toBeNull();
+
+    const refreshRes = await app.request(
+      "/api/auth/refresh",
+      {
+        method: "POST",
+        headers: { Cookie: `${REFRESH_COOKIE}=${targetRefreshToken}` },
+      },
+      env,
+    );
+
+    expect(refreshRes.status).toBe(403);
+    const refreshData = (await refreshRes.json()) as any;
+    expect(refreshData.error).toBe("Account is suspended");
+
+    const postRefreshKV = await env.CACHE_KV.get(`refresh:${targetRefreshToken}`);
+    expect(postRefreshKV).toBeNull();
+  });
+
+  it("suspending a user via 3 reports revokes all of their existing refresh tokens", async () => {
+    const targetRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "report-target@example.com",
+          password: "password123",
+          displayName: "通報される人",
+        }),
+      },
+      env,
+    );
+    expect(targetRes.status).toBe(201);
+    const targetData = (await targetRes.json()) as any;
+    const targetRefreshToken = readRefreshCookie(targetRes);
+    expect(targetRefreshToken).toBeDefined();
+
+    const reporterRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "reporter@example.com",
+          password: "password123",
+          displayName: "通報する人",
+        }),
+      },
+      env,
+    );
+    expect(reporterRes.status).toBe(201);
+    const reporterData = (await reporterRes.json()) as any;
+
+    for (let i = 0; i < 3; i++) {
+      const reportRes = await app.request(
+        "/api/reports",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${reporterData.tokens.accessToken}`,
+          },
+          body: JSON.stringify({
+            targetUserId: targetData.user.id,
+            reason: "HARASSMENT",
+          }),
+        },
+        env,
+      );
+      expect(reportRes.status).toBe(200);
+    }
+
+    const revokedKV = await env.CACHE_KV.get(`refresh:${targetRefreshToken}`);
+    expect(revokedKV).toBeNull();
   });
 
   it("POST /api/cards creates card and triggers matching with Access Token", async () => {

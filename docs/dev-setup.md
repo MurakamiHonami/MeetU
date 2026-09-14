@@ -27,6 +27,7 @@ Docker で動かす場合:
 ```bash
 just setup          # npm ci（workspaces で backend + frontend 一括）
 cp backend/.dev.vars.example backend/.dev.vars   # JWT_SECRET を設定
+cp frontend/.env.example frontend/.env           # NEXT_PUBLIC_API_BASE_URL を設定
 just dev            # backend:8787 + frontend:5173 を同時起動
 ```
 

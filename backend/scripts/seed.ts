@@ -6,17 +6,23 @@
  *   npm run db:seed:staging      # staging Workers
  *   API_BASE=... tsx scripts/seed.ts [--force]
  *
- * デモアカウント: seed-*@meetu.local / seedpass123
+ * デモアカウント: seed-*@meetu.local
+ * パスワードは SEED_PASSWORD 環境変数で渡すか、未指定ならランダム生成される。
+ * 生成されたパスワードは標準出力には出さず、実行後に .seed-password (git 管理外) へ書き出す。
  */
-import { SEED_PASSWORD, SEED_USERS } from './seed-data';
+import { randomBytes } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { SEED_USERS } from "./seed-data";
 
-const STAGING_API = 'https://api-meetu-staging.ruxel.net';
-const LOCAL_API = 'http://127.0.0.1:8787';
+const STAGING_API = "https://api-meetu-staging.ruxel.net";
+const LOCAL_API = "http://127.0.0.1:8787";
 
 const args = process.argv.slice(2);
-const force = args.includes('--force');
-const staging = args.includes('--staging');
-const apiBase = (process.env.API_BASE ?? (staging ? STAGING_API : LOCAL_API)).replace(/\/$/, '');
+const force = args.includes("--force");
+const staging = args.includes("--staging");
+const apiBase = (process.env.API_BASE ?? (staging ? STAGING_API : LOCAL_API)).replace(/\/$/, "");
+const SEED_PASSWORD = process.env.SEED_PASSWORD ?? randomBytes(18).toString("base64url");
 
 type Tokens = { accessToken: string };
 
@@ -25,10 +31,10 @@ async function request<T>(
   init: RequestInit & { token?: string } = {},
 ): Promise<{ status: number; body: T }> {
   const headers: Record<string, string> = {
-  ...(init.headers as Record<string, string> | undefined),
+    ...(init.headers as Record<string, string> | undefined),
   };
   if (init.token) headers.Authorization = `Bearer ${init.token}`;
-  if (init.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  if (init.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
 
   const res = await fetch(`${apiBase}${path}`, { ...init, headers });
   const body = (await res.json().catch(() => ({}))) as T;
@@ -36,8 +42,8 @@ async function request<T>(
 }
 
 async function ensureUser(email: string, displayName: string): Promise<Tokens> {
-  const signup = await request<{ tokens: Tokens; error?: string }>('/api/auth/signup', {
-    method: 'POST',
+  const signup = await request<{ tokens: Tokens; error?: string }>("/api/auth/signup", {
+    method: "POST",
     body: JSON.stringify({ email, password: SEED_PASSWORD, displayName }),
   });
   if (signup.status === 201) return signup.body.tokens;
@@ -46,8 +52,8 @@ async function ensureUser(email: string, displayName: string): Promise<Tokens> {
     throw new Error(`signup failed for ${email}: ${signup.status} ${JSON.stringify(signup.body)}`);
   }
 
-  const login = await request<{ tokens: Tokens; error?: string }>('/api/auth/login', {
-    method: 'POST',
+  const login = await request<{ tokens: Tokens; error?: string }>("/api/auth/login", {
+    method: "POST",
     body: JSON.stringify({ email, password: SEED_PASSWORD }),
   });
   if (login.status !== 200) {
@@ -57,9 +63,9 @@ async function ensureUser(email: string, displayName: string): Promise<Tokens> {
 }
 
 async function main() {
-  console.log(`Seeding via ${apiBase}${force ? ' (force)' : ''}`);
+  console.log(`Seeding via ${apiBase}${force ? " (force)" : ""}`);
 
-  const health = await request<{ status: string }>('/health');
+  const health = await request<{ status: string }>("/health");
   if (health.status !== 200) {
     throw new Error(`API unreachable (${health.status}). Start backend or set API_BASE.`);
   }
@@ -69,36 +75,40 @@ async function main() {
 
   for (const user of SEED_USERS) {
     const tokens = await ensureUser(user.email, user.displayName);
-    const me = await request<{ user: { cardCount: number } }>('/api/me', { token: tokens.accessToken });
+    const me = await request<{ user: { cardCount: number } }>("/api/me", {
+      token: tokens.accessToken,
+    });
     if (me.status !== 200) {
       throw new Error(`GET /api/me failed for ${user.email}: ${me.status}`);
     }
 
     if (!force && me.body.user.cardCount > 0) {
-      console.log(`  skip ${user.displayName} (${user.email}) — already has ${me.body.user.cardCount} cards`);
+      console.log(
+        `  skip ${user.displayName} (${user.email}) — already has ${me.body.user.cardCount} cards`,
+      );
       skippedUsers += 1;
       continue;
     }
 
     if (user.favorites?.length) {
-      await request('/api/me', {
-        method: 'PUT',
+      await request("/api/me", {
+        method: "PUT",
         token: tokens.accessToken,
         body: JSON.stringify({ favorites: user.favorites.map((name) => ({ name })) }),
       });
     }
 
     if (user.home) {
-      await request('/api/me', {
-        method: 'PUT',
+      await request("/api/me", {
+        method: "PUT",
         token: tokens.accessToken,
         body: JSON.stringify({ homeLocation: user.home }),
       });
     }
 
     for (const card of user.cards) {
-      const res = await request('/api/cards', {
-        method: 'POST',
+      const res = await request("/api/cards", {
+        method: "POST",
         token: tokens.accessToken,
         body: JSON.stringify({
           type: card.type,
@@ -110,7 +120,9 @@ async function main() {
         }),
       });
       if (res.status !== 201) {
-        throw new Error(`create card failed for ${user.email}: ${res.status} ${JSON.stringify(res.body)}`);
+        throw new Error(
+          `create card failed for ${user.email}: ${res.status} ${JSON.stringify(res.body)}`,
+        );
       }
       createdCards += 1;
       console.log(`  + [${user.displayName}] ${card.type} ${card.title}`);
@@ -118,7 +130,10 @@ async function main() {
   }
 
   console.log(`Done. created ${createdCards} cards, skipped ${skippedUsers} users.`);
-  console.log(`Demo login: seed-yuki@meetu.local / ${SEED_PASSWORD}`);
+
+  const passwordFile = join(process.cwd(), ".seed-password");
+  writeFileSync(passwordFile, `${SEED_PASSWORD}\n`, { mode: 0o600 });
+  console.log(`Demo login: seed-yuki@meetu.local (password written to ${passwordFile})`);
 }
 
 main().catch((err) => {

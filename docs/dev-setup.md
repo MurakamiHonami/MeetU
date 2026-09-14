@@ -207,7 +207,7 @@ just d1-migrate-staging
 just deploy-staging-backend
 ```
 
-デモデータ: `just dev-backend` → `just db-seed`（`seed-yuki@meetu.local` / `seedpass123`）
+デモデータ: `just dev-backend` → `just db-seed`（`seed-yuki@meetu.local` / パスワードはランダム生成され `.seed-password` に出力される。固定したい場合は `SEED_PASSWORD` 環境変数を指定する）
 
 ---
 

@@ -212,8 +212,10 @@ export class CardUseCase {
     if (!target || !target.isOpen()) return null;
     if (target.ownerId === userId) return null;
 
-    const myUser = await this.userRepo.findById(userId);
-    const targetUser = await this.userRepo.findById(target.ownerId);
+    const [myUser, targetUser] = await Promise.all([
+      this.userRepo.findById(userId),
+      this.userRepo.findById(target.ownerId),
+    ]);
     const counterpart = this.counterpartType(target.type);
     const targetTagSet = new Set(target.tags);
     const myCards = (await this.cardRepo.findByOwnerId(userId)).filter(
@@ -247,8 +249,10 @@ export class CardUseCase {
     targetCardId: string,
     myCardId: string,
   ): Promise<{ match: Match; created: boolean }> {
-    const target = await this.cardRepo.findById(targetCardId);
-    const myCard = await this.cardRepo.findById(myCardId);
+    const [target, myCard] = await Promise.all([
+      this.cardRepo.findById(targetCardId),
+      this.cardRepo.findById(myCardId),
+    ]);
     if (!target || !target.isOpen()) throw new NotFoundError("相手のカードが見つかりません");
     if (!myCard || !myCard.isOpen()) throw new NotFoundError("自分のカードが見つかりません");
     if (target.ownerId === userId) throw new ForbiddenError("自分のカードには応募できません");
@@ -260,8 +264,10 @@ export class CardUseCase {
     }
 
     const matchedTags = myCard.tags.filter((t) => target.tags.includes(t));
-    const myUser = await this.userRepo.findById(userId);
-    const targetUser = await this.userRepo.findById(target.ownerId);
+    const [myUser, targetUser] = await Promise.all([
+      this.userRepo.findById(userId),
+      this.userRepo.findById(target.ownerId),
+    ]);
     const result = MatchingEngine.evaluate(
       myCard,
       target,

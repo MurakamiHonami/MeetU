@@ -30,11 +30,15 @@ export class GroupUseCase {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
 
-    for (const u of await this.userRepo.findByIds(group.members)) {
+    const cardIds = [...new Set(group.steps.map((step) => step.giveCardId))];
+    const [foundUsers, foundCards] = await Promise.all([
+      this.userRepo.findByIds(group.members),
+      this.cardRepo.findByIds(cardIds),
+    ]);
+    for (const u of foundUsers) {
       users.set(u.id, u);
     }
-    const cardIds = [...new Set(group.steps.map((step) => step.giveCardId))];
-    for (const c of await this.cardRepo.findByIds(cardIds)) {
+    for (const c of foundCards) {
       cards.set(c.id, c);
     }
 

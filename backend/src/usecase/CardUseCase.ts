@@ -4,6 +4,7 @@ import { IMatchRepository } from "../domain/match/IMatchRepository";
 import { IUserRepository } from "../domain/user/IUserRepository";
 import { IGroupRepository } from "../domain/group/IGroupRepository";
 import { Card, CardType } from "../domain/card/Card";
+import { User } from "../domain/user/User";
 import { TagNormalizer } from "../domain/tag/TagNormalizer";
 import { Tag } from "../domain/tag/Tag";
 import { MatchingEngine } from "../domain/match/MatchingEngine";
@@ -206,6 +207,7 @@ export class CardUseCase {
     targetCardId: string,
   ): Promise<{
     target: Card;
+    targetUser: User | null;
     options: { card: Card; matchedTags: string[]; matchCount: number }[];
   } | null> {
     const target = await this.cardRepo.findById(targetCardId);
@@ -239,7 +241,7 @@ export class CardUseCase {
       }
     }
 
-    return { target, options };
+    return { target, targetUser, options };
   }
 
   async respondToCard(

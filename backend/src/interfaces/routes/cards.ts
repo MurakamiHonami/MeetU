@@ -122,7 +122,6 @@ export const cardsRouter = new Hono<Env>()
       const result = await ctx.useCases.card.getRespondOptions(userId, id);
       if (!result) return c.json({ message: "カードが見つかりません" }, 404);
 
-      const targetOwner = await ctx.repos.userRepo.findById(result.target.ownerId);
       const options = [];
       for (const opt of result.options) {
         options.push({
@@ -132,7 +131,7 @@ export const cardsRouter = new Hono<Env>()
         });
       }
       return c.json({
-        targetCard: cardView(result.target, targetOwner ?? undefined),
+        targetCard: cardView(result.target, result.targetUser ?? undefined),
         options,
       });
     } catch (e) {

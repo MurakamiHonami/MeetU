@@ -4,6 +4,7 @@ export interface IMatchRepository {
   findById(id: string): Promise<Match | null>;
   findByUserId(userId: string): Promise<Match[]>;
   save(match: Match): Promise<void>;
+  saveMany(matches: Match[]): Promise<void>;
   updateStatus(id: string, status: Match["status"]): Promise<void>;
   getLastReadAt(matchId: string, userId: string): Promise<string | null>;
   markRead(matchId: string, userId: string, at: string): Promise<void>;

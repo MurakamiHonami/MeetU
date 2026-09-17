@@ -44,28 +44,50 @@ export class D1MatchRepository implements IMatchRepository {
     return rows.map((row) => this.mapRow(row));
   }
 
-  async save(match: Match): Promise<void> {
+  private toRow(match: Match) {
     const props = match.toProps();
+    return {
+      id: props.id,
+      cardAId: props.cardAId,
+      cardBId: props.cardBId,
+      userAId: props.userAId,
+      userBId: props.userBId,
+      matchedTags: JSON.stringify(props.matchedTags),
+      matchedLabels: JSON.stringify(props.matchedLabels ?? props.matchedTags),
+      matchCount: props.matchCount,
+      distanceKm: props.distanceKm ?? null,
+      acceptedA: props.acceptedA ? 1 : 0,
+      acceptedB: props.acceptedB ? 1 : 0,
+      lastMessageAt: props.lastMessageAt ?? null,
+      lastMessageBy: props.lastMessageBy ?? null,
+      lastMessagePreview: props.lastMessagePreview ?? null,
+      status: props.status,
+      createdAt: props.createdAt,
+    };
+  }
+
+  async save(match: Match): Promise<void> {
     await this.db
       .insert(matches)
-      .values({
-        id: props.id,
-        cardAId: props.cardAId,
-        cardBId: props.cardBId,
-        userAId: props.userAId,
-        userBId: props.userBId,
-        matchedTags: JSON.stringify(props.matchedTags),
-        matchedLabels: JSON.stringify(props.matchedLabels ?? props.matchedTags),
-        matchCount: props.matchCount,
-        distanceKm: props.distanceKm ?? null,
-        acceptedA: props.acceptedA ? 1 : 0,
-        acceptedB: props.acceptedB ? 1 : 0,
-        lastMessageAt: props.lastMessageAt ?? null,
-        lastMessageBy: props.lastMessageBy ?? null,
-        lastMessagePreview: props.lastMessagePreview ?? null,
-        status: props.status,
-        createdAt: props.createdAt,
-      })
+      .values(this.toRow(match))
+      .onConflictDoUpdate({
+        target: matches.id,
+        set: {
+          status: sql`excluded.status`,
+          acceptedA: sql`excluded.accepted_a`,
+          acceptedB: sql`excluded.accepted_b`,
+          lastMessageAt: sql`excluded.last_message_at`,
+          lastMessageBy: sql`excluded.last_message_by`,
+          lastMessagePreview: sql`excluded.last_message_preview`,
+        },
+      });
+  }
+
+  async saveMany(matchList: Match[]): Promise<void> {
+    if (matchList.length === 0) return;
+    await this.db
+      .insert(matches)
+      .values(matchList.map((m) => this.toRow(m)))
       .onConflictDoUpdate({
         target: matches.id,
         set: {

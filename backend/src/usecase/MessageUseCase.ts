@@ -32,12 +32,13 @@ export class MessageUseCase {
     if (!match) throw new NotFoundError("マッチが見つかりません");
     if (!match.isParty(userId)) throw new ForbiddenError("このマッチの当事者ではありません");
 
-    const messages = await this.messageRepo.findByThread("MATCH", matchId, after);
     const now = new Date().toISOString();
-    await this.matchRepo.markRead(matchId, userId, now);
-
     const partnerId = match.partnerOf(userId);
-    const partner = await this.userRepo.findById(partnerId);
+    const [messages, , partner] = await Promise.all([
+      this.messageRepo.findByThread("MATCH", matchId, after),
+      this.matchRepo.markRead(matchId, userId, now),
+      this.userRepo.findById(partnerId),
+    ]);
 
     return {
       messages,
@@ -83,11 +84,12 @@ export class MessageUseCase {
     if (!group) throw new NotFoundError("グループが見つかりません");
     if (!group.isMember(userId)) throw new ForbiddenError("このグループの参加者ではありません");
 
-    const messages = await this.messageRepo.findByThread("GROUP", groupId, after);
     const now = new Date().toISOString();
-    await this.groupRepo.markRead(groupId, userId, now);
-
-    const members = await this.userRepo.findByIds(group.members);
+    const [messages, , members] = await Promise.all([
+      this.messageRepo.findByThread("GROUP", groupId, after),
+      this.groupRepo.markRead(groupId, userId, now),
+      this.userRepo.findByIds(group.members),
+    ]);
 
     return {
       messages,

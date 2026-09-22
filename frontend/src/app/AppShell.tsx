@@ -49,17 +49,22 @@ function AppHeader() {
   );
 }
 
-const AUTH_PAGES = ["/login", "/signup"];
+/** アプリのヘッダー・タブバーを出さないページ。自前の導線を持つ画面はここに入れる。 */
+const NO_CHROME_PAGES = ["/login", "/signup", "/lp"];
+
+/** LP だけは 640px の縦長レイアウトに収めず、横幅いっぱいに広げる */
+const WIDE_PAGES = ["/lp"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useRouter();
-  const isAuthPage = AUTH_PAGES.includes(pathname);
+  const noChrome = NO_CHROME_PAGES.includes(pathname);
+  const wide = WIDE_PAGES.includes(pathname);
 
   return (
-    <main className="app">
-      {!isAuthPage && <AppHeader />}
+    <main className={wide ? "app app-wide" : "app"}>
+      {!noChrome && <AppHeader />}
       {children}
-      {!isAuthPage && <TabBar />}
+      {!noChrome && <TabBar />}
     </main>
   );
 }

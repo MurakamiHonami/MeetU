@@ -6,7 +6,7 @@ import { RequireAuth } from "../app/RequireAuth";
 import "../styles.css";
 
 /** 認証不要なページ。これ以外は RequireAuth で保護する。 */
-const PUBLIC_PAGES = ["/login", "/signup"];
+const PUBLIC_PAGES = ["/login", "/signup", "/lp"];
 
 export default function App({ Component, pageProps }: AppProps) {
   const { pathname } = useRouter();

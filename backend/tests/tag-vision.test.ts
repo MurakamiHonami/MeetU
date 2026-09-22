@@ -1,17 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseVisionTagJson, TagVisionService } from "../src/infrastructure/ai/TagVisionService";
 
+// @google/genai は内部で `fetch` を叩く。レスポンスは実際の Gemini REST API と同じ形（
+// `candidates[].content.parts[].text` / `{ error: { message } }`）なので、そのままモックできる。
 function geminiOkResponse(tags: { name: string; category: string }[]): Response {
   return {
     ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "application/json" }),
     json: async () => ({
       candidates: [{ content: { parts: [{ text: JSON.stringify({ tags }) }] } }],
     }),
-  } as Response;
+  } as unknown as Response;
 }
 
 function geminiErrorResponse(status: number, message: string): Response {
-  return { ok: false, status, json: async () => ({ error: { message } }) } as Response;
+  return {
+    ok: false,
+    status,
+    headers: new Headers({ "content-type": "application/json" }),
+    json: async () => ({ error: { message } }),
+    text: async () => JSON.stringify({ error: { message } }),
+  } as unknown as Response;
 }
 
 describe("parseVisionTagJson", () => {
@@ -29,110 +39,20 @@ describe("parseVisionTagJson", () => {
     expect(result.titleHint).toBe("天馬司アクスタ譲ります");
   });
 
-  it("unwraps Gemini candidates parts with thoughtSignature", () => {
-    const result = parseVisionTagJson({
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                text: '{"tags":[{"name":"缶バッジ","category":"item"}]}',
-                thoughtSignature: "opaque",
-              },
-            ],
-          },
-        },
-      ],
-    });
+  it("parses a JSON string, as returned by GenerateContentResponse.text", () => {
+    const result = parseVisionTagJson('{"tags":[{"name":"缶バッジ","category":"item"}]}');
     expect(result.tags[0].name).toBe("缶バッジ");
-  });
-
-  it("unwraps REST { result: { choices } } envelope", () => {
-    const result = parseVisionTagJson({
-      success: true,
-      result: {
-        choices: [
-          {
-            message: {
-              content: '{"tags":[{"name":"缶バッジ","category":"item"}]}',
-            },
-          },
-        ],
-      },
-    });
-    expect(result.tags[0].name).toBe("缶バッジ");
-  });
-
-  it("unwraps JSON Mode { response: object }", () => {
-    const result = parseVisionTagJson({
-      response: {
-        tags: [{ name: "缶バッジ", category: "item" }],
-        titleHint: "缶バッジ",
-      },
-    });
-    expect(result.tags[0].name).toBe("缶バッジ");
-    expect(result.titleHint).toBe("缶バッジ");
-  });
-
-  it("unwraps OpenAI-style choices content", () => {
-    const result = parseVisionTagJson({
-      choices: [
-        {
-          message: {
-            content: { tags: [{ name: "天馬司", category: "character" }] },
-          },
-        },
-      ],
-    });
-    expect(result.tags[0].name).toBe("天馬司");
-  });
-
-  it("parses JSON string in OpenAI choices content", () => {
-    const result = parseVisionTagJson({
-      choices: [
-        {
-          message: {
-            content: '{"tags":[{"name":"五条悟","category":"character"}]}',
-          },
-        },
-      ],
-    });
-    expect(result.tags[0].name).toBe("五条悟");
   });
 
   it("strips think blocks around JSON", () => {
-    const result = parseVisionTagJson({
-      choices: [
-        {
-          message: {
-            content:
-              '<think>見た目を考える</think>\n{"tags":[{"name":"缶バッジ","category":"item"}]}',
-          },
-        },
-      ],
-    });
+    const result = parseVisionTagJson(
+      '<think>見た目を考える</think>\n{"tags":[{"name":"缶バッジ","category":"item"}]}',
+    );
     expect(result.tags[0].name).toBe("缶バッジ");
   });
 
-  it("joins content part arrays", () => {
-    const result = parseVisionTagJson({
-      choices: [
-        {
-          message: {
-            content: [
-              { type: "text", text: '{"tags":[{"name":"アクリルスタンド","category":"item"}]}' },
-            ],
-          },
-        },
-      ],
-    });
-    expect(result.tags[0].name).toBe("アクリルスタンド");
-  });
-
   it("extracts JSON object buried in prose", () => {
-    const result = parseVisionTagJson({
-      response: 'Sure.\n{"tags":[{"name":"机","category":"item"}]}\n',
-    });
+    const result = parseVisionTagJson('Sure.\n{"tags":[{"name":"机","category":"item"}]}\n');
     expect(result.tags[0].name).toBe("机");
   });
 

@@ -1,3 +1,4 @@
+import { ApiError, GoogleGenAI } from "@google/genai";
 import { ValidationError } from "../../domain/shared/DomainError";
 import { TagNormalizer } from "../../domain/tag/TagNormalizer";
 
@@ -16,10 +17,6 @@ const MAX_TAGS = 8;
 // 先頭が本命。429/503（高負荷・レート制限）のときだけ次のモデルへフォールバックする。
 const VISION_MODELS = ["gemini-3.6-flash", "gemini-3.6-flash-lite"] as const;
 const RETRYABLE_STATUSES = new Set([429, 503]);
-
-function geminiUrl(model: string): string {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-}
 
 /** 429/503 のときだけ送出する。呼び出し側はこれを見て次のモデルにフォールバックする */
 class RetryableGeminiError extends ValidationError {}
@@ -96,59 +93,21 @@ export function parseVisionTagJson(response: unknown): TagVisionResult {
   return { tags, titleHint };
 }
 
+/**
+ * `@google/genai` の `GenerateContentResponse.text` は JSON 文字列（`responseMimeType:
+ * "application/json"` 指定時）を返す。`<think>` タグの除去とプレーンテキスト中の
+ * JSON 抽出フォールバックは、モデルがまれに思考過程を混ぜて返すことがあるため残す。
+ */
 function unwrapJsonMode(response: unknown): { tags: unknown[]; titleHint?: unknown } {
-  if (!response || typeof response !== "object") {
-    throw new ValidationError("画像解析に失敗しました");
-  }
-  const r = response as {
-    tags?: unknown;
-    response?: unknown;
-    candidates?: { content?: { parts?: unknown } }[];
-    choices?: { message?: { content?: unknown } }[];
-  };
-  const nested = r.response as { choices?: { message?: { content?: unknown } }[] } | undefined;
-  const result = (r as { result?: { choices?: { message?: { content?: unknown } }[] } }).result;
-  const geminiParts = r.candidates?.[0]?.content?.parts;
-  for (const candidate of [
-    r,
-    r.response,
-    result,
-    geminiParts,
-    r.choices?.[0]?.message?.content,
-    nested?.choices?.[0]?.message?.content,
-    result?.choices?.[0]?.message?.content,
-  ]) {
-    const obj = asTagsObject(candidate);
-    if (obj) return obj;
-  }
-  throw new ValidationError("画像解析に失敗しました");
-}
-
-function asTagsObject(value: unknown): { tags: unknown[]; titleHint?: unknown } | undefined {
-  value = flattenContent(value);
-  if (typeof value === "string" && value.trim()) {
+  let value = response;
+  if (typeof value === "string") {
     const text = value.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
     value = parseJsonObject(text);
-    if (value === undefined) return undefined;
   }
   if (value && typeof value === "object" && Array.isArray((value as { tags?: unknown }).tags)) {
     return value as { tags: unknown[]; titleHint?: unknown };
   }
-  return undefined;
-}
-
-function flattenContent(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-  return value
-    .map((part) => {
-      if (typeof part === "string") return part;
-      if (part && typeof part === "object") {
-        const text = (part as { text?: unknown }).text;
-        return typeof text === "string" ? text : "";
-      }
-      return "";
-    })
-    .join("");
+  throw new ValidationError("画像解析に失敗しました");
 }
 
 function parseJsonObject(text: string): unknown {
@@ -176,7 +135,11 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 export class TagVisionService {
-  constructor(private apiKey: string) {}
+  private readonly client: GoogleGenAI;
+
+  constructor(apiKey: string) {
+    this.client = new GoogleGenAI({ apiKey });
+  }
 
   async inferFromImage(bytes: Uint8Array, contentType: string): Promise<TagVisionResult> {
     let lastError: unknown;
@@ -201,14 +164,9 @@ export class TagVisionService {
     bytes: Uint8Array,
     contentType: string,
   ): Promise<TagVisionResult> {
-    const response = await fetch(geminiUrl(model), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": this.apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    try {
+      const response = await this.client.models.generateContent({
+        model,
         contents: [
           {
             role: "user",
@@ -218,33 +176,46 @@ export class TagVisionService {
             ],
           },
         ],
-        generationConfig: {
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
           temperature: 0.1,
           maxOutputTokens: 1024,
           responseMimeType: "application/json",
           responseSchema: TAG_RESPONSE_SCHEMA,
         },
-      }),
-    });
-
-    if (!response.ok) {
-      const errBody = (await response.json().catch(() => null)) as {
-        error?: { message?: string; status?: string };
-      } | null;
-      throw geminiHttpError(response.status, errBody?.error?.message);
+      });
+      return parseVisionTagJson(response.text);
+    } catch (e) {
+      throw toVisionError(e);
     }
-
-    return parseVisionTagJson(await response.json());
   }
 }
 
-function geminiHttpError(status: number, detail?: string): ValidationError {
-  const suffix = detail ? `: ${detail}` : "";
-  if (status === 401 || status === 403) {
-    return new ValidationError(`このビジョンモデルは現在利用できません${suffix}`);
+function toVisionError(e: unknown): ValidationError {
+  if (e instanceof ValidationError) return e;
+  if (e instanceof ApiError) {
+    const detail = apiErrorDetail(e);
+    const suffix = detail ? `: ${detail}` : "";
+    if (e.status === 401 || e.status === 403) {
+      return new ValidationError(`このビジョンモデルは現在利用できません${suffix}`);
+    }
+    const message = `画像解析に失敗しました (${e.status})${suffix}`;
+    return RETRYABLE_STATUSES.has(e.status)
+      ? new RetryableGeminiError(message)
+      : new ValidationError(message);
   }
-  const message = `画像解析に失敗しました (${status})${suffix}`;
-  return RETRYABLE_STATUSES.has(status)
-    ? new RetryableGeminiError(message)
-    : new ValidationError(message);
+  const detail = e instanceof Error ? e.message : "";
+  return new ValidationError(
+    detail ? `画像解析に失敗しました: ${detail}` : "画像解析に失敗しました",
+  );
+}
+
+/** ApiError.message は `throwErrorIfNotOK` がエラーボディ全体を JSON.stringify したもの。 */
+function apiErrorDetail(e: ApiError): string | undefined {
+  try {
+    const body = JSON.parse(e.message) as { error?: { message?: string } };
+    return body.error?.message;
+  } catch {
+    return e.message || undefined;
+  }
 }

@@ -24,6 +24,9 @@ frontend/.env.production
 backend/.dev.vars
 .dev.vars
 
+# Generated seed script password (see backend/scripts/seed.ts)
+.seed-password
+
 # Python (Legacy)
 __pycache__/
 *.py[cod]

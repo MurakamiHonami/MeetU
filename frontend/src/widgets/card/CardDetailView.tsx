@@ -29,7 +29,7 @@ export function CardDetailView({ cardId }: Props) {
 
       <section className="panel panel-quiet">
         <p className="hint">
-          相手の条件に合う【譲/求/同行者求】カードを持っていれば、その場で応募してマッチできます。
+          相手の条件に合う【譲/求/仲間募集】カードを持っていれば、その場で応募してマッチできます。
           持っていない場合はカード登録画面へ進みます。
         </p>
         <div className="actions">

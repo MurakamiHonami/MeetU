@@ -31,11 +31,11 @@ const ALLOWED_CATEGORIES = new Set([
   "other",
 ]);
 
-const SYSTEM_PROMPT = `同人・アニメグッズの写真から交換マッチング用のタグを付ける。
-タグ名は日本語。作品名・キャラクター名・グッズの種類を付ける。
-必ずグッズの種類（アクリルスタンド、缶バッジ、フィギュア、ぬいぐるみ、机、デスクマット 等）を category:item で1つ以上含める。`;
+const SYSTEM_PROMPT = `技術書・書籍の写真から交換マッチング用のタグを付ける。
+タグ名は日本語（技術用語・言語名は一般的な表記のまま）。書名・著者名・分野/技術トピックを付ける。
+必ず分野（プログラミング言語、Web、機械学習、インフラ、データベース、数学 等）を category:item で1つ以上含める。`;
 
-const USER_PROMPT = "この写真のグッズをタグ付けして。";
+const USER_PROMPT = "この写真の本をタグ付けして。";
 
 const TAG_RESPONSE_SCHEMA = {
   type: "OBJECT",
@@ -43,13 +43,13 @@ const TAG_RESPONSE_SCHEMA = {
     tags: {
       type: "ARRAY",
       description:
-        "日本語のタグ。必ずグッズの種類（アクリルスタンド、缶バッジ、机など）を category:item で1つ以上含める",
+        "日本語のタグ。必ず分野（プログラミング言語、Web、機械学習、インフラ など）を category:item で1つ以上含める",
       items: {
         type: "OBJECT",
         properties: {
           name: {
             type: "STRING",
-            description: "日本語の表示名（例: アクリルスタンド。Acrylic Stand は不可）",
+            description: "日本語の表示名（例: リーダブルコード、TypeScript、機械学習）",
           },
           category: {
             type: "STRING",

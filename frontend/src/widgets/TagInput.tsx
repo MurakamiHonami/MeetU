@@ -108,7 +108,7 @@ export default function TagInput({
         className="input"
         value={text}
         disabled={full}
-        placeholder={full ? `タグは${max}個までです` : "作品名・キャラ名・エリアなど"}
+        placeholder={full ? `タグは${max}個までです` : "書名・著者名・分野など"}
         onChange={(e) => {
           const next = e.target.value;
           setText(next);

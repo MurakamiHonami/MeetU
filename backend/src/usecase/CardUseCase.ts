@@ -265,7 +265,7 @@ export class CardUseCase {
     if (myCard.ownerId !== userId) throw new ForbiddenError("自分のカードを選んでください");
     if (!myCard.isCounterpart(target.type)) {
       throw new ValidationError(
-        "カードの種類が合いません（【譲】↔【求】、または【同行者求】同士）",
+        "カードの種類が合いません（【譲】↔【求】、または【仲間募集】同士）",
       );
     }
 

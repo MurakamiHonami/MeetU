@@ -95,8 +95,8 @@ export function SearchView() {
               <GroupsRoundedIcon />
             </span>
             <span className="menu-text">
-              <strong>同行者を探す</strong>
-              <span>イベントやライブに一緒に行く相手のカードを探す</span>
+              <strong>読書仲間を探す</strong>
+              <span>一緒に読む・輪読する相手のカードを探す</span>
             </span>
           </button>
         </div>

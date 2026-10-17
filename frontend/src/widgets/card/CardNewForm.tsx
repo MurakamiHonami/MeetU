@@ -15,22 +15,22 @@ import type { GeoPoint } from "../../entities/user/geo";
 import { currentPosition, shrinkImage } from "../../shared/lib/device";
 
 const TYPE_HELP: Record<CardType, string> = {
-  GIVE: "持っているグッズを譲ります。【求】のカードとマッチします。",
-  WANT: "探しているグッズを登録します。【譲】のカードとマッチします。",
-  COMPANION: "イベントの同行者を募集します。同じ【同行者求】とマッチします。",
+  GIVE: "持っている本を譲ります。【求】のカードとマッチします。",
+  WANT: "読みたい本を登録します。【譲】のカードとマッチします。",
+  COMPANION: "一緒に読む / 輪読する仲間を募集します。同じ【仲間募集】とマッチします。",
 };
 
-/** 入力例。同行者募集はグッズ交換とは書くことが違うので、種類ごとに出し分ける */
+/** 入力例。仲間募集は本の交換とは書くことが違うので、種類ごとに出し分ける */
 const TITLE_PLACEHOLDER: Record<CardType, string> = {
-  GIVE: "天馬司のアクスタ譲ります",
-  WANT: "天馬司のアクスタ探しています",
-  COMPANION: "アイドルライブ 東京公演の同行者募集",
+  GIVE: "リーダブルコード 譲ります",
+  WANT: "達人プログラマー 探しています",
+  COMPANION: "SICP 輪読メンバー募集",
 };
 
 const NOTE_PLACEHOLDER: Record<CardType, string> = {
-  GIVE: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
-  WANT: "郵送のみ / 手渡し希望 / 交換できるものリスト など",
-  COMPANION: "現地集合希望 / 開演前に合流したい / 参戦は初めてです など",
+  GIVE: "書き込みあり / 美品 / 郵送のみ / 交換できる本リスト など",
+  WANT: "美品希望 / 書き込み可 / 手渡し希望 など",
+  COMPANION: "オンライン開催 / 週1ペース / 初学者歓迎 など",
 };
 
 const COUNTERPART: Record<CardType, CardType> = {
@@ -90,7 +90,11 @@ export function CardNewForm() {
         setMinMatch(Math.min(card.minMatchCount, card.tags.length));
         if (card.dates?.length) setDates([...card.dates]);
         const lead =
-          counterpart === "GIVE" ? "譲ります: " : counterpart === "WANT" ? "求めます: " : "同行: ";
+          counterpart === "GIVE"
+            ? "譲ります: "
+            : counterpart === "WANT"
+              ? "求めます: "
+              : "仲間募集: ";
         setTitle(`${lead}${card.title}`.slice(0, 60));
       })
       .catch((e) => setError((e as Error).message));
@@ -150,7 +154,7 @@ export function CardNewForm() {
     if (!title.trim()) return setError("タイトルを入力してください");
     if (tags.length === 0) return setError("タグを 1 つ以上追加してください");
     if (type === "COMPANION" && dates.length === 0) {
-      return setError("同行者募集は日程を 1 日以上選んでください");
+      return setError("仲間募集は日程を 1 日以上選んでください");
     }
 
     setSaving(true);
@@ -297,7 +301,7 @@ export function CardNewForm() {
         </div>
         <p className="hint">
           写真を選ぶと Workers AI
-          が作品名・キャラ・アイテム種別などのタグ候補を提案します。読み取りを待たずに入力を続けられます。
+          が書名・著者名・分野などのタグ候補を提案します。読み取りを待たずに入力を続けられます。
         </p>
       </div>
 

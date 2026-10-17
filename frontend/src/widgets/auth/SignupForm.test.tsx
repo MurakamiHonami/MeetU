@@ -16,7 +16,7 @@ function setup() {
   render(<SignupForm />);
 }
 
-const nameInput = () => screen.getByPlaceholderText("例: たかし@推し活中");
+const nameInput = () => screen.getByPlaceholderText("例: たかし@積読中");
 const emailInput = () => screen.getByPlaceholderText("example@meetu.staging.ruxel.net");
 const passwordInput = () => screen.getByPlaceholderText("8文字以上推奨");
 const submit = () => screen.getByRole("button", { name: /会員登録|登録中/ });

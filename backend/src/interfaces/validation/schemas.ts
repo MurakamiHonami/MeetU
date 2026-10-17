@@ -119,7 +119,7 @@ export const reportReasonSchema = z.enum([
 
 export const createReportSchema = z.object({
   targetUserId: z.string().min(1),
-  matchId: z.string().min(1).optional(),
+  matchId: z.string().min(1),
   reason: reportReasonSchema,
   detail: z.string().max(500).optional(),
 });

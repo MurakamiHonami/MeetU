@@ -56,7 +56,7 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
       user: new UserUseCase(userRepo, cardRepo, reviewRepo),
       message: new MessageUseCase(messageRepo, matchRepo, groupRepo, userRepo, uploadService),
       review: new ReviewUseCase(reviewRepo, matchRepo, userRepo),
-      report: new ReportUseCase(reportRepo, userRepo),
+      report: new ReportUseCase(reportRepo, userRepo, matchRepo),
       group: new GroupUseCase(groupRepo, cardRepo, userRepo),
       feed: new FeedUseCase(cardRepo, tagRepo, swipeRepo, userRepo),
       nearby: new NearbyUseCase(cardRepo, userRepo),

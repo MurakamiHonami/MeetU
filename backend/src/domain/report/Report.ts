@@ -23,7 +23,7 @@ export interface ReportProps {
   id: string;
   reporterId: string;
   targetUserId: string;
-  matchId?: string;
+  matchId: string;
   reason: ReportReason;
   detail?: string;
   status: ReportStatus;
@@ -44,7 +44,7 @@ export class Report {
   get targetUserId(): string {
     return this.props.targetUserId;
   }
-  get matchId(): string | undefined {
+  get matchId(): string {
     return this.props.matchId;
   }
   get reason(): ReportReason {
@@ -70,7 +70,7 @@ export class Report {
   static create(input: {
     reporterId: string;
     targetUserId: string;
-    matchId?: string;
+    matchId: string;
     reason: ReportReason;
     detail?: string;
   }): Report {

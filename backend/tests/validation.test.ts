@@ -61,15 +61,26 @@ describe("Zod schemas", () => {
     expect(
       parseBody(createReportSchema, {
         targetUserId: "u1",
+        matchId: "m1",
         reason: "INVALID",
       }).ok,
     ).toBe(false);
     expect(
       parseBody(createReportSchema, {
         targetUserId: "u1",
+        matchId: "m1",
         reason: "HARASSMENT",
       }).ok,
     ).toBe(true);
+  });
+
+  it("createReportSchema requires matchId", () => {
+    expect(
+      parseBody(createReportSchema, {
+        targetUserId: "u1",
+        reason: "HARASSMENT",
+      }).ok,
+    ).toBe(false);
   });
 
   it("createUploadTicketSchema requires matchId or groupId", () => {

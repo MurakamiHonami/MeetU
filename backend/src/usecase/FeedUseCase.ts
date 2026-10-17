@@ -19,8 +19,8 @@ export class FeedUseCase {
     private userRepo: IUserRepository,
   ) {
     this.ranker = new FeedRanker(
-      (id) => this.tagRepo.findById(id),
-      (id, limit) => this.tagRepo.findRelatedTags(id, limit),
+      (ids) => this.tagRepo.findByIds(ids),
+      (ids, limit) => this.tagRepo.findRelatedTagsForMany(ids, limit),
     );
   }
 

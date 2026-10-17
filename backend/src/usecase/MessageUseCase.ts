@@ -36,8 +36,7 @@ export class MessageUseCase {
     const now = new Date().toISOString();
     await this.matchRepo.markRead(matchId, userId, now);
 
-    const partnerId = match.partnerOf(userId);
-    const partner = await this.userRepo.findById(partnerId);
+    const partner = after ? null : await this.userRepo.findById(match.partnerOf(userId));
 
     return {
       messages,
@@ -87,7 +86,7 @@ export class MessageUseCase {
     const now = new Date().toISOString();
     await this.groupRepo.markRead(groupId, userId, now);
 
-    const members = await this.userRepo.findByIds(group.members);
+    const members = after ? [] : await this.userRepo.findByIds(group.members);
 
     return {
       messages,

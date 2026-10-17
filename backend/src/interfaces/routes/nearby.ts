@@ -23,16 +23,16 @@ export const nearbyRouter = new Hono<Env>().get(
         type: query.type,
       });
 
-      const cards = [];
-      for (const row of result.cards) {
-        const owner = await ctx.repos.userRepo.findById(row.card.ownerId);
-        cards.push(
-          cardView(row.card, owner ?? undefined, undefined, {
-            distanceKm: row.distanceKm,
-            distanceLabel: row.distanceLabel,
-          }),
-        );
-      }
+      const owners = await ctx.repos.userRepo.findByIds(
+        result.cards.map((row) => row.card.ownerId),
+      );
+      const ownerById = new Map(owners.map((owner) => [owner.id, owner]));
+      const cards = result.cards.map((row) =>
+        cardView(row.card, ownerById.get(row.card.ownerId), undefined, {
+          distanceKm: row.distanceKm,
+          distanceLabel: row.distanceLabel,
+        }),
+      );
       return c.json({ cards, center: result.center, radiusKm: result.radiusKm });
     } catch (e) {
       return handleError(c, e);

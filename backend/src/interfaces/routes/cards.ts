@@ -19,11 +19,9 @@ export const cardsRouter = new Hono<Env>()
       const tags = query.tags.split(",").filter(Boolean);
       const cards = await ctx.useCases.card.searchCards(tags, query.minMatch, query.type);
 
-      const views = [];
-      for (const card of cards) {
-        const owner = await ctx.repos.userRepo.findById(card.ownerId);
-        views.push(cardView(card, owner ?? undefined));
-      }
+      const owners = await ctx.repos.userRepo.findByIds(cards.map((card) => card.ownerId));
+      const ownerById = new Map(owners.map((owner) => [owner.id, owner]));
+      const views = cards.map((card) => cardView(card, ownerById.get(card.ownerId)));
       return c.json({ cards: views });
     } catch (e) {
       return handleError(c, e);
@@ -103,11 +101,9 @@ export const cardsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.card.getCardMatches(id, userId);
       if (!result) return c.json({ message: "カードが見つかりません" }, 404);
-      const views = [];
-      for (const card of result.cards) {
-        const owner = await ctx.repos.userRepo.findById(card.ownerId);
-        views.push(cardView(card, owner ?? undefined));
-      }
+      const owners = await ctx.repos.userRepo.findByIds(result.cards.map((card) => card.ownerId));
+      const ownerById = new Map(owners.map((owner) => [owner.id, owner]));
+      const views = result.cards.map((card) => cardView(card, ownerById.get(card.ownerId)));
       return c.json({ cards: views, minMatchCount: result.minMatchCount });
     } catch (e) {
       return handleError(c, e);

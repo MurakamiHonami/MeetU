@@ -75,7 +75,9 @@ typecheck:
 lean-build:
     cd lean && lake build
 
-# Write theorem witnesses to lean/fixtures/cycle-cover.json for vitest
+# Write theorem witnesses to lean/fixtures/cycle-cover.json
+# (no TS code reads this file automatically; values must be copied into
+# backend/tests/cycle-cover.test.ts by hand, see lean/README.md)
 lean-export-tests: lean-build
     mkdir -p lean/fixtures
     cd lean && lake exe export_tests fixtures/cycle-cover.json

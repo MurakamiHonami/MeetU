@@ -31,6 +31,10 @@ just db-migrate-d1-local   # ローカル D1 にマイグレーション適用�
 just dev            # backend:8787 + frontend:5173 を同時起動
 ```
 
+`.dev.vars` は wrangler のローカルランタイムでは `wrangler.json` の `vars` より優先される。
+`X_CLIENT_ID` / `X_CLIENT_SECRET` を空にすると X OAuth の統合テスト（`just test`）が失敗するので、
+ローカルで X OAuth を使わない場合も `.dev.vars.example` のダミー値のままにしておくこと。
+
 ### よく使う just コマンド
 
 | コマンド | 内容 |

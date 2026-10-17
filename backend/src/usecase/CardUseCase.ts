@@ -99,6 +99,7 @@ export class CardUseCase {
     const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] =
       [];
 
+    const newMatches: Match[] = [];
     for (const [targetCardId, matchedTagSet] of candidateMatches.entries()) {
       const targetCard = targetCardById.get(targetCardId);
       if (!targetCard) continue;
@@ -114,7 +115,7 @@ export class CardUseCase {
         targetUser ?? undefined,
       );
       if (result) {
-        await this.matchRepo.save(result.match);
+        newMatches.push(result.match);
         results.push({
           matchId: result.match.id,
           matchCount: result.match.matchCount,
@@ -123,6 +124,7 @@ export class CardUseCase {
         });
       }
     }
+    await this.matchRepo.saveMany(newMatches);
     return results;
   }
 

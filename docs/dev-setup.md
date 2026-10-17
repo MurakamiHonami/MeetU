@@ -43,7 +43,7 @@ just dev            # backend:8787 + frontend:5173 を同時起動
 | `just db-migrate-d1-local` | ローカル D1（`just dev` が使う DB）にマイグレーション適用 |
 | `just dev` | バックエンド + フロント同時起動 |
 | `just docker-up` | Docker で backend + frontend 起動 |
-| `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
+| `just ci` | format + oxlint + secretlint + check-conventions（AGENTS.md 規約チェック）+ db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
@@ -126,8 +126,8 @@ Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動�
 
 **husky**
 
-- pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）
-- pre-push: `just ci`
+- pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）+ ステージした `.ts`/`.tsx` があれば `just typecheck` を追加実行
+- pre-push: `just ci-push`（`lockfile-check`（`npm ci --dry-run --ignore-scripts`）→ `just ci`）
 
 **`dev` ブランチ（初回のみ）**
 

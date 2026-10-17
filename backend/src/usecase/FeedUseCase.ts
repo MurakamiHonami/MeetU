@@ -25,15 +25,18 @@ export class FeedUseCase {
   }
 
   async getFeed(userId: string) {
-    const user = await this.userRepo.findById(userId);
+    const [user, swiped, recentOpen, ownCards] = await Promise.all([
+      this.userRepo.findById(userId),
+      this.swipeRepo.findSwipedCardIds(userId),
+      this.cardRepo.findRecentOpen(FEED_DAYS, 200),
+      this.cardRepo.findByOwnerId(userId),
+    ]);
     if (!user) throw new NotFoundError("ユーザーが見つかりません");
 
-    const swiped = await this.swipeRepo.findSwipedCardIds(userId);
-    const candidates = (await this.cardRepo.findRecentOpen(FEED_DAYS, 200)).filter(
+    const candidates = recentOpen.filter(
       (c) => c.isOpen() && c.ownerId !== userId && !swiped.has(c.id),
     );
 
-    const ownCards = await this.cardRepo.findByOwnerId(userId);
     const ownCardTags = ownCards.filter((c) => c.isOpen()).flatMap((c) => c.tags);
 
     const ranked = await this.ranker.rank(

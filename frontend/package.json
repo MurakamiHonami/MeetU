@@ -11,7 +11,7 @@
     "typecheck": "rm -f tsconfig.tsbuildinfo && tsc --noEmit",
     "deploy:staging": "npm run build:staging && npx --prefix ../backend wrangler deploy --config wrangler.staging.json",
     "deploy:production": "npm run build:production && npx --prefix ../backend wrangler deploy --config wrangler.production.json",
-    "preview": "next start",
+    "preview": "npx serve out",
     "test": "vitest run",
     "test:watch": "vitest"
   },

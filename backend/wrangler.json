@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "meetu-backend",
+  "name": "meetu-backend-local",
   "account_id": "e3800962ed5e416e565f49c823868cf3",
   "main": "src/index.ts",
   "compatibility_date": "2025-02-24",
@@ -10,21 +10,21 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "meetu-db",
-      "database_id": "06adf422-7a29-4b14-b251-dd48c9c2a279",
+      "database_name": "meetu-db-local",
+      "database_id": "ea53a415-0aff-4891-9684-132189db51e7",
       "migrations_dir": "drizzle"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "CACHE_KV",
-      "id": "4f699646b35542448a559f0cb82034f5"
+      "id": "6b0f8810d31c33f48b62b88c634135bc"
     }
   ],
   "r2_buckets": [
     {
       "binding": "UPLOADS_R2",
-      "bucket_name": "meetu-uploads"
+      "bucket_name": "meetu-uploads-local"
     }
   ],
   "vars": {

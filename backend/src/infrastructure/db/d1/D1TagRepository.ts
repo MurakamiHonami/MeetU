@@ -22,6 +22,12 @@ export class D1TagRepository implements ITagRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Tag[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(tags).where(inArray(tags.id, ids)).all();
+    return rows.map((row) => this.mapRow(row));
+  }
+
   async suggest(query: string, limit = 20): Promise<Tag[]> {
     const pattern = `%${query.toLowerCase()}%`;
     const rows = await this.db
@@ -39,6 +45,27 @@ export class D1TagRepository implements ITagRepository {
     await this.db
       .insert(tags)
       .values({ id: p.id, displayName: p.displayName, category: p.category, useCount: p.useCount })
+      .onConflictDoUpdate({
+        target: tags.id,
+        set: { useCount: sql`${tags.useCount} + 1` },
+      });
+  }
+
+  async saveMany(tagList: Tag[]): Promise<void> {
+    if (tagList.length === 0) return;
+    await this.db
+      .insert(tags)
+      .values(
+        tagList.map((tag) => {
+          const p = tag.toProps();
+          return {
+            id: p.id,
+            displayName: p.displayName,
+            category: p.category,
+            useCount: p.useCount,
+          };
+        }),
+      )
       .onConflictDoUpdate({
         target: tags.id,
         set: { useCount: sql`${tags.useCount} + 1` },
@@ -75,16 +102,18 @@ export class D1TagRepository implements ITagRepository {
   async recordCooccurrences(tagIds: string[]): Promise<void> {
     if (tagIds.length < 2) return;
     const sorted = [...tagIds].sort();
+    const pairs: { tagA: string; tagB: string; hits: number }[] = [];
     for (let i = 0; i < sorted.length; i++) {
       for (let j = i + 1; j < sorted.length; j++) {
-        await this.db
-          .insert(tagCooccurrences)
-          .values({ tagA: sorted[i], tagB: sorted[j], hits: 1 })
-          .onConflictDoUpdate({
-            target: [tagCooccurrences.tagA, tagCooccurrences.tagB],
-            set: { hits: sql`${tagCooccurrences.hits} + 1` },
-          });
+        pairs.push({ tagA: sorted[i], tagB: sorted[j], hits: 1 });
       }
     }
+    await this.db
+      .insert(tagCooccurrences)
+      .values(pairs)
+      .onConflictDoUpdate({
+        target: [tagCooccurrences.tagA, tagCooccurrences.tagB],
+        set: { hits: sql`${tagCooccurrences.hits} + 1` },
+      });
   }
 }

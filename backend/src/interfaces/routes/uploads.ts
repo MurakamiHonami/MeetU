@@ -4,8 +4,12 @@ import { mockUserIdFromToken } from "../middleware/mockAuth";
 import { AuthService } from "../../infrastructure/auth/AuthService";
 import { createContext } from "../container";
 import { baseUrl, handleError } from "./helpers";
+import { rateLimit } from "../middleware/rateLimit";
 import { zValidator } from "../validation/validator";
 import { createUploadTicketSchema } from "../validation/schemas";
+
+// チケット発行・実アップロードのみ制限する（閲覧は通常のチャット表示で高頻度に呼ばれるため対象外）。
+const uploadRateLimit = rateLimit({ key: "uploads", limit: 60, windowSec: 60 });
 
 async function requireUserId(c: Context<Env>): Promise<string | null> {
   const authHeader = c.req.header("Authorization");
@@ -18,7 +22,7 @@ async function requireUserId(c: Context<Env>): Promise<string | null> {
 }
 
 export const uploadsRouter = new Hono<Env>()
-  .post("/", zValidator("json", createUploadTicketSchema), async (c) => {
+  .post("/", uploadRateLimit, zValidator("json", createUploadTicketSchema), async (c) => {
     try {
       const userId = await requireUserId(c);
       if (!userId) return c.json({ message: "Unauthorized" }, 401);
@@ -31,12 +35,14 @@ export const uploadsRouter = new Hono<Env>()
     }
   })
 
-  .put("/put", async (c) => {
+  .put("/put", uploadRateLimit, async (c) => {
     try {
       const token = c.req.query("token");
       if (!token) return c.json({ message: "token が必要です" }, 400);
+      const contentLengthHeader = c.req.header("Content-Length");
+      const contentLength = contentLengthHeader ? Number(contentLengthHeader) : null;
       const ctx = createContext(c.env, baseUrl(c));
-      await ctx.uploadService.handlePut(token, c.req.raw.body);
+      await ctx.uploadService.handlePut(token, c.req.raw.body, contentLength);
       return c.json({ success: true });
     } catch (e) {
       return handleError(c, e);

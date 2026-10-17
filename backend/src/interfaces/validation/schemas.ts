@@ -129,7 +129,7 @@ export const createUploadTicketSchema = z
     matchId: z.string().min(1).optional(),
     groupId: z.string().min(1).optional(),
     contentType: z.string().trim().min(1),
-    size: z.number().int().positive().optional(),
+    size: z.number().int().positive(),
   })
   .refine((body) => Boolean(body.matchId || body.groupId), {
     message: "matchId or groupId is required",

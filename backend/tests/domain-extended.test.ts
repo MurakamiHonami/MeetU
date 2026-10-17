@@ -370,6 +370,8 @@ describe("UploadPolicy", () => {
     expect(UploadPolicy.validateContentType("image/png")).toBe("image/png");
     expect(() => UploadPolicy.validateContentType("application/pdf")).toThrow();
     expect(() => UploadPolicy.validateSize(6 * 1024 * 1024)).toThrow();
+    expect(() => UploadPolicy.validateSize(0)).toThrow();
+    expect(() => UploadPolicy.validateSize(1024)).not.toThrow();
   });
 
   it("builds image keys and validates thread ownership", () => {

@@ -27,6 +27,51 @@ export class MatchUseCase {
     return this.matchRepo.findByUserId(userId);
   }
 
+  /** マッチ一覧をまとめて取得する。matchRepo/userRepo/cardRepo それぞれ1〜数クエリでN+1を避ける。 */
+  async getMyMatchDetails(userId: string): Promise<MatchDetail[]> {
+    const matches = (await this.matchRepo.findByUserId(userId)).filter((m) => m.isParty(userId));
+    if (matches.length === 0) return [];
+
+    const partnerIds = new Set<string>();
+    const cardIds = new Set<string>();
+    for (const m of matches) {
+      partnerIds.add(m.partnerOf(userId));
+      cardIds.add(m.cardAId);
+      cardIds.add(m.cardBId);
+    }
+
+    const [partners, cards, lastReadAts] = await Promise.all([
+      this.userRepo.findByIds([...partnerIds]),
+      this.cardRepo.findByIds([...cardIds]),
+      this.matchRepo.getLastReadAtBatch(
+        matches.map((m) => m.id),
+        userId,
+      ),
+    ]);
+    const partnerById = new Map(partners.map((u) => [u.id, u]));
+    const cardById = new Map(cards.map((c) => [c.id, c]));
+
+    return matches.map((match) => {
+      const partnerId = match.partnerOf(userId);
+      const partner = partnerById.get(partnerId) ?? null;
+      const isA = match.userAId === userId;
+      const myCardId = isA ? match.cardAId : match.cardBId;
+      const partnerCardId = isA ? match.cardBId : match.cardAId;
+      const myCard = cardById.get(myCardId) ?? null;
+      const partnerCard = cardById.get(partnerCardId) ?? null;
+
+      let iGive: Card | null = null;
+      let iReceive: Card | null = null;
+      if (myCard?.type === "GIVE") iGive = myCard;
+      if (myCard?.type === "WANT") iReceive = partnerCard;
+      if (partnerCard?.type === "GIVE" && myCard?.type === "WANT") iReceive = partnerCard;
+      if (partnerCard?.type === "WANT" && myCard?.type === "GIVE") iGive = myCard;
+
+      const lastReadAt = lastReadAts.get(match.id) ?? null;
+      return { match, partner, partnerCard, myCard, iGive, iReceive, lastReadAt };
+    });
+  }
+
   async getMatchDetail(matchId: string, userId: string): Promise<MatchDetail | null> {
     const match = await this.matchRepo.findById(matchId);
     if (!match || !match.isParty(userId)) return null;

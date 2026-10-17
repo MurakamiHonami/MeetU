@@ -11,25 +11,19 @@ export const matchesRouter = new Hono<Env>()
     try {
       const userId = c.get("userId");
       const ctx = createContext(c.env, baseUrl(c));
-      const matches = await ctx.useCases.match.getMyMatches(userId);
-      const views = [];
-      for (const m of matches) {
-        const detail = await ctx.useCases.match.getMatchDetail(m.id, userId);
-        if (detail) {
-          views.push(
-            matchView(
-              detail.match,
-              userId,
-              detail.partner,
-              detail.partnerCard,
-              detail.myCard,
-              detail.iGive,
-              detail.iReceive,
-              detail.lastReadAt,
-            ),
-          );
-        }
-      }
+      const details = await ctx.useCases.match.getMyMatchDetails(userId);
+      const views = details.map((detail) =>
+        matchView(
+          detail.match,
+          userId,
+          detail.partner,
+          detail.partnerCard,
+          detail.myCard,
+          detail.iGive,
+          detail.iReceive,
+          detail.lastReadAt,
+        ),
+      );
       return c.json({ matches: views });
     } catch (e) {
       return handleError(c, e);

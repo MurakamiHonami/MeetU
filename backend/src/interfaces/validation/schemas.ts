@@ -135,6 +135,37 @@ export const createUploadTicketSchema = z
     message: "matchId or groupId is required",
   });
 
+export const readingStatusSchema = z.enum(["UNREAD", "READING", "DONE"]);
+
+export const addReadingItemSchema = z.object({
+  isbn: z.string().trim().min(1).max(20).optional(),
+  title: z.string().trim().min(1).max(200),
+  author: z.string().trim().max(100).optional(),
+  coverUrl: z.string().url().max(2000).optional(),
+  status: readingStatusSchema.optional(),
+  note: z.string().max(500).optional(),
+});
+
+export const updateReadingItemSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200).optional(),
+    author: z.string().trim().max(100).optional(),
+    note: z.string().max(500).optional(),
+    status: readingStatusSchema.optional(),
+  })
+  .refine((b) => Object.values(b).some((v) => v !== undefined), {
+    message: "更新する項目を 1 つ以上指定してください",
+  });
+
+export const listReadingItemsQuerySchema = z.object({
+  status: readingStatusSchema.optional(),
+});
+
+export const listReadingItemForTradeSchema = z.object({
+  tags: z.array(tagInputSchema).min(1).max(MAX_TAGS_PER_CARD),
+  note: z.string().max(2000).optional(),
+});
+
 export function validationErrorResponse(error: z.ZodError) {
   const first = error.issues[0];
   return {

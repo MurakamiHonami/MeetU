@@ -10,6 +10,7 @@ import { groupsRouter } from "./interfaces/routes/groups";
 import { feedRouter, savedRouter } from "./interfaces/routes/feed";
 import { nearbyRouter } from "./interfaces/routes/nearby";
 import { reviewsRouter, reportsRouter } from "./interfaces/routes/reviews";
+import { readingRouter } from "./interfaces/routes/reading";
 import { uploadsRouter } from "./interfaces/routes/uploads";
 
 const app = new Hono<Env>()
@@ -28,7 +29,8 @@ const app = new Hono<Env>()
   .route("/api/saved", savedRouter)
   .route("/api/nearby", nearbyRouter)
   .route("/api/reviews", reviewsRouter)
-  .route("/api/reports", reportsRouter);
+  .route("/api/reports", reportsRouter)
+  .route("/api/reading", readingRouter);
 
 export type AppType = typeof app;
 

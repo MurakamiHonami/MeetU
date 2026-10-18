@@ -237,6 +237,30 @@ export const tradeGroupMembers = sqliteTable(
   ],
 );
 
+export const readingItems = sqliteTable(
+  "reading_items",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id),
+    isbn: text("isbn"),
+    title: text("title").notNull(),
+    author: text("author"),
+    coverUrl: text("cover_url"),
+    status: text("status").notNull().default("UNREAD"),
+    note: text("note"),
+    // 読了→譲る連携で作った交換カードの id（null なら未出品）
+    cardId: text("card_id"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    index("idx_reading_items_owner_status").on(t.ownerId, t.status),
+    unique("reading_items_owner_isbn_unique").on(t.ownerId, t.isbn),
+  ],
+);
+
 export const schema = {
   users,
   cards,

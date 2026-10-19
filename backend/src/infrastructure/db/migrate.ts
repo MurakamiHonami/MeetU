@@ -1,5 +1,6 @@
 import initialSql from "../../../drizzle/0000_initial.sql?raw";
 import addXIdSql from "../../../drizzle/0001_add_x_id.sql?raw";
+import readingItemsSql from "../../../drizzle/0003_cloudy_wildside.sql?raw";
 
 function splitStatements(sql: string): string[] {
   return sql
@@ -34,5 +35,8 @@ export async function migrateToLatest(d1: D1Database): Promise<void> {
   }
   if (!(await columnExists(d1, "users", "x_id"))) {
     await apply(d1, addXIdSql);
+  }
+  if (!(await tableExists(d1, "reading_items"))) {
+    await apply(d1, readingItemsSql);
   }
 }

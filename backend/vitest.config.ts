@@ -36,7 +36,7 @@ export default defineConfig({
         ],
         test: {
           name: "integration",
-          include: ["tests/api.test.ts", "tests/security.test.ts"],
+          include: ["tests/api.test.ts", "tests/security.test.ts", "tests/reading.test.ts"],
           pool: "forks",
         },
       }),

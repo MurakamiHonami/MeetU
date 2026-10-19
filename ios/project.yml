@@ -1,0 +1,61 @@
+name: MeetU
+options:
+  bundleIdPrefix: net.ruxel.meetu
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  MeetUKit:
+    path: .
+
+targets:
+  MeetU:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: MeetU
+        UILaunchScreen: {}
+        NSCameraUsageDescription: 本のバーコード（ISBN）を読み取るためにカメラを使用します。
+        MEETU_API_BASE_URL: https://api-meetu-staging.ruxel.net
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.ruxel.meetu.app
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.9"
+    dependencies:
+      - package: MeetUKit
+        product: MeetUKit
+
+  MeetUKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/MeetUKitTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: net.ruxel.meetu.kittests
+    dependencies:
+      - package: MeetUKit
+        product: MeetUKit
+
+schemes:
+  MeetU:
+    build:
+      targets:
+        MeetU: all
+    run:
+      config: Debug
+  MeetUKitTests:
+    build:
+      targets:
+        MeetUKitTests: [test]
+    test:
+      targets:
+        - MeetUKitTests

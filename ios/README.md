@@ -15,21 +15,32 @@
   - `Reading/` — 積読リスト画面・追加画面・ViewModel
   - `Scanner/BarcodeScannerView.swift` — AVFoundation バーコード読み取り
   - `Support/TokenStore.swift` — アクセストークンの Keychain 保存
-  - `Info.plist` — カメラ利用用途（`NSCameraUsageDescription`）と API ベース URL
+- `project.yml` — XcodeGen のプロジェクト定義（**これがソース**。`.xcodeproj` と
+  `App/Info.plist` は生成物なので git 管理しない）
 
 ## ビルド・テスト
 
-MeetUKit（コア）は SwiftPM でビルド・テストできる:
+前提: フル Xcode を使う（CommandLineTools だけだと XCTest / simctl が無い）。
+初回のみ `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`。
 
 ```bash
 cd ios
-swift build          # MeetUKit のビルド
-swift test           # XCTest（要: フル Xcode。CommandLineTools だけだと XCTest が無く失敗する）
+# 1. .xcodeproj を生成（project.yml から。初回とプロジェクト構成変更時）
+brew install xcodegen   # 未導入なら
+xcodegen generate
+
+# 2. コアだけなら SwiftPM でも回せる
+swift build
+
+# 3. アプリのビルド / テスト（シミュレータ）
+xcodebuild -project MeetU.xcodeproj -scheme MeetU \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project MeetU.xcodeproj -scheme MeetUKitTests \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
-アプリ本体（`App/`）は AVFoundation/SwiftUI/Keychain に依存するため iOS SDK が要る。
-Xcode で iOS App ターゲットを作り、`App/` のファイル群と MeetUKit（ローカル SwiftPM）を
-追加してビルドする。`Info.plist` の `NSCameraUsageDescription` は必須（カメラ権限）。
+Xcode で開くときは `xcodegen generate` 後に `MeetU.xcodeproj` を開く。
+`NSCameraUsageDescription`（カメラ権限）は `project.yml` の `info.properties` で定義済み。
 
 ## 未対応（別PR）
 

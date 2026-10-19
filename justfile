@@ -147,10 +147,6 @@ lint-secrets:
 db-generate:
     cd backend && npm run db:generate
 
-# Apply migrations to local SQLite (.data/meetu.sqlite; drizzle-kit)
-db-migrate-local:
-    cd backend && npm run db:migrate
-
 # Apply migrations to wrangler local D1 (just dev / Docker の API が使う DB)
 db-migrate-d1-local:
     cd backend && npm run db:migrate:d1-local

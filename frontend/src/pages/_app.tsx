@@ -18,7 +18,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#e43d81" />
+        <meta name="theme-color" content="#f8ff3e" />
         <title>MeetU</title>
       </Head>
       <AppShell>{isPublic ? page : <RequireAuth>{page}</RequireAuth>}</AppShell>

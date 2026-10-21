@@ -61,22 +61,45 @@ describe("Zod schemas", () => {
     expect(
       parseBody(createReportSchema, {
         targetUserId: "u1",
+        matchId: "m1",
         reason: "INVALID",
       }).ok,
     ).toBe(false);
     expect(
       parseBody(createReportSchema, {
         targetUserId: "u1",
+        matchId: "m1",
         reason: "HARASSMENT",
       }).ok,
     ).toBe(true);
   });
 
+  it("createReportSchema requires matchId", () => {
+    expect(
+      parseBody(createReportSchema, {
+        targetUserId: "u1",
+        reason: "HARASSMENT",
+      }).ok,
+    ).toBe(false);
+  });
+
   it("createUploadTicketSchema requires matchId or groupId", () => {
-    expect(parseBody(createUploadTicketSchema, { contentType: "image/png" }).ok).toBe(false);
+    expect(parseBody(createUploadTicketSchema, { contentType: "image/png", size: 100 }).ok).toBe(
+      false,
+    );
+    expect(
+      parseBody(createUploadTicketSchema, {
+        contentType: "image/png",
+        matchId: "m1",
+        size: 100,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("createUploadTicketSchema requires size", () => {
     expect(
       parseBody(createUploadTicketSchema, { contentType: "image/png", matchId: "m1" }).ok,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("nearbyQuerySchema coerces query strings", () => {

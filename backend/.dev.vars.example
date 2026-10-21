@@ -3,6 +3,9 @@ JWT_SECRET=local-dev-only-not-for-production
 GEMINI_API_KEY=
 
 # X (Twitter) Developer Portal で発行した OAuth 2.0 Client ID/Secret。
-# 未設定なら /api/auth/x/login は 503 を返すだけで、既存の email/password ログインには影響しない。
-X_CLIENT_ID=
-X_CLIENT_SECRET=
+# 空にすると /api/auth/x/login は 503 を返すだけで、既存の email/password ログインには影響しないが、
+# .dev.vars は wrangler.json の vars より優先されるため、空のままコピーすると
+# wrangler.json のダミー値が上書きされ、X OAuth の統合テストが失敗する。
+# ローカルで X OAuth を使わないなら wrangler.json と同じダミー値のままにしておく。
+X_CLIENT_ID=local-test-only-not-for-staging-or-production
+X_CLIENT_SECRET=local-test-only-not-for-staging-or-production

@@ -27,17 +27,24 @@ Docker で動かす場合:
 ```bash
 just setup          # npm ci（workspaces で backend + frontend 一括）
 cp backend/.dev.vars.example backend/.dev.vars   # JWT_SECRET を設定
+cp frontend/.env.example frontend/.env           # NEXT_PUBLIC_API_BASE_URL を設定
+just db-migrate-d1-local   # ローカル D1 にマイグレーション適用（未実行だと signup 等が 500 になる）
 just dev            # backend:8787 + frontend:5173 を同時起動
 ```
+
+`.dev.vars` は wrangler のローカルランタイムでは `wrangler.json` の `vars` より優先される。
+`X_CLIENT_ID` / `X_CLIENT_SECRET` を空にすると X OAuth の統合テスト（`just test`）が失敗するので、
+ローカルで X OAuth を使わない場合も `.dev.vars.example` のダミー値のままにしておくこと。
 
 ### よく使う just コマンド
 
 | コマンド | 内容 |
 |----------|------|
 | `just setup` | 依存関係インストール |
+| `just db-migrate-d1-local` | ローカル D1（`just dev` が使う DB）にマイグレーション適用 |
 | `just dev` | バックエンド + フロント同時起動 |
 | `just docker-up` | Docker で backend + frontend 起動 |
-| `just ci` | format + oxlint + secretlint + db:verify + typecheck + coverage + tests |
+| `just ci` | format + oxlint + secretlint + check-conventions（AGENTS.md 規約チェック）+ db:verify + typecheck + coverage + tests |
 | `just check` | db:verify + typecheck + test（lint なし） |
 | `just format` | oxfmt で整形 |
 | `just db-seed` | ローカルにデモデータ投入（dev-backend 起動中） |
@@ -89,7 +96,7 @@ backend 起動時に `wrangler d1 migrations apply --local` が走る。`just do
 
 ```bash
 just db-generate
-just db-migrate-local
+just db-migrate-d1-local
 just db-verify
 just d1-migrate-staging
 just d1-migrate-production
@@ -113,15 +120,15 @@ Dependabot の PR も **dev** 向け。patch / minor は CI 通過後に自動�
 
 | Workflow | トリガー | 内容 |
 |----------|----------|------|
-| `ci.yml` | PR（dev / main など） | `just setup` → `just ci` |
+| `ci.yml` | PR（dev / main など） | `npm ci`（lockfile 変更時のみ、`just setup` とは別の高速インストール）→ `just ci` |
 | `dependabot-automerge.yml` | Dependabot PR → dev | patch/minor を auto-merge |
 | `deploy-staging.yml` | `dev` push | `release-staging` → staging 疎通 |
 | `deploy-production.yml` | `main` push | staging 疎通 → `release-production` |
 
 **husky**
 
-- pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）
-- pre-push: `just ci`
+- pre-commit: `.env` / `.dev.vars` ブロック + lint-staged（oxfmt + oxlint + secretlint）+ ステージした `.ts`/`.tsx` があれば `just typecheck` を追加実行
+- pre-push: `just ci-push`（`lockfile-check`（`npm ci --dry-run --ignore-scripts`）→ `just ci`）
 
 **`dev` ブランチ（初回のみ）**
 
@@ -140,8 +147,10 @@ git checkout -b dev && git push -u origin dev
 | `CLOUDFLARE_API_TOKEN` | Wrangler デプロイ（**User API Token** 推奨） |
 | `JWT_SECRET` | JWT 署名（staging / production deploy 時に `wrangler secret put`） |
 | `GEMINI_API_KEY` | 画像タグ推定（Gemini API。deploy 時に `wrangler secret put`） |
+| `X_CLIENT_ID` | X (Twitter) OAuth ログイン（staging / production deploy 時に `wrangler secret put`） |
+| `X_CLIENT_SECRET` | X (Twitter) OAuth ログイン（staging / production deploy 時に `wrangler secret put`） |
 
-`JWT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。
+`JWT_SECRET` / `X_CLIENT_ID` / `X_CLIENT_SECRET` は **環境ごとに wrangler vars へ継承されない**（staging / production では deploy 時に secret として設定）。未設定のままだと `/api/auth/x/login` が 503 (`X login is not configured`) を返し続ける。
 
 トークン確認:
 
@@ -162,6 +171,23 @@ curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env staging
 echo "$JWT_SECRET" | npx wrangler secret put JWT_SECRET --env production
 ```
+
+### X (Twitter) OAuth Secret
+
+| 環境 | 設定方法 |
+|------|----------|
+| Local | `backend/.dev.vars`（`X_CLIENT_ID` / `X_CLIENT_SECRET`） |
+| Staging | `X_CLIENT_ID` / `X_CLIENT_SECRET` GitHub Secret（deploy-staging で自動設定） |
+| Production | `X_CLIENT_ID` / `X_CLIENT_SECRET` GitHub Secret（deploy-production で自動設定） |
+
+```bash
+echo "$X_CLIENT_ID" | npx wrangler secret put X_CLIENT_ID --env staging
+echo "$X_CLIENT_SECRET" | npx wrangler secret put X_CLIENT_SECRET --env staging
+echo "$X_CLIENT_ID" | npx wrangler secret put X_CLIENT_ID --env production
+echo "$X_CLIENT_SECRET" | npx wrangler secret put X_CLIENT_SECRET --env production
+```
+
+`X_REDIRECT_URI` は機密ではないため `wrangler.json` の `env.staging.vars` / `env.production.vars` にそのまま書かれている。
 
 ### Staging integration tests
 
@@ -201,13 +227,13 @@ cd backend && npx wrangler r2 bucket create meetu-uploads
 
 ```bash
 just db-generate
-just db-migrate-local
+just db-migrate-d1-local
 just db-verify
 just d1-migrate-staging
 just deploy-staging-backend
 ```
 
-デモデータ: `just dev-backend` → `just db-seed`（`seed-yuki@meetu.local` / `seedpass123`）
+デモデータ: `just dev-backend` → `just db-seed`（`seed-yuki@meetu.local` / パスワードはランダム生成され `.seed-password` に出力される。固定したい場合は `SEED_PASSWORD` 環境変数を指定する）
 
 ---
 

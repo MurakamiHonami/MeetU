@@ -6,7 +6,7 @@ export type CardType = "GIVE" | "WANT" | "COMPANION";
 export const TYPE_LABEL: Record<CardType, string> = {
   GIVE: "【譲】",
   WANT: "【求】",
-  COMPANION: "【同行者求】",
+  COMPANION: "【仲間募集】",
 };
 
 export type Card = {

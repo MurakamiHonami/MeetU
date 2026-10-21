@@ -221,7 +221,7 @@ export function LandingView() {
 
       <section className="lp-hero">
         <div className="lp-hero-text">
-          <p className="lp-eyebrow">積ん読と、探している技術書に</p>
+          <p className="lp-eyebrow">エンジニアの技術書交換に</p>
           <h1 className="lp-title">
             【譲】と【求】を、
             <br />

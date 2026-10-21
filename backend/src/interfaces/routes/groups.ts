@@ -43,8 +43,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.group.accept(id, userId);
       if (!result) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(result.group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
         established: result.established,
@@ -61,8 +60,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const group = await ctx.useCases.group.decline(id, userId);
       if (!group) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
       });
@@ -78,8 +76,7 @@ export const groupsRouter = new Hono<Env>()
       const ctx = createContext(c.env, baseUrl(c));
       const group = await ctx.useCases.group.complete(id, userId);
       if (!group) return c.json({ message: "グループが見つかりません" }, 404);
-      const detail = await ctx.useCases.group.getGroupDetail(id, userId);
-      if (!detail) return c.json({ message: "グループが見つかりません" }, 404);
+      const detail = await ctx.useCases.group.buildGroupDetail(group, userId);
       return c.json({
         group: groupView(detail.group, userId, detail.users, detail.cards, detail.lastReadAt),
       });
@@ -95,12 +92,15 @@ export const groupsRouter = new Hono<Env>()
       const query = c.req.valid("query");
       const ctx = createContext(c.env, baseUrl(c));
       const result = await ctx.useCases.message.listGroupMessages(id, userId, query.after);
-      const messages = [];
-      for (const m of result.messages) {
-        const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
-        const sender = await ctx.repos.userRepo.findById(m.senderId);
-        messages.push({ ...view, sender: sender ? ownerView(sender) : null });
-      }
+      const senders = await ctx.repos.userRepo.findByIds(result.messages.map((m) => m.senderId));
+      const senderById = new Map(senders.map((sender) => [sender.id, sender]));
+      const messages = await Promise.all(
+        result.messages.map(async (m) => {
+          const view = await messageView(m, userId, (key) => ctx.useCases.message.getImageUrl(key));
+          const sender = senderById.get(m.senderId);
+          return { ...view, sender: sender ? ownerView(sender) : null };
+        }),
+      );
       return c.json({
         messages,
         canSend: result.canSend,

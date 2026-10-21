@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { env } from "cloudflare:test";
 import { migrateToLatest } from "../src/infrastructure/db/migrate";
+import { createDb } from "../src/infrastructure/db/database";
+import { D1UserRepository } from "../src/infrastructure/db/d1/D1UserRepository";
 import app from "../src/index";
 import { REFRESH_COOKIE } from "../src/interfaces/auth/cookies";
 
@@ -130,6 +132,136 @@ describe("Web App Auth & API Integration Tests", () => {
     expect(loggedOutKV).toBeNull();
   });
 
+  it("POST /api/auth/refresh rejects a suspended user's still-valid refresh token", async () => {
+    const targetRes = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "suspend-target@example.com",
+          password: "password123",
+          displayName: "停止されるユーザー",
+        }),
+      },
+      env,
+    );
+    expect(targetRes.status).toBe(201);
+    const targetData = (await targetRes.json()) as any;
+    const targetRefreshToken = readRefreshCookie(targetRes);
+    expect(targetRefreshToken).toBeDefined();
+
+    // モデレーション操作などで status が直接 SUSPENDED になったケースを想定し、
+    // KV 側の revoke には頼らず /refresh 自身の suspend チェックを検証する。
+    const userRepo = new D1UserRepository(createDb(env.DB));
+    const user = await userRepo.findById(targetData.user.id);
+    expect(user).not.toBeNull();
+    user!.incrementReport();
+    user!.incrementReport();
+    user!.incrementReport();
+    expect(user!.isSuspended()).toBe(true);
+    await userRepo.update(user!);
+
+    const preRefreshKV = await env.CACHE_KV.get(`refresh:${targetRefreshToken}`);
+    expect(preRefreshKV).not.toBeNull();
+
+    const refreshRes = await app.request(
+      "/api/auth/refresh",
+      {
+        method: "POST",
+        headers: { Cookie: `${REFRESH_COOKIE}=${targetRefreshToken}` },
+      },
+      env,
+    );
+
+    expect(refreshRes.status).toBe(403);
+    const refreshData = (await refreshRes.json()) as any;
+    expect(refreshData.error).toBe("Account is suspended");
+
+    const postRefreshKV = await env.CACHE_KV.get(`refresh:${targetRefreshToken}`);
+    expect(postRefreshKV).toBeNull();
+  });
+
+  it("suspending a user via 3 reports revokes all of their existing refresh tokens", async () => {
+    async function signup(email: string, displayName: string) {
+      const res = await app.request(
+        "/api/auth/signup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: "password123", displayName }),
+        },
+        env,
+      );
+      expect(res.status).toBe(201);
+      return { data: (await res.json()) as any, refreshToken: readRefreshCookie(res) };
+    }
+
+    async function postCard(token: string, type: "GIVE" | "WANT") {
+      // 全員が同じタグを持つカードを出すことで相互にマッチが成立する
+      return app.request(
+        "/api/cards",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type,
+            title: `${type} カード`,
+            minMatchCount: 1,
+            tags: [{ displayName: "共通タグ" }],
+          }),
+        },
+        env,
+      );
+    }
+
+    const target = await signup("report-target@example.com", "通報される人");
+    expect(target.refreshToken).toBeDefined();
+
+    // 被通報者は GIVE カードを 1 枚出す。各通報者はこれにマッチする WANT カードを出す。
+    await postCard(target.data.tokens.accessToken, "GIVE");
+
+    // #202 で「1 マッチにつき 1 通報」に制限されたため、
+    // SUSPEND (reportCount >= 3) には別々のマッチを持つ 3 人の通報者が必要。
+    for (let i = 0; i < 3; i++) {
+      const reporter = await signup(`reporter${i}@example.com`, `通報する人${i}`);
+      await postCard(reporter.data.tokens.accessToken, "WANT");
+
+      const matchRes = await app.request(
+        "/api/matches",
+        { headers: { Authorization: `Bearer ${reporter.data.tokens.accessToken}` } },
+        env,
+      );
+      const { matches } = (await matchRes.json()) as any;
+      const match = matches.find((m: any) => m.partner.userId === target.data.user.id);
+      expect(match).toBeDefined();
+
+      const reportRes = await app.request(
+        "/api/reports",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${reporter.data.tokens.accessToken}`,
+          },
+          body: JSON.stringify({
+            targetUserId: target.data.user.id,
+            matchId: match.matchId,
+            reason: "HARASSMENT",
+          }),
+        },
+        env,
+      );
+      expect(reportRes.status).toBe(200);
+    }
+
+    const revokedKV = await env.CACHE_KV.get(`refresh:${target.refreshToken}`);
+    expect(revokedKV).toBeNull();
+  });
+
   it("POST /api/cards creates card and triggers matching with Access Token", async () => {
     const user1Res = await app.request(
       "/api/auth/signup",
@@ -219,6 +351,142 @@ describe("Web App Auth & API Integration Tests", () => {
     const matchData = (await matchRes.json()) as any;
     expect(matchData.matches.length).toBe(1);
     expect(matchData.matches[0].matchCount).toBe(2);
+  });
+
+  it("POST /api/reports requires the reporter and target to share the reported match", async () => {
+    async function signup(email: string, displayName: string) {
+      const res = await app.request(
+        "/api/auth/signup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: "password", displayName }),
+        },
+        env,
+      );
+      return (await res.json()) as any;
+    }
+
+    const user1 = await signup("reporter@example.com", "通報者");
+    const user2 = await signup("target@example.com", "被通報者");
+    const user3 = await signup("outsider@example.com", "無関係者");
+
+    await app.request(
+      "/api/cards",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user1.tokens.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "GIVE",
+          title: "司アクスタ譲ります",
+          minMatchCount: 2,
+          tags: [
+            { displayName: "プロセカ" },
+            { displayName: "天馬司" },
+            { displayName: "アクスタ" },
+          ],
+        }),
+      },
+      env,
+    );
+    await app.request(
+      "/api/cards",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user2.tokens.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "WANT",
+          title: "司アクスタ求めます",
+          minMatchCount: 2,
+          tags: [
+            { displayName: "プロセカ" },
+            { displayName: "天馬司" },
+            { displayName: "缶バッジ" },
+          ],
+        }),
+      },
+      env,
+    );
+
+    const matchRes2 = await app.request(
+      "/api/matches",
+      { headers: { Authorization: `Bearer ${user1.tokens.accessToken}` } },
+      env,
+    );
+    const { matches } = (await matchRes2.json()) as any;
+    const matchId = matches[0].matchId;
+    const targetUserId = matches[0].partner.userId;
+
+    const reportHeaders = (token: string) => ({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    });
+
+    // 実在しない matchId は 404
+    const fakeMatchRes = await app.request(
+      "/api/reports",
+      {
+        method: "POST",
+        headers: reportHeaders(user1.tokens.accessToken),
+        body: JSON.stringify({ targetUserId, matchId: "no-such-match", reason: "HARASSMENT" }),
+      },
+      env,
+    );
+    expect(fakeMatchRes.status).toBe(404);
+
+    // マッチの当事者でないユーザーは通報できない
+    const outsiderRes = await app.request(
+      "/api/reports",
+      {
+        method: "POST",
+        headers: reportHeaders(user3.tokens.accessToken),
+        body: JSON.stringify({ targetUserId, matchId, reason: "HARASSMENT" }),
+      },
+      env,
+    );
+    expect(outsiderRes.status).toBe(403);
+
+    // targetUserId がマッチの相手と一致しない場合は拒否
+    const mismatchRes = await app.request(
+      "/api/reports",
+      {
+        method: "POST",
+        headers: reportHeaders(user1.tokens.accessToken),
+        body: JSON.stringify({ targetUserId: user3.user.id, matchId, reason: "HARASSMENT" }),
+      },
+      env,
+    );
+    expect(mismatchRes.status).toBe(403);
+
+    // 正当な通報は成功する
+    const okRes = await app.request(
+      "/api/reports",
+      {
+        method: "POST",
+        headers: reportHeaders(user1.tokens.accessToken),
+        body: JSON.stringify({ targetUserId, matchId, reason: "HARASSMENT" }),
+      },
+      env,
+    );
+    expect(okRes.status).toBe(200);
+
+    // 同じマッチへの重複通報は拒否される（連打による強制 SUSPEND を防ぐ）
+    const duplicateRes = await app.request(
+      "/api/reports",
+      {
+        method: "POST",
+        headers: reportHeaders(user1.tokens.accessToken),
+        body: JSON.stringify({ targetUserId, matchId, reason: "OTHER" }),
+      },
+      env,
+    );
+    expect(duplicateRes.status).toBe(409);
   });
 
   describe("X (Twitter) OAuth login", () => {

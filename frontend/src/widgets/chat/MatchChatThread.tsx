@@ -61,8 +61,33 @@ export function MatchChatThread({ matchId, onBack }: Props) {
   }, [load]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => void load(false), POLL_MS);
-    return () => window.clearInterval(timer);
+    let timer: number | undefined;
+
+    const stop = () => {
+      if (timer === undefined) return;
+      window.clearInterval(timer);
+      timer = undefined;
+    };
+    const start = () => {
+      if (timer !== undefined) return;
+      timer = window.setInterval(() => void load(false), POLL_MS);
+    };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        void load(false);
+        start();
+      }
+    };
+
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [load]);
 
   useEffect(scrollToBottom, [messages, scrollToBottom]);

@@ -13,7 +13,7 @@ export class UploadUseCase {
 
   async createUploadTicket(
     userId: string,
-    input: { matchId?: string; groupId?: string; contentType: string; size?: number },
+    input: { matchId?: string; groupId?: string; contentType: string; size: number },
   ) {
     const contentType = UploadPolicy.validateContentType(input.contentType);
     UploadPolicy.validateSize(input.size);
@@ -34,6 +34,6 @@ export class UploadUseCase {
     }
 
     const key = UploadPolicy.imageKey(threadId, contentType);
-    return this.uploadService.createUploadTicket(key, contentType);
+    return this.uploadService.createUploadTicket(key, contentType, input.size);
   }
 }

@@ -90,7 +90,11 @@ export function CardNewForm() {
         setMinMatch(Math.min(card.minMatchCount, card.tags.length));
         if (card.dates?.length) setDates([...card.dates]);
         const lead =
-          counterpart === "GIVE" ? "譲ります: " : counterpart === "WANT" ? "求めます: " : "同行: ";
+          counterpart === "GIVE"
+            ? "譲ります: "
+            : counterpart === "WANT"
+              ? "求めます: "
+              : "仲間募集: ";
         setTitle(`${lead}${card.title}`.slice(0, 60));
       })
       .catch((e) => setError((e as Error).message));
@@ -150,7 +154,7 @@ export function CardNewForm() {
     if (!title.trim()) return setError("タイトルを入力してください");
     if (tags.length === 0) return setError("タグを 1 つ以上追加してください");
     if (type === "COMPANION" && dates.length === 0) {
-      return setError("同行者募集は日程を 1 日以上選んでください");
+      return setError("仲間募集は日程を 1 日以上選んでください");
     }
 
     setSaving(true);
@@ -297,7 +301,7 @@ export function CardNewForm() {
         </div>
         <p className="hint">
           写真を選ぶと Workers AI
-          が作品名・キャラ・アイテム種別などのタグ候補を提案します。読み取りを待たずに入力を続けられます。
+          が書名・著者名・分野などのタグ候補を提案します。読み取りを待たずに入力を続けられます。
         </p>
       </div>
 

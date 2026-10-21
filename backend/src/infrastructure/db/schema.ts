@@ -182,13 +182,16 @@ export const reports = sqliteTable(
     id: text("id").primaryKey(),
     reporterId: text("reporter_id").notNull(),
     targetUserId: text("target_user_id").notNull(),
-    matchId: text("match_id"),
+    matchId: text("match_id").notNull(),
     reason: text("reason").notNull(),
     detail: text("detail"),
     status: text("status").notNull().default("PENDING"),
     createdAt: text("created_at").notNull(),
   },
-  (t) => [index("idx_reports_target").on(t.targetUserId)],
+  (t) => [
+    index("idx_reports_target").on(t.targetUserId),
+    unique("reports_reporter_match_unique").on(t.reporterId, t.matchId),
+  ],
 );
 
 export const swipes = sqliteTable(
@@ -231,6 +234,30 @@ export const tradeGroupMembers = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.groupId, t.userId], name: "trade_group_members_pk" }),
     index("idx_group_members_user").on(t.userId),
+  ],
+);
+
+export const readingItems = sqliteTable(
+  "reading_items",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id),
+    isbn: text("isbn"),
+    title: text("title").notNull(),
+    author: text("author"),
+    coverUrl: text("cover_url"),
+    status: text("status").notNull().default("UNREAD"),
+    note: text("note"),
+    // 読了→譲る連携で作った交換カードの id（null なら未出品）
+    cardId: text("card_id"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    index("idx_reading_items_owner_status").on(t.ownerId, t.status),
+    unique("reading_items_owner_isbn_unique").on(t.ownerId, t.isbn),
   ],
 );
 

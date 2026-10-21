@@ -26,19 +26,26 @@ export class GroupUseCase {
   async getGroupDetail(groupId: string, userId: string): Promise<GroupDetail | null> {
     const group = await this.groupRepo.findById(groupId);
     if (!group || !group.isMember(userId)) return null;
+    return this.buildGroupDetail(group, userId);
+  }
 
+  async buildGroupDetail(group: TradeGroup, userId: string): Promise<GroupDetail> {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
 
-    for (const u of await this.userRepo.findByIds(group.members)) {
+    const cardIds = [...new Set(group.steps.map((step) => step.giveCardId))];
+    const [foundUsers, foundCards] = await Promise.all([
+      this.userRepo.findByIds(group.members),
+      this.cardRepo.findByIds(cardIds),
+    ]);
+    for (const u of foundUsers) {
       users.set(u.id, u);
     }
-    const cardIds = [...new Set(group.steps.map((step) => step.giveCardId))];
-    for (const c of await this.cardRepo.findByIds(cardIds)) {
+    for (const c of foundCards) {
       cards.set(c.id, c);
     }
 
-    const lastReadAt = await this.groupRepo.getLastReadAt(groupId, userId);
+    const lastReadAt = await this.groupRepo.getLastReadAt(group.id, userId);
     return { group, users, cards, lastReadAt };
   }
 
@@ -72,7 +79,6 @@ export class GroupUseCase {
   async loadGroupContext(groups: TradeGroup[], userId: string) {
     const users = new Map<string, User>();
     const cards = new Map<string, Card>();
-    const readAts = new Map<string, string | null>();
 
     const memberIds = new Set<string>();
     const cardIds = new Set<string>();
@@ -87,8 +93,12 @@ export class GroupUseCase {
       cards.set(c.id, c);
     }
 
+    const readAts = await this.groupRepo.getLastReadAtBatch(
+      groups.map((group) => group.id),
+      userId,
+    );
     for (const group of groups) {
-      readAts.set(group.id, await this.groupRepo.getLastReadAt(group.id, userId));
+      if (!readAts.has(group.id)) readAts.set(group.id, null);
     }
     return { users, cards, readAts };
   }

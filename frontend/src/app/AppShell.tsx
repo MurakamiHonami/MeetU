@@ -38,9 +38,9 @@ function AppHeader() {
   return (
     <header className="apphead">
       <Link href="/" className="apphead-brand" aria-label="MeetU ホーム">
-        {/* ロゴはピンク1色。ヘッダーの地もピンクなので白のチップに載せて分離する */}
+        {/* ロゴはミント1色。ヘッダーの地もブランド色なので白のチップに載せて分離する */}
         <span className="apphead-logo">
-          <img src="/logo.png" alt="" />
+          <img src="/logo2.png" alt="" />
         </span>
         <span className="apphead-title">MeetU</span>
       </Link>

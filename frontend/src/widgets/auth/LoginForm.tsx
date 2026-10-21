@@ -45,7 +45,7 @@ export function LoginForm() {
     <div className="auth-container">
       <div className="auth-card">
         <h1 className="auth-title">MeetU にログイン</h1>
-        <p className="auth-subtitle">「推し活の“欲しい”と“会いたい”をつなぐ」</p>
+        <p className="auth-subtitle">「積ん読の“譲りたい”と“読みたい”をつなぐ」</p>
 
         {error && <div className="auth-error">{error}</div>}
 

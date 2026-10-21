@@ -12,7 +12,7 @@ const STEPS = [
     icon: StyleRoundedIcon,
     tone: "icon-pink",
     title: "お取引カードを登録する",
-    body: "【譲】・【求】のカード種別と、書名・著者名・分野などのタグを登録します。",
+    body: "【譲】・【求】のカード種別と、書名・著者・出版社・分野などのタグを登録します。",
   },
   {
     icon: FavoriteRoundedIcon,

@@ -15,22 +15,22 @@ import type { GeoPoint } from "../../entities/user/geo";
 import { currentPosition, shrinkImage } from "../../shared/lib/device";
 
 const TYPE_HELP: Record<CardType, string> = {
-  GIVE: "持っている本を譲ります。【求】のカードとマッチします。",
-  WANT: "読みたい本を登録します。【譲】のカードとマッチします。",
-  COMPANION: "一緒に読む / 輪読する仲間を募集します。同じ【仲間募集】とマッチします。",
+  GIVE: "持っている技術書を譲ります。【求】のカードとマッチします。",
+  WANT: "探している技術書を登録します。【譲】のカードとマッチします。",
+  COMPANION: "勉強会や技術書典の同行者を募集します。同じ【同行者求】とマッチします。",
 };
 
-/** 入力例。仲間募集は本の交換とは書くことが違うので、種類ごとに出し分ける */
+/** 入力例。同行者募集は本の交換とは書くことが違うので、種類ごとに出し分ける */
 const TITLE_PLACEHOLDER: Record<CardType, string> = {
   GIVE: "リーダブルコード 譲ります",
   WANT: "達人プログラマー 探しています",
-  COMPANION: "SICP 輪読メンバー募集",
+  COMPANION: "技術書典 東京の同行者募集",
 };
 
 const NOTE_PLACEHOLDER: Record<CardType, string> = {
-  GIVE: "書き込みあり / 美品 / 郵送のみ / 交換できる本リスト など",
-  WANT: "美品希望 / 書き込み可 / 手渡し希望 など",
-  COMPANION: "オンライン開催 / 週1ペース / 初学者歓迎 など",
+  GIVE: "郵送のみ / 手渡し希望 / 書き込みなし・カバー付き など",
+  WANT: "郵送のみ / 手渡し希望 / 版は問いません など",
+  COMPANION: "現地集合希望 / 開場前に合流したい / 参加は初めてです など",
 };
 
 const COUNTERPART: Record<CardType, CardType> = {

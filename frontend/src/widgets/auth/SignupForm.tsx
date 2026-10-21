@@ -37,7 +37,7 @@ export function SignupForm() {
     <div className="auth-container">
       <div className="auth-card">
         <h1 className="auth-title">MeetU 会員登録</h1>
-        <p className="auth-subtitle">アカウントを作成して本の交換を始めよう</p>
+        <p className="auth-subtitle">アカウントを作成して技術書の交換を始めよう</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -48,7 +48,7 @@ export function SignupForm() {
             </label>
             <input
               type="text"
-              placeholder="例: たかし@積読中"
+              placeholder="例: たかし@バックエンド"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               required

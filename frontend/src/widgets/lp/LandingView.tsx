@@ -66,9 +66,9 @@ const CORE = [
     name: "画像からのタグ推定",
     tagline: "写真1枚からタグ候補を生成",
     status: "提供中",
-    how: "本の表紙や背表紙の写真をビジョンLLMに渡し、書名・著者名・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず候補として提示。ユーザーが確認・編集してから確定します。推定中もフォーム操作は止めません。",
+    how: "表紙の写真をビジョンLLMに渡し、書名・著者・出版社・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず候補として提示。ユーザーが確認・編集してから確定します。推定中もフォーム操作は止めません。",
     merit:
-      "「書名・著者名・分野」を毎回自分で言語化する負担がなくなります。タグの付け漏れも減ります。",
+      "「書名・著者・出版社・分野」を毎回自分で打ち込む負担がなくなります。タグの付け漏れも減ります。",
     biz: "タグの品質と網羅性がマッチ精度を直接左右するため、入力負担の軽減がそのまま成立の母数に効きます。登録フォームでの離脱も抑えられます。",
   },
   {
@@ -79,7 +79,7 @@ const CORE = [
     status: "開発中",
     how: "カードではなく“タグ”をテキスト埋め込みします。検索は前方一致とベクトル近傍のハイブリッドにし、マッチングの判定そのものは離散的な数え上げのまま変えません。",
     merit:
-      "「リーダブル」で検索して「リーダブルコード」のカードが出る、「JS」と「JavaScript」がつながる、といった取りこぼしがなくなります。",
+      "「リーダブル」で検索して「リーダブルコード」のカードが出る、「オライリー」と「O'Reilly」がつながる、といった取りこぼしがなくなります。",
     biz: "埋め込む対象がカードではなく語彙なので、カードが増えてもベクトル数と埋め込みコストは頭打ちになります。検索の取りこぼしが減ることは、そのまま出品の死蔵を減らすことにつながります。",
   },
 ];
@@ -89,7 +89,7 @@ const STEPS = [
     icon: StyleRoundedIcon,
     tone: "icon-pink",
     title: "お取引カードを登録する",
-    body: "【譲】【求】のカード種別と、書名・著者名・分野などのタグを登録します。写真からタグ候補を出すこともできます。",
+    body: "【譲】【求】のカード種別と、書名・著者・出版社・分野などのタグを登録します。表紙の写真からタグ候補を出すこともできます。",
   },
   {
     icon: FavoriteRoundedIcon,
@@ -212,7 +212,7 @@ export function LandingView() {
       <header className="lp-nav">
         <span className="lp-nav-brand">
           <span className="lp-nav-logo">
-            <img src="/logo.png" alt="" />
+            <img src="/logo2.png" alt="" />
           </span>
           MeetU
         </span>
@@ -228,7 +228,7 @@ export function LandingView() {
             タグでつなぐ。
           </h1>
           <p className="lp-lead">
-            書名・著者名・分野をタグで登録するだけ。条件が合う相手と、いちばん近い受け渡しの組み合わせを
+            書名・著者・分野をタグで登録するだけ。条件が合う相手と、いちばん近い受け渡しの組み合わせを
             MeetU が探します。
           </p>
           <CtaButtons />
@@ -239,17 +239,17 @@ export function LandingView() {
           <div className="lp-demo-card lp-demo-want">
             <span className="lp-demo-label">【求】</span>
             <div className="chips chips-sm">
-              <span className="chip lp-chip-hit">TypeScript</span>
-              <span className="chip lp-chip-hit">リーダブルコード</span>
-              <span className="chip">美品希望</span>
+              <span className="chip lp-chip-hit">Rust</span>
+              <span className="chip lp-chip-hit">オライリー</span>
+              <span className="chip">入門書</span>
             </div>
           </div>
           <div className="lp-demo-card lp-demo-give">
             <span className="lp-demo-label">【譲】</span>
             <div className="chips chips-sm">
-              <span className="chip lp-chip-hit">TypeScript</span>
-              <span className="chip lp-chip-hit">リーダブルコード</span>
-              <span className="chip">書き込みあり</span>
+              <span className="chip lp-chip-hit">Rust</span>
+              <span className="chip lp-chip-hit">オライリー</span>
+              <span className="chip">逆引き</span>
             </div>
           </div>
           <p className="lp-demo-result">
@@ -360,20 +360,20 @@ export function LandingView() {
               <strong>写真 → タグ候補</strong>
             </header>
             <div className="lp-flow-fig">
-              <span className="lp-flow-photo">本の写真</span>
+              <span className="lp-flow-photo">本の表紙の写真</span>
               <span className="lp-flow-down">
                 <ArrowForwardRoundedIcon fontSize="small" />
                 ビジョンLLM
               </span>
               <div className="chips chips-sm">
-                <span className="chip">TypeScript</span>
-                <span className="chip">リーダブルコード</span>
-                <span className="chip">プログラミング</span>
+                <span className="chip">Rust</span>
+                <span className="chip">オライリー</span>
+                <span className="chip">入門書</span>
               </div>
               <span className="lp-flow-tick">ユーザーが確認・編集して確定</span>
             </div>
             <p>
-              書名・著者名・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず
+              書名・著者・出版社・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず
               <strong>候補</strong>として提示。自動では確定しません。
             </p>
           </article>
@@ -399,9 +399,9 @@ export function LandingView() {
                   <span className="chip lp-chip-hit">リーダブルコード</span>
                 </li>
                 <li>
-                  <span className="chip">JS</span>
+                  <span className="chip">オライリー</span>
                   <ArrowForwardRoundedIcon fontSize="small" />
-                  <span className="chip lp-chip-hit">JavaScript</span>
+                  <span className="chip lp-chip-hit">O'Reilly</span>
                 </li>
               </ul>
               <span className="lp-flow-tick">前方一致 ＋ ベクトル近傍のハイブリッド</span>
@@ -539,7 +539,7 @@ export function LandingView() {
       </section>
 
       <section className="lp-final">
-        <h2>読み終えた本を、次の人へ。</h2>
+        <h2>読み終えた技術書を、次の人へ。</h2>
         <p>カードを1枚登録するところから始まります。</p>
         <CtaButtons />
       </section>

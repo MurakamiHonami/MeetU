@@ -45,13 +45,8 @@ body {
   background-image: radial-gradient(#e3dfe1 1px, transparent 1px);
   background-size: 20px 20px;
   font-family:
-    "Plus Jakarta Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Hiragino Sans",
-    "Noto Sans JP",
-    "Yu Gothic UI",
-    sans-serif;
+    "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP",
+    "Yu Gothic UI", sans-serif;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.65;

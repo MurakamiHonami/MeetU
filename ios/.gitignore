@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+# XcodeGen が project.yml から生成する成果物（ソースは project.yml）
+*.xcodeproj/
+# App/Info.plist は project.yml の info.properties から生成される
+App/Info.plist

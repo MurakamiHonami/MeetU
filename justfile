@@ -46,7 +46,7 @@ docker-down:
 docker-logs:
     docker compose logs -f
 
-# デモデータ投入（docker-up 後。seed-*@meetu.local / seedpass123）
+# デモデータ投入（docker-up 後。seed-*@meetu.local。パスワードはランダム生成され backend/.seed-password に出力。SEED_PASSWORD で固定可）
 docker-seed:
     docker compose exec backend npm run db:seed -w meetu-backend
 

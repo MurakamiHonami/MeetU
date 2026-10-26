@@ -12,7 +12,7 @@ const STEPS = [
     icon: StyleRoundedIcon,
     tone: "icon-pink",
     title: "お取引カードを登録する",
-    body: "【譲】・【求】のカード種別と、書名・著者・出版社・分野などのタグを登録します。",
+    body: "【譲】・【求】のカード種別と、作品名・グループ名・グッズの種類などのタグを登録します。",
   },
   {
     icon: FavoriteRoundedIcon,
@@ -38,7 +38,7 @@ export function HomeView() {
   return (
     <div className="page home-page">
       <section className="hero">
-        <p className="hero-lead">技術書の交換をAIがアシストし、</p>
+        <p className="hero-lead">グッズ交換をAIがアシストし、</p>
         <h1 className="hero-title">理想のお取引相手とマッチングする</h1>
         <p className="hero-body">
           お取引の条件をカードにして登録すると、MeetU が最適な相手を探してマッチングをアシスト。

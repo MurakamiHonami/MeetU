@@ -2,20 +2,17 @@
    太い黒枠 + ずらした黒影 + 微妙な回転で「貼ったシール」の質感を出す。 */
 
 :root {
-  /* ブランドカラー。イエローとミントは 1:1 で使う。
-     どちらも明度が高いので、ベタ塗りの上の文字は白ではなく --ink を使う。
-     --pink-dark / --teal-dark は白背景に文字を置くときの読める濃さ。 */
-  --pink: #f8ff3e;
-  --pink-dark: #6b7000;
-  --pink-tint: #fdffd1;
+  /* ブランドカラー。ピンクとティールは 1:1 で使う */
+  --pink: #e43d81;
+  --pink-dark: #c62f6d;
+  --pink-tint: #fde8f1;
 
-  --teal: #13f3ce;
-  --teal-dark: #00705e;
-  --teal-tint: #d7fdf6;
+  --teal: #00c2a8;
+  --teal-dark: #00997f;
+  --teal-tint: #ddf8f3;
 
-  /* 第3のアクセント。ネオン2色とぶつからないよう黒に寄せ、文字は白にする */
-  --gold: #1c1b1b;
-  --gold-tint: #eceae4;
+  --gold: #cb9605;
+  --gold-tint: #fdf3dc;
 
   --ink: #1c1b1b;
   --white: #ffffff;
@@ -74,12 +71,13 @@ body {
   justify-content: space-between;
   gap: 12px;
   background: linear-gradient(100deg, var(--pink) 0%, var(--pink) 45%, var(--teal) 100%);
-  color: var(--ink);
+  color: var(--white);
   font-weight: 800;
   font-size: 19px;
   letter-spacing: 0.06em;
   padding: 13px 18px;
   border-bottom: var(--bw) solid var(--ink);
+  text-shadow: 2px 2px 0 rgba(28, 27, 27, 0.35);
 }
 
 /* ロゴ＋ワードマーク。ヘッダー左側全体をホームへのリンクにする */
@@ -127,7 +125,7 @@ body {
   padding: 0;
   overflow: hidden;
   background: var(--white);
-  color: var(--pink-dark);
+  color: var(--pink);
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 0;
@@ -156,7 +154,7 @@ body {
   padding: 20px 16px;
 }
 
-/* 見出しは黒いシールを斜めに貼る */
+/* 見出しはゴールドのシールを斜めに貼る */
 h2 {
   display: inline-block;
   font-size: 18px;
@@ -164,7 +162,7 @@ h2 {
   margin: 0 0 18px;
   padding: 4px 14px;
   background: var(--gold);
-  color: var(--white);
+  color: var(--ink);
   border: var(--bw) solid var(--ink);
   border-radius: var(--radius-sm);
   box-shadow: var(--sticker-sm);
@@ -216,7 +214,7 @@ h3 {
 /* アクティブなタブだけシール化。ピンク／ティールを交互に割り当てて 1:1 にする */
 .tabbar a.active {
   border-color: var(--ink);
-  color: var(--ink);
+  color: var(--white);
   box-shadow: var(--sticker-sm);
   transform: translateY(-2px);
 }
@@ -265,12 +263,12 @@ button:disabled {
 
 button.primary {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 button.teal {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 button.danger {
@@ -358,7 +356,7 @@ textarea.input {
 
 .typeswitch button.active {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .daterow {
@@ -404,16 +402,16 @@ textarea.input {
   box-shadow: 2px 2px 0 var(--ink);
 }
 
-/* 必須タグはアクセントの黒 */
+/* 必須タグはアクセントのゴールド */
 .chip-required {
   background: var(--gold);
-  color: var(--white);
+  color: var(--ink);
 }
 
 /* 一致したタグはティール */
 .chip-matched {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .photo-infer {
@@ -438,7 +436,7 @@ textarea.input {
   display: grid;
   place-items: center;
   background: var(--pink-tint);
-  color: var(--pink-dark);
+  color: var(--pink);
 }
 
 .photo-infer-placeholder svg {
@@ -617,17 +615,17 @@ input[type="range"] {
 /* 譲＝ティール / 求＝ピンク で 1:1、同行＝アクセントのゴールド */
 .badge-GIVE {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .badge-WANT {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .badge-COMPANION {
   background: var(--gold);
-  color: var(--white);
+  color: var(--ink);
 }
 
 .matchline {
@@ -709,7 +707,7 @@ input[type="range"] {
 
 .tagline-new {
   background: var(--gold);
-  color: var(--white);
+  color: var(--ink);
   border: 2px solid var(--ink);
   border-radius: 999px;
   padding: 0 9px;
@@ -782,12 +780,12 @@ input[type="range"] {
 
 .icon-pink {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .icon-teal {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .icon-gold {
@@ -798,7 +796,7 @@ input[type="range"] {
 /* 主導線だけグラデーション */
 .menu-item.primary {
   background: linear-gradient(100deg, var(--pink) 0%, var(--pink) 45%, var(--teal) 100%);
-  color: var(--ink);
+  color: var(--white);
   box-shadow: var(--sticker-lg);
 }
 
@@ -808,7 +806,7 @@ input[type="range"] {
 
 .menu-item.primary .menu-icon {
   background: var(--white);
-  color: var(--pink-dark);
+  color: var(--pink);
   transform: rotate(5deg);
 }
 
@@ -844,17 +842,17 @@ input[type="range"] {
 .status-NEW,
 .status-PENDING {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .status-ACCEPTED {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .status-COMPLETED {
   background: var(--gold);
-  color: var(--white);
+  color: var(--ink);
 }
 
 .status-DECLINED {
@@ -885,7 +883,7 @@ input[type="range"] {
 }
 
 .star.on {
-  color: var(--pink);
+  color: var(--gold);
   transform: scale(1.1) rotate(-6deg);
   text-shadow: 2px 2px 0 var(--ink);
 }
@@ -1029,7 +1027,7 @@ input[type="range"] {
 /* 自分はピンク、相手はティール。ここでも 1:1 */
 .mine .bubble {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
   border-bottom-right-radius: 5px;
 }
 
@@ -1097,7 +1095,7 @@ input[type="range"] {
 }
 
 .unread-dot {
-  color: var(--pink-dark);
+  color: var(--pink);
   margin-right: 5px;
   font-size: 10px;
 }
@@ -1117,7 +1115,7 @@ input[type="range"] {
 
 .chat-tool.teal {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .bubble-image {
@@ -1318,7 +1316,7 @@ input[type="range"] {
 
 .stamp-save {
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .stamp-skip {
@@ -1397,7 +1395,7 @@ input[type="range"] {
 
 .deck-save {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .deck-count {
@@ -1421,8 +1419,8 @@ input[type="range"] {
 }
 
 .group-card {
-  border-color: var(--teal-dark);
-  box-shadow: 4px 4px 0 var(--teal-dark);
+  border-color: var(--gold);
+  box-shadow: 4px 4px 0 var(--gold);
 }
 
 .badge svg {
@@ -1456,7 +1454,7 @@ input[type="range"] {
   border: 2px solid var(--ink);
   border-radius: 999px;
   box-shadow: 2px 2px 0 var(--ink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .trade-label.give {
@@ -1486,9 +1484,9 @@ input[type="range"] {
 
 /* 自分が関わる区間を目立たせる */
 .cycle-mine {
-  background: var(--teal-tint);
-  border-color: var(--teal-dark);
-  box-shadow: 2px 2px 0 var(--teal-dark);
+  background: var(--gold-tint);
+  border-color: var(--gold);
+  box-shadow: 2px 2px 0 var(--gold);
 }
 
 .cycle-people {
@@ -1500,7 +1498,7 @@ input[type="range"] {
 
 .cycle-people svg {
   transform: rotate(-90deg);
-  color: var(--pink-dark);
+  color: var(--pink);
 }
 
 .cycle-item {
@@ -1620,7 +1618,7 @@ input[type="range"] {
   margin-top: 10px;
   padding: 14px;
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
   font-size: 1rem;
   font-weight: 800;
   border: var(--bw) solid var(--ink);
@@ -1957,7 +1955,7 @@ input[type="range"] {
   display: grid;
   place-items: center;
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
   font-size: 24px;
   font-weight: 800;
   line-height: 1;
@@ -1977,7 +1975,7 @@ input[type="range"] {
 
 /* 見出しだけブランドのピンクにして、本文は他画面と同じ --ink に揃える */
 .usermenu-section .fav-head strong {
-  color: var(--pink-dark);
+  color: var(--pink);
 }
 
 .usermenu-section .actions {
@@ -2107,7 +2105,7 @@ input[type="range"] {
 
 .lp-btn-pink {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 .lp-cta-compact .lp-btn {
@@ -2204,10 +2202,9 @@ input[type="range"] {
   background: var(--white);
 }
 
-/* 一致したタグだけ黒にして、数えているものをはっきりさせる */
+/* 一致したタグだけゴールドにして、数えているものをはっきりさせる */
 .lp-demo .lp-chip-hit {
   background: var(--gold);
-  color: var(--white);
 }
 
 .lp-demo-result {
@@ -2300,7 +2297,7 @@ input[type="range"] {
   width: 20px;
   height: 20px;
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
   border-radius: 999px;
   font-size: 13px;
   font-weight: 800;
@@ -2357,7 +2354,7 @@ input[type="range"] {
 
 .lp-cycle-me {
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
 }
 
 /* ---------- LP: 使いかた ---------- */
@@ -2453,7 +2450,7 @@ input[type="range"] {
   margin: 34px 0;
   padding: 30px 20px;
   text-align: center;
-  color: var(--ink);
+  color: var(--white);
   background: linear-gradient(100deg, var(--pink) 0%, var(--pink) 45%, var(--teal) 100%);
   border: var(--bw) solid var(--ink);
   border-radius: var(--radius);
@@ -2470,6 +2467,7 @@ input[type="range"] {
   margin: 0;
   font-size: 14px;
   font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(28, 27, 27, 0.3);
 }
 
 .lp-final .lp-cta {
@@ -2588,7 +2586,7 @@ input[type="range"] {
   right: 14px;
   padding: 3px 10px;
   background: var(--teal);
-  color: var(--ink);
+  color: var(--white);
   border: 2px solid var(--ink);
   border-radius: 999px;
   font-size: 11px;
@@ -2632,7 +2630,6 @@ input[type="range"] {
 /* ビジネス価値の行だけ色を変えて、事業視点で読む人が拾いやすいようにする */
 .lp-core-biz dt {
   background: var(--gold);
-  color: var(--white);
 }
 
 .lp-core-note {
@@ -2724,7 +2721,7 @@ input[type="range"] {
 .lp-case-badge {
   padding: 3px 10px;
   background: var(--pink);
-  color: var(--ink);
+  color: var(--white);
   border: 2px solid var(--ink);
   border-radius: 999px;
   font-size: 11px;

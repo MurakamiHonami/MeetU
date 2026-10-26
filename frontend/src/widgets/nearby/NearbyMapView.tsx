@@ -10,9 +10,9 @@ import { currentPosition } from "../../shared/lib/device";
 
 const RADIUS_CHOICES = [1, 3, 10];
 const TYPE_COLOR: Record<CardType, string> = {
-  GIVE: "#13f3ce",
-  WANT: "#f8ff3e",
-  COMPANION: "#1c1b1b",
+  GIVE: "#00c2a8",
+  WANT: "#e43d81",
+  COMPANION: "#cb9605",
 };
 
 /** カード種別ごとに色を変えたピン。Leaflet 既定の画像は使わない（読み込みが要るため） */
@@ -114,7 +114,7 @@ export function NearbyMapView() {
       L.marker([center.lat, center.lon], { icon: meIcon }).addTo(group);
       L.circle([center.lat, center.lon], {
         radius: radius * 1000,
-        color: "#6b7000",
+        color: "#e43d81",
         weight: 2,
         fillOpacity: 0.05,
       }).addTo(group);

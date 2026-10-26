@@ -17,7 +17,7 @@ import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
 /** 「自分でやると大変なこと」を先に言語化してから、しくみの説明に入る */
 const PAINS = [
   "【譲】【求】の投稿がタイムラインに流れて、条件の合う人を見つけられない",
-  "見つけても、持っている本が噛み合わず交渉が振り出しに戻る",
+  "見つけても、持っているグッズが噛み合わず交渉が振り出しに戻る",
   "1対1では成立しない組み合わせを、あきらめるしかない",
 ];
 
@@ -27,7 +27,7 @@ const CONDITIONS = [
     icon: StarRoundedIcon,
     tone: "icon-gold",
     title: "★の必須タグ",
-    body: "★を付けたタグは、相手が必ず持っている必要があります。版違い・分野違いのマッチを避けられます。",
+    body: "★を付けたタグは、相手が必ず持っている必要があります。作品違い・キャラ違いのマッチを避けられます。",
   },
   {
     icon: CalendarMonthRoundedIcon,
@@ -66,9 +66,9 @@ const CORE = [
     name: "画像からのタグ推定",
     tagline: "写真1枚からタグ候補を生成",
     status: "提供中",
-    how: "表紙の写真をビジョンLLMに渡し、書名・著者・出版社・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず候補として提示。ユーザーが確認・編集してから確定します。推定中もフォーム操作は止めません。",
+    how: "グッズの写真をビジョンLLMに渡し、作品名・キャラ名・アイテム種別などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず候補として提示。ユーザーが確認・編集してから確定します。推定中もフォーム操作は止めません。",
     merit:
-      "「書名・著者・出版社・分野」を毎回自分で打ち込む負担がなくなります。タグの付け漏れも減ります。",
+      "「作品名・キャラ名・グッズ種別」を毎回自分で言語化する負担がなくなります。タグの付け漏れも減ります。",
     biz: "タグの品質と網羅性がマッチ精度を直接左右するため、入力負担の軽減がそのまま成立の母数に効きます。登録フォームでの離脱も抑えられます。",
   },
   {
@@ -79,7 +79,7 @@ const CORE = [
     status: "開発中",
     how: "カードではなく“タグ”をテキスト埋め込みします。検索は前方一致とベクトル近傍のハイブリッドにし、マッチングの判定そのものは離散的な数え上げのまま変えません。",
     merit:
-      "「リーダブル」で検索して「リーダブルコード」のカードが出る、「オライリー」と「O'Reilly」がつながる、といった取りこぼしがなくなります。",
+      "「五条」で検索して「五条悟」のカードが出る、「アクスタ」と「アクリルスタンド」がつながる、といった取りこぼしがなくなります。",
     biz: "埋め込む対象がカードではなく語彙なので、カードが増えてもベクトル数と埋め込みコストは頭打ちになります。検索の取りこぼしが減ることは、そのまま出品の死蔵を減らすことにつながります。",
   },
 ];
@@ -89,7 +89,7 @@ const STEPS = [
     icon: StyleRoundedIcon,
     tone: "icon-pink",
     title: "お取引カードを登録する",
-    body: "【譲】【求】のカード種別と、書名・著者・出版社・分野などのタグを登録します。表紙の写真からタグ候補を出すこともできます。",
+    body: "【譲】【求】のカード種別と、作品名・キャラ名・グッズの種類などのタグを登録します。写真からタグ候補を出すこともできます。",
   },
   {
     icon: FavoriteRoundedIcon,
@@ -212,7 +212,7 @@ export function LandingView() {
       <header className="lp-nav">
         <span className="lp-nav-brand">
           <span className="lp-nav-logo">
-            <img src="/logo2.png" alt="" />
+            <img src="/logo.png" alt="" />
           </span>
           MeetU
         </span>
@@ -221,14 +221,14 @@ export function LandingView() {
 
       <section className="lp-hero">
         <div className="lp-hero-text">
-          <p className="lp-eyebrow">エンジニアの技術書交換に</p>
+          <p className="lp-eyebrow">推し活のグッズ交換に</p>
           <h1 className="lp-title">
             【譲】と【求】を、
             <br />
             タグでつなぐ。
           </h1>
           <p className="lp-lead">
-            書名・著者・分野をタグで登録するだけ。条件が合う相手と、いちばん近い受け渡しの組み合わせを
+            作品名・キャラ名・グッズの種類をタグで登録するだけ。条件が合う相手と、いちばん近い受け渡しの組み合わせを
             MeetU が探します。
           </p>
           <CtaButtons />
@@ -239,17 +239,17 @@ export function LandingView() {
           <div className="lp-demo-card lp-demo-want">
             <span className="lp-demo-label">【求】</span>
             <div className="chips chips-sm">
-              <span className="chip lp-chip-hit">Rust</span>
-              <span className="chip lp-chip-hit">オライリー</span>
-              <span className="chip">入門書</span>
+              <span className="chip lp-chip-hit">プロセカ</span>
+              <span className="chip lp-chip-hit">天馬司</span>
+              <span className="chip">アクスタ</span>
             </div>
           </div>
           <div className="lp-demo-card lp-demo-give">
             <span className="lp-demo-label">【譲】</span>
             <div className="chips chips-sm">
-              <span className="chip lp-chip-hit">Rust</span>
-              <span className="chip lp-chip-hit">オライリー</span>
-              <span className="chip">逆引き</span>
+              <span className="chip lp-chip-hit">プロセカ</span>
+              <span className="chip lp-chip-hit">天馬司</span>
+              <span className="chip">缶バッジ</span>
             </div>
           </div>
           <p className="lp-demo-result">
@@ -360,20 +360,20 @@ export function LandingView() {
               <strong>写真 → タグ候補</strong>
             </header>
             <div className="lp-flow-fig">
-              <span className="lp-flow-photo">本の表紙の写真</span>
+              <span className="lp-flow-photo">グッズの写真</span>
               <span className="lp-flow-down">
                 <ArrowForwardRoundedIcon fontSize="small" />
                 ビジョンLLM
               </span>
               <div className="chips chips-sm">
-                <span className="chip">Rust</span>
-                <span className="chip">オライリー</span>
-                <span className="chip">入門書</span>
+                <span className="chip">プロセカ</span>
+                <span className="chip">天馬司</span>
+                <span className="chip">アクスタ</span>
               </div>
               <span className="lp-flow-tick">ユーザーが確認・編集して確定</span>
             </div>
             <p>
-              書名・著者・出版社・分野などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず
+              作品名・キャラ名・アイテム種別などをJSONで抽出します。カテゴリは既定の種類に制約し、結果は必ず
               <strong>候補</strong>として提示。自動では確定しません。
             </p>
           </article>
@@ -394,14 +394,14 @@ export function LandingView() {
             <div className="lp-flow-fig">
               <ul className="lp-synonyms">
                 <li>
-                  <span className="chip">リーダブル</span>
+                  <span className="chip">五条</span>
                   <ArrowForwardRoundedIcon fontSize="small" />
-                  <span className="chip lp-chip-hit">リーダブルコード</span>
+                  <span className="chip lp-chip-hit">五条悟</span>
                 </li>
                 <li>
-                  <span className="chip">オライリー</span>
+                  <span className="chip">アクスタ</span>
                   <ArrowForwardRoundedIcon fontSize="small" />
-                  <span className="chip lp-chip-hit">O'Reilly</span>
+                  <span className="chip lp-chip-hit">アクリルスタンド</span>
                 </li>
               </ul>
               <span className="lp-flow-tick">前方一致 ＋ ベクトル近傍のハイブリッド</span>
@@ -539,7 +539,7 @@ export function LandingView() {
       </section>
 
       <section className="lp-final">
-        <h2>読み終えた技術書を、次の人へ。</h2>
+        <h2>推しのグッズを、次の人へ。</h2>
         <p>カードを1枚登録するところから始まります。</p>
         <CtaButtons />
       </section>

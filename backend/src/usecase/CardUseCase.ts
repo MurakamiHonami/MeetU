@@ -4,6 +4,7 @@ import { IMatchRepository } from "../domain/match/IMatchRepository";
 import { IUserRepository } from "../domain/user/IUserRepository";
 import { IGroupRepository } from "../domain/group/IGroupRepository";
 import { Card, CardType } from "../domain/card/Card";
+import { User } from "../domain/user/User";
 import { TagNormalizer } from "../domain/tag/TagNormalizer";
 import { Tag } from "../domain/tag/Tag";
 import { MatchingEngine } from "../domain/match/MatchingEngine";
@@ -43,15 +44,18 @@ export class CardUseCase {
   async createCard(input: CreateCardInput): Promise<CreateCardResult> {
     const tagIds: string[] = [];
     const tagLabels: Record<string, string> = {};
+    const tagsById = new Map<string, { displayName: string; category?: string }>();
     for (const t of input.tags) {
       const tagId = TagNormalizer.normalize(t.displayName);
       tagIds.push(tagId);
       tagLabels[tagId] = t.displayName;
-      const existing = await this.tagRepo.findById(tagId);
-      if (!existing) {
-        await this.tagRepo.save(Tag.create(t.displayName, t.category || "other"));
-      }
+      tagsById.set(tagId, t);
     }
+    const existingIds = new Set((await this.tagRepo.findByIds(tagIds)).map((tag) => tag.id));
+    const newTags = [...tagsById.entries()]
+      .filter(([tagId]) => !existingIds.has(tagId))
+      .map(([, t]) => Tag.create(t.displayName, t.category || "other"));
+    await this.tagRepo.saveMany(newTags);
     await this.tagRepo.incrementCounts(tagIds);
     await this.tagRepo.recordCooccurrences(tagIds);
 
@@ -92,14 +96,18 @@ export class CardUseCase {
     const ownerUser = await this.userRepo.findById(card.ownerId);
     const targetCards = await this.cardRepo.findByIds(Array.from(candidateMatches.keys()));
     const targetCardById = new Map(targetCards.map((c) => [c.id, c]));
+    const targetOwnerIds = Array.from(new Set(targetCards.map((c) => c.ownerId)));
+    const targetUsers = await this.userRepo.findByIds(targetOwnerIds);
+    const targetUserById = new Map(targetUsers.map((u) => [u.id, u]));
     const results: { matchId: string; matchCount: number; matchedTags: string[]; card: Card }[] =
       [];
 
+    const newMatches: Match[] = [];
     for (const [targetCardId, matchedTagSet] of candidateMatches.entries()) {
       const targetCard = targetCardById.get(targetCardId);
       if (!targetCard) continue;
 
-      const targetUser = await this.userRepo.findById(targetCard.ownerId);
+      const targetUser = targetUserById.get(targetCard.ownerId);
       const matchedTags = Array.from(matchedTagSet);
 
       const result = MatchingEngine.evaluate(
@@ -110,7 +118,7 @@ export class CardUseCase {
         targetUser ?? undefined,
       );
       if (result) {
-        await this.matchRepo.save(result.match);
+        newMatches.push(result.match);
         results.push({
           matchId: result.match.id,
           matchCount: result.match.matchCount,
@@ -119,6 +127,7 @@ export class CardUseCase {
         });
       }
     }
+    await this.matchRepo.saveMany(newMatches);
     return results;
   }
 
@@ -126,13 +135,9 @@ export class CardUseCase {
     if (card.type !== "GIVE") return [];
     const finder = new CycleFinder(this.cardRepo);
     const cycles = await finder.findCycles(card);
-    const created: TradeGroup[] = [];
-    for (const steps of cycles) {
-      const group = TradeGroup.create(steps, card.ownerId);
-      const ok = await this.groupRepo.create(group);
-      if (ok) created.push(group);
-    }
-    return created;
+    const groups = cycles.map((steps) => TradeGroup.create(steps, card.ownerId));
+    const oks = await Promise.all(groups.map((group) => this.groupRepo.create(group)));
+    return groups.filter((_, i) => oks[i]);
   }
 
   async getMyCards(ownerId: string): Promise<Card[]> {
@@ -206,14 +211,17 @@ export class CardUseCase {
     targetCardId: string,
   ): Promise<{
     target: Card;
+    targetUser: User | null;
     options: { card: Card; matchedTags: string[]; matchCount: number }[];
   } | null> {
     const target = await this.cardRepo.findById(targetCardId);
     if (!target || !target.isOpen()) return null;
     if (target.ownerId === userId) return null;
 
-    const myUser = await this.userRepo.findById(userId);
-    const targetUser = await this.userRepo.findById(target.ownerId);
+    const [myUser, targetUser] = await Promise.all([
+      this.userRepo.findById(userId),
+      this.userRepo.findById(target.ownerId),
+    ]);
     const counterpart = this.counterpartType(target.type);
     const targetTagSet = new Set(target.tags);
     const myCards = (await this.cardRepo.findByOwnerId(userId)).filter(
@@ -239,7 +247,7 @@ export class CardUseCase {
       }
     }
 
-    return { target, options };
+    return { target, targetUser, options };
   }
 
   async respondToCard(
@@ -247,21 +255,25 @@ export class CardUseCase {
     targetCardId: string,
     myCardId: string,
   ): Promise<{ match: Match; created: boolean }> {
-    const target = await this.cardRepo.findById(targetCardId);
-    const myCard = await this.cardRepo.findById(myCardId);
+    const [target, myCard] = await Promise.all([
+      this.cardRepo.findById(targetCardId),
+      this.cardRepo.findById(myCardId),
+    ]);
     if (!target || !target.isOpen()) throw new NotFoundError("相手のカードが見つかりません");
     if (!myCard || !myCard.isOpen()) throw new NotFoundError("自分のカードが見つかりません");
     if (target.ownerId === userId) throw new ForbiddenError("自分のカードには応募できません");
     if (myCard.ownerId !== userId) throw new ForbiddenError("自分のカードを選んでください");
     if (!myCard.isCounterpart(target.type)) {
       throw new ValidationError(
-        "カードの種類が合いません（【譲】↔【求】、または【同行者求】同士）",
+        "カードの種類が合いません（【譲】↔【求】、または【仲間募集】同士）",
       );
     }
 
     const matchedTags = myCard.tags.filter((t) => target.tags.includes(t));
-    const myUser = await this.userRepo.findById(userId);
-    const targetUser = await this.userRepo.findById(target.ownerId);
+    const [myUser, targetUser] = await Promise.all([
+      this.userRepo.findById(userId),
+      this.userRepo.findById(target.ownerId),
+    ]);
     const result = MatchingEngine.evaluate(
       myCard,
       target,

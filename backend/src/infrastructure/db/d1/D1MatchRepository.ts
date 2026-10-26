@@ -1,4 +1,4 @@
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { IMatchRepository } from "../../../domain/match/IMatchRepository";
 import { Match, MatchProps } from "../../../domain/match/Match";
 import { AppDatabase, parseJson } from "../database";
@@ -44,28 +44,50 @@ export class D1MatchRepository implements IMatchRepository {
     return rows.map((row) => this.mapRow(row));
   }
 
-  async save(match: Match): Promise<void> {
+  private toRow(match: Match) {
     const props = match.toProps();
+    return {
+      id: props.id,
+      cardAId: props.cardAId,
+      cardBId: props.cardBId,
+      userAId: props.userAId,
+      userBId: props.userBId,
+      matchedTags: JSON.stringify(props.matchedTags),
+      matchedLabels: JSON.stringify(props.matchedLabels ?? props.matchedTags),
+      matchCount: props.matchCount,
+      distanceKm: props.distanceKm ?? null,
+      acceptedA: props.acceptedA ? 1 : 0,
+      acceptedB: props.acceptedB ? 1 : 0,
+      lastMessageAt: props.lastMessageAt ?? null,
+      lastMessageBy: props.lastMessageBy ?? null,
+      lastMessagePreview: props.lastMessagePreview ?? null,
+      status: props.status,
+      createdAt: props.createdAt,
+    };
+  }
+
+  async save(match: Match): Promise<void> {
     await this.db
       .insert(matches)
-      .values({
-        id: props.id,
-        cardAId: props.cardAId,
-        cardBId: props.cardBId,
-        userAId: props.userAId,
-        userBId: props.userBId,
-        matchedTags: JSON.stringify(props.matchedTags),
-        matchedLabels: JSON.stringify(props.matchedLabels ?? props.matchedTags),
-        matchCount: props.matchCount,
-        distanceKm: props.distanceKm ?? null,
-        acceptedA: props.acceptedA ? 1 : 0,
-        acceptedB: props.acceptedB ? 1 : 0,
-        lastMessageAt: props.lastMessageAt ?? null,
-        lastMessageBy: props.lastMessageBy ?? null,
-        lastMessagePreview: props.lastMessagePreview ?? null,
-        status: props.status,
-        createdAt: props.createdAt,
-      })
+      .values(this.toRow(match))
+      .onConflictDoUpdate({
+        target: matches.id,
+        set: {
+          status: sql`excluded.status`,
+          acceptedA: sql`excluded.accepted_a`,
+          acceptedB: sql`excluded.accepted_b`,
+          lastMessageAt: sql`excluded.last_message_at`,
+          lastMessageBy: sql`excluded.last_message_by`,
+          lastMessagePreview: sql`excluded.last_message_preview`,
+        },
+      });
+  }
+
+  async saveMany(matchList: Match[]): Promise<void> {
+    if (matchList.length === 0) return;
+    await this.db
+      .insert(matches)
+      .values(matchList.map((m) => this.toRow(m)))
       .onConflictDoUpdate({
         target: matches.id,
         set: {
@@ -90,6 +112,19 @@ export class D1MatchRepository implements IMatchRepository {
       .where(and(eq(matchReads.matchId, matchId), eq(matchReads.userId, userId)))
       .get();
     return row?.lastReadAt ?? null;
+  }
+
+  async getLastReadAtBatch(
+    matchIds: string[],
+    userId: string,
+  ): Promise<Map<string, string | null>> {
+    if (matchIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ matchId: matchReads.matchId, lastReadAt: matchReads.lastReadAt })
+      .from(matchReads)
+      .where(and(inArray(matchReads.matchId, matchIds), eq(matchReads.userId, userId)))
+      .all();
+    return new Map(rows.map((row) => [row.matchId, row.lastReadAt]));
   }
 
   async markRead(matchId: string, userId: string, at: string): Promise<void> {

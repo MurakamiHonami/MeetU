@@ -1,5 +1,3 @@
-export const SEED_PASSWORD = 'seedpass123';
-
 export interface SeedUser {
   email: string;
   displayName: string;
@@ -9,7 +7,7 @@ export interface SeedUser {
 }
 
 export interface SeedCard {
-  type: 'GIVE' | 'WANT' | 'COMPANION';
+  type: "GIVE" | "WANT" | "COMPANION";
   title: string;
   note?: string;
   minMatchCount?: number;
@@ -20,107 +18,107 @@ export interface SeedCard {
 /** デモ用ユーザーとカード。メールは @meetu.local ドメインで本番と区別しやすくする。 */
 export const SEED_USERS: SeedUser[] = [
   {
-    email: 'seed-yuki@meetu.local',
-    displayName: 'ゆき',
-    favorites: ['プロセカ', '天馬司'],
-    home: { lat: 35.6595, lon: 139.7006, name: '渋谷' },
+    email: "seed-yuki@meetu.local",
+    displayName: "ゆき",
+    favorites: ["TypeScript", "リーダブルコード"],
+    home: { lat: 35.6595, lon: 139.7006, name: "渋谷" },
     cards: [
       {
-        type: 'GIVE',
-        title: '天馬司 アクスタ譲ります',
-        note: '未開封に近い状態です。渋谷駅周辺で手渡し希望。',
-        tags: ['プロセカ', '天馬司', 'アクスタ'],
-        location: { lat: 35.6595, lon: 139.7006, name: '渋谷駅' },
+        type: "GIVE",
+        title: "リーダブルコード 譲ります",
+        note: "美品です。渋谷駅周辺で手渡し希望。",
+        tags: ["リーダブルコード", "プログラミング", "オライリー"],
+        location: { lat: 35.6595, lon: 139.7006, name: "渋谷駅" },
       },
       {
-        type: 'WANT',
-        title: '司 缶バッジ求めてます',
-        tags: ['プロセカ', '天馬司', '缶バッジ'],
+        type: "WANT",
+        title: "達人プログラマー 探してます",
+        tags: ["達人プログラマー", "プログラミング"],
       },
     ],
   },
   {
-    email: 'seed-hana@meetu.local',
-    displayName: 'はな',
-    favorites: ['プロセカ', '草薙寧'],
-    home: { lat: 35.6896, lon: 139.7006, name: '新宿' },
+    email: "seed-hana@meetu.local",
+    displayName: "はな",
+    favorites: ["Go", "インフラ"],
+    home: { lat: 35.6896, lon: 139.7006, name: "新宿" },
     cards: [
       {
-        type: 'GIVE',
-        title: '寧 トレカ譲ります',
-        note: '複数枚あり。寧関連と交換歓迎。',
-        tags: ['プロセカ', '草薙寧', 'トレカ'],
-        location: { lat: 35.6896, lon: 139.7006, name: '新宿駅' },
+        type: "GIVE",
+        title: "プログラミング言語Go 譲ります",
+        note: "書き込みなし。Go 関連の本と交換歓迎。",
+        tags: ["Go", "プログラミング", "オライリー"],
+        location: { lat: 35.6896, lon: 139.7006, name: "新宿駅" },
       },
       {
-        type: 'COMPANION',
-        title: 'プロセカライブ同行者募集',
-        note: '来月のライブに一緒に行ける方探してます。',
+        type: "COMPANION",
+        title: "SICP 輪読メンバー募集",
+        note: "来月からオンラインで週1ペース。初学者歓迎。",
         minMatchCount: 1,
-        tags: ['プロセカ', 'ライブ', '同行者求'],
+        tags: ["SICP", "輪読", "読書仲間"],
       },
     ],
   },
   {
-    email: 'seed-ren@meetu.local',
-    displayName: 'れん',
-    favorites: ['うたプリ', '一ノ瀬トキヤ'],
-    home: { lat: 35.7295, lon: 139.7109, name: '池袋' },
+    email: "seed-ren@meetu.local",
+    displayName: "れん",
+    favorites: ["リーダブルコード", "設計"],
+    home: { lat: 35.7295, lon: 139.7109, name: "池袋" },
     cards: [
       {
-        type: 'WANT',
-        title: 'トキヤ アクスタ求',
-        tags: ['うたプリ', '一ノ瀬トキヤ', 'アクスタ'],
-        location: { lat: 35.7295, lon: 139.7109, name: '池袋駅' },
+        type: "WANT",
+        title: "リーダブルコード 求む",
+        tags: ["リーダブルコード", "プログラミング", "オライリー"],
+        location: { lat: 35.7295, lon: 139.7109, name: "池袋駅" },
       },
       {
-        type: 'GIVE',
-        title: 'うたプリ 缶バッジセット譲',
-        tags: ['うたプリ', '缶バッジ'],
+        type: "GIVE",
+        title: "Clean Architecture 譲ります",
+        tags: ["Clean Architecture", "設計"],
       },
     ],
   },
   {
-    email: 'seed-mio@meetu.local',
-    displayName: 'みお',
-    favorites: ['プロセカ', '小豆沢こはね'],
-    home: { lat: 35.6984, lon: 139.7731, name: '秋葉原' },
+    email: "seed-mio@meetu.local",
+    displayName: "みお",
+    favorites: ["機械学習", "Python"],
+    home: { lat: 35.6984, lon: 139.7731, name: "秋葉原" },
     cards: [
       {
-        type: 'GIVE',
-        title: 'こはね ぬいぐるみ譲ります',
-        tags: ['プロセカ', '小豆沢こはね', 'ぬいぐるみ'],
-        location: { lat: 35.6984, lon: 139.7731, name: '秋葉原駅' },
+        type: "GIVE",
+        title: "ゼロから作るDeep Learning 譲ります",
+        tags: ["ゼロから作るDeep Learning", "機械学習", "Python"],
+        location: { lat: 35.6984, lon: 139.7731, name: "秋葉原駅" },
       },
       {
-        type: 'WANT',
-        title: 'プロセカ ぬいぐるみ求',
-        tags: ['プロセカ', 'ぬいぐるみ'],
+        type: "WANT",
+        title: "機械学習の本 求む",
+        tags: ["機械学習", "Python"],
       },
     ],
   },
   {
-    email: 'seed-sota@meetu.local',
-    displayName: 'そうた',
-    favorites: ['アイナナ', '和泉三月'],
-    home: { lat: 35.6812, lon: 139.7671, name: '東京駅' },
+    email: "seed-sota@meetu.local",
+    displayName: "そうた",
+    favorites: ["達人プログラマー", "設計"],
+    home: { lat: 35.6812, lon: 139.7671, name: "東京駅" },
     cards: [
       {
-        type: 'GIVE',
-        title: '三月 アクスタ譲',
-        tags: ['アイナナ', '和泉三月', 'アクスタ'],
-        location: { lat: 35.6812, lon: 139.7671, name: '東京駅' },
+        type: "GIVE",
+        title: "達人プログラマー 譲ります",
+        tags: ["達人プログラマー", "プログラミング", "設計"],
+        location: { lat: 35.6812, lon: 139.7671, name: "東京駅" },
       },
       {
-        type: 'WANT',
-        title: 'アイナナ 缶バッジ求めてます',
-        tags: ['アイナナ', '缶バッジ'],
+        type: "WANT",
+        title: "Clean Architecture 探してます",
+        tags: ["Clean Architecture", "設計"],
       },
       {
-        type: 'COMPANION',
-        title: 'アイナナイベント同行者募集',
+        type: "COMPANION",
+        title: "設計本の輪読仲間募集",
         minMatchCount: 1,
-        tags: ['アイナナ', 'イベント', '同行者求'],
+        tags: ["設計", "輪読", "読書仲間"],
       },
     ],
   },

@@ -9,7 +9,9 @@ import { D1ReviewRepository } from "../infrastructure/db/d1/D1ReviewRepository";
 import { D1ReportRepository } from "../infrastructure/db/d1/D1ReportRepository";
 import { D1GroupRepository } from "../infrastructure/db/d1/D1GroupRepository";
 import { D1SwipeRepository } from "../infrastructure/db/d1/D1SwipeRepository";
+import { D1ReadingItemRepository } from "../infrastructure/db/d1/D1ReadingItemRepository";
 import { R2UploadService } from "../infrastructure/storage/R2UploadService";
+import { AuthService } from "../infrastructure/auth/AuthService";
 import { CardUseCase } from "../usecase/CardUseCase";
 import { MatchUseCase } from "../usecase/MatchUseCase";
 import { UserUseCase } from "../usecase/UserUseCase";
@@ -21,6 +23,7 @@ import { FeedUseCase } from "../usecase/FeedUseCase";
 import { NearbyUseCase } from "../usecase/NearbyUseCase";
 import { UploadUseCase } from "../usecase/UploadUseCase";
 import { TagInferUseCase } from "../usecase/TagInferUseCase";
+import { ReadingUseCase } from "../usecase/ReadingUseCase";
 import { TagVisionService } from "../infrastructure/ai/TagVisionService";
 
 export function createContext(env: Env["Bindings"], baseUrl: string) {
@@ -34,8 +37,12 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
   const reportRepo = new D1ReportRepository(db);
   const groupRepo = new D1GroupRepository(db);
   const swipeRepo = new D1SwipeRepository(db);
+  const readingRepo = new D1ReadingItemRepository(db);
   const uploadService = new R2UploadService(env.UPLOADS_R2, env.CACHE_KV, baseUrl);
+  const authService = new AuthService(env.CACHE_KV, env.JWT_SECRET);
   const tagVision = env.GEMINI_API_KEY ? new TagVisionService(env.GEMINI_API_KEY) : undefined;
+  // reading の listForTrade が card を再利用するため、先に組み立てて共有する
+  const cardUseCase = new CardUseCase(cardRepo, tagRepo, matchRepo, userRepo, groupRepo);
 
   return {
     repos: {
@@ -48,15 +55,17 @@ export function createContext(env: Env["Bindings"], baseUrl: string) {
       reportRepo,
       groupRepo,
       swipeRepo,
+      readingRepo,
     },
     uploadService,
     useCases: {
-      card: new CardUseCase(cardRepo, tagRepo, matchRepo, userRepo, groupRepo),
+      card: cardUseCase,
+      reading: new ReadingUseCase(readingRepo, cardUseCase),
       match: new MatchUseCase(matchRepo, cardRepo, userRepo),
       user: new UserUseCase(userRepo, cardRepo, reviewRepo),
       message: new MessageUseCase(messageRepo, matchRepo, groupRepo, userRepo, uploadService),
       review: new ReviewUseCase(reviewRepo, matchRepo, userRepo),
-      report: new ReportUseCase(reportRepo, userRepo),
+      report: new ReportUseCase(reportRepo, userRepo, matchRepo, authService),
       group: new GroupUseCase(groupRepo, cardRepo, userRepo),
       feed: new FeedUseCase(cardRepo, tagRepo, swipeRepo, userRepo),
       nearby: new NearbyUseCase(cardRepo, userRepo),

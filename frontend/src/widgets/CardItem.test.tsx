@@ -28,7 +28,7 @@ describe("CardItem", () => {
   it.each([
     ["GIVE", "【譲】"],
     ["WANT", "【求】"],
-    ["COMPANION", "【同行者求】"],
+    ["COMPANION", "【仲間募集】"],
   ] as const)("labels a %s card as %s", (type, label) => {
     renderCard({ type });
     expect(screen.getByText(label)).toBeInTheDocument();

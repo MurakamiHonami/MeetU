@@ -22,6 +22,12 @@ export class D1TagRepository implements ITagRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Tag[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.select().from(tags).where(inArray(tags.id, ids)).all();
+    return rows.map((row) => this.mapRow(row));
+  }
+
   async suggest(query: string, limit = 20): Promise<Tag[]> {
     const pattern = `%${query.toLowerCase()}%`;
     const rows = await this.db
@@ -45,6 +51,27 @@ export class D1TagRepository implements ITagRepository {
       });
   }
 
+  async saveMany(tagList: Tag[]): Promise<void> {
+    if (tagList.length === 0) return;
+    await this.db
+      .insert(tags)
+      .values(
+        tagList.map((tag) => {
+          const p = tag.toProps();
+          return {
+            id: p.id,
+            displayName: p.displayName,
+            category: p.category,
+            useCount: p.useCount,
+          };
+        }),
+      )
+      .onConflictDoUpdate({
+        target: tags.id,
+        set: { useCount: sql`${tags.useCount} + 1` },
+      });
+  }
+
   async incrementCounts(tagIds: string[]): Promise<void> {
     if (tagIds.length === 0) return;
     await this.db
@@ -53,38 +80,58 @@ export class D1TagRepository implements ITagRepository {
       .where(inArray(tags.id, tagIds));
   }
 
-  async findRelatedTags(tagId: string, limit = 5): Promise<RelatedTagHit[]> {
+  async findRelatedTagsForMany(tagIds: string[], limit = 5): Promise<Map<string, RelatedTagHit[]>> {
+    const grouped = new Map<string, RelatedTagHit[]>();
+    if (tagIds.length === 0) return grouped;
+
     const rowsA = await this.db
-      .select({ related: tagCooccurrences.tagB, hits: tagCooccurrences.hits })
+      .select({
+        tagId: tagCooccurrences.tagA,
+        related: tagCooccurrences.tagB,
+        hits: tagCooccurrences.hits,
+      })
       .from(tagCooccurrences)
-      .where(eq(tagCooccurrences.tagA, tagId))
-      .orderBy(desc(tagCooccurrences.hits))
-      .limit(limit)
+      .where(inArray(tagCooccurrences.tagA, tagIds))
       .all();
     const rowsB = await this.db
-      .select({ related: tagCooccurrences.tagA, hits: tagCooccurrences.hits })
+      .select({
+        tagId: tagCooccurrences.tagB,
+        related: tagCooccurrences.tagA,
+        hits: tagCooccurrences.hits,
+      })
       .from(tagCooccurrences)
-      .where(eq(tagCooccurrences.tagB, tagId))
-      .orderBy(desc(tagCooccurrences.hits))
-      .limit(limit)
+      .where(inArray(tagCooccurrences.tagB, tagIds))
       .all();
-    const merged = [...rowsA, ...rowsB].sort((a, b) => b.hits - a.hits).slice(0, limit);
-    return merged.map((r) => ({ tagId: r.related, hits: r.hits }));
+
+    for (const row of [...rowsA, ...rowsB]) {
+      const list = grouped.get(row.tagId) ?? [];
+      list.push({ tagId: row.related, hits: row.hits });
+      grouped.set(row.tagId, list);
+    }
+
+    const result = new Map<string, RelatedTagHit[]>();
+    for (const tagId of tagIds) {
+      const hits = (grouped.get(tagId) ?? []).sort((a, b) => b.hits - a.hits).slice(0, limit);
+      result.set(tagId, hits);
+    }
+    return result;
   }
 
   async recordCooccurrences(tagIds: string[]): Promise<void> {
     if (tagIds.length < 2) return;
     const sorted = [...tagIds].sort();
+    const pairs: { tagA: string; tagB: string; hits: number }[] = [];
     for (let i = 0; i < sorted.length; i++) {
       for (let j = i + 1; j < sorted.length; j++) {
-        await this.db
-          .insert(tagCooccurrences)
-          .values({ tagA: sorted[i], tagB: sorted[j], hits: 1 })
-          .onConflictDoUpdate({
-            target: [tagCooccurrences.tagA, tagCooccurrences.tagB],
-            set: { hits: sql`${tagCooccurrences.hits} + 1` },
-          });
+        pairs.push({ tagA: sorted[i], tagB: sorted[j], hits: 1 });
       }
     }
+    await this.db
+      .insert(tagCooccurrences)
+      .values(pairs)
+      .onConflictDoUpdate({
+        target: [tagCooccurrences.tagA, tagCooccurrences.tagB],
+        set: { hits: sql`${tagCooccurrences.hits} + 1` },
+      });
   }
 }

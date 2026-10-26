@@ -268,7 +268,7 @@ describe("Report", () => {
     expect(report.reporterId).toBe("u1");
     expect(report.toProps().targetUserId).toBe("u2");
     expect(() =>
-      Report.create({ reporterId: "u1", targetUserId: "u1", reason: "OTHER" }),
+      Report.create({ reporterId: "u1", targetUserId: "u1", matchId: "m1", reason: "OTHER" }),
     ).toThrow();
   });
 });
@@ -370,6 +370,8 @@ describe("UploadPolicy", () => {
     expect(UploadPolicy.validateContentType("image/png")).toBe("image/png");
     expect(() => UploadPolicy.validateContentType("application/pdf")).toThrow();
     expect(() => UploadPolicy.validateSize(6 * 1024 * 1024)).toThrow();
+    expect(() => UploadPolicy.validateSize(0)).toThrow();
+    expect(() => UploadPolicy.validateSize(1024)).not.toThrow();
   });
 
   it("builds image keys and validates thread ownership", () => {

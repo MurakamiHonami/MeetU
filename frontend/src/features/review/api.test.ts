@@ -56,16 +56,18 @@ describe("report", () => {
   it("posts a report with the reason", async () => {
     call.mockResolvedValue(ok({ reportId: "r1", message: "受け付けました" }));
 
-    await expect(reviewApi.report({ targetUserId: "u2", reason: "HARASSMENT" })).resolves.toEqual({
+    await expect(
+      reviewApi.report({ targetUserId: "u2", matchId: "m1", reason: "HARASSMENT" }),
+    ).resolves.toEqual({
       reportId: "r1",
       message: "受け付けました",
     });
     expect(call).toHaveBeenCalledWith("reports", {
-      json: { targetUserId: "u2", reason: "HARASSMENT" },
+      json: { targetUserId: "u2", matchId: "m1", reason: "HARASSMENT" },
     });
   });
 
-  it("includes the optional match id and detail", async () => {
+  it("includes the optional detail", async () => {
     call.mockResolvedValue(ok({ reportId: "r1", message: "ok" }));
 
     await reviewApi.report({
@@ -84,8 +86,8 @@ describe("report", () => {
   it("throws when the report is rejected", async () => {
     call.mockResolvedValue(fail(400, { message: "理由が不正です" }));
 
-    await expect(reviewApi.report({ targetUserId: "u2", reason: "OTHER" })).rejects.toThrow(
-      "理由が不正です",
-    );
+    await expect(
+      reviewApi.report({ targetUserId: "u2", matchId: "m1", reason: "OTHER" }),
+    ).rejects.toThrow("理由が不正です");
   });
 });

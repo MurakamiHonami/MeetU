@@ -84,7 +84,7 @@ export class D1TagRepository implements ITagRepository {
     const grouped = new Map<string, RelatedTagHit[]>();
     if (tagIds.length === 0) return grouped;
 
-    const rowsA = await this.db
+    const queryA = this.db
       .select({
         tagId: tagCooccurrences.tagA,
         related: tagCooccurrences.tagB,
@@ -93,7 +93,7 @@ export class D1TagRepository implements ITagRepository {
       .from(tagCooccurrences)
       .where(inArray(tagCooccurrences.tagA, tagIds))
       .all();
-    const rowsB = await this.db
+    const queryB = this.db
       .select({
         tagId: tagCooccurrences.tagB,
         related: tagCooccurrences.tagA,
@@ -102,6 +102,7 @@ export class D1TagRepository implements ITagRepository {
       .from(tagCooccurrences)
       .where(inArray(tagCooccurrences.tagB, tagIds))
       .all();
+    const [rowsA, rowsB] = await Promise.all([queryA, queryB]);
 
     for (const row of [...rowsA, ...rowsB]) {
       const list = grouped.get(row.tagId) ?? [];

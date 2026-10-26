@@ -26,6 +26,7 @@
       "oxfmt",
       "oxlint --fix --deny-warnings"
     ],
+    "*.css": "oxfmt",
     "*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,sql,sh,toml}": "secretlint"
   },
   "devDependencies": {

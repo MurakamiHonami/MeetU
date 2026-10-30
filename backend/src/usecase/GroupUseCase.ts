@@ -86,17 +86,16 @@ export class GroupUseCase {
       for (const memberId of group.members) memberIds.add(memberId);
       for (const step of group.steps) cardIds.add(step.giveCardId);
     }
-    for (const u of await this.userRepo.findByIds([...memberIds])) {
-      users.set(u.id, u);
-    }
-    for (const c of await this.cardRepo.findByIds([...cardIds])) {
-      cards.set(c.id, c);
-    }
-
-    const readAts = await this.groupRepo.getLastReadAtBatch(
-      groups.map((group) => group.id),
-      userId,
-    );
+    const [fetchedUsers, fetchedCards, readAts] = await Promise.all([
+      this.userRepo.findByIds([...memberIds]),
+      this.cardRepo.findByIds([...cardIds]),
+      this.groupRepo.getLastReadAtBatch(
+        groups.map((group) => group.id),
+        userId,
+      ),
+    ]);
+    for (const u of fetchedUsers) users.set(u.id, u);
+    for (const c of fetchedCards) cards.set(c.id, c);
     for (const group of groups) {
       if (!readAts.has(group.id)) readAts.set(group.id, null);
     }

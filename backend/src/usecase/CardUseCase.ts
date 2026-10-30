@@ -218,13 +218,14 @@ export class CardUseCase {
     if (!target || !target.isOpen()) return null;
     if (target.ownerId === userId) return null;
 
-    const [myUser, targetUser] = await Promise.all([
+    const [myUser, targetUser, myAllCards] = await Promise.all([
       this.userRepo.findById(userId),
       this.userRepo.findById(target.ownerId),
+      this.cardRepo.findByOwnerId(userId),
     ]);
     const counterpart = this.counterpartType(target.type);
     const targetTagSet = new Set(target.tags);
-    const myCards = (await this.cardRepo.findByOwnerId(userId)).filter(
+    const myCards = myAllCards.filter(
       (c) => c.isOpen() && c.type === counterpart && c.tags.some((t) => targetTagSet.has(t)),
     );
 

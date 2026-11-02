@@ -53,8 +53,10 @@ export class MessageUseCase {
     userId: string,
     input: { text?: string; imageKey?: string; location?: LocationProps },
   ) {
-    await this.assertNotSuspended(userId);
-    const match = await this.matchRepo.findById(matchId);
+    const [, match] = await Promise.all([
+      this.assertNotSuspended(userId),
+      this.matchRepo.findById(matchId),
+    ]);
     if (!match) throw new NotFoundError("マッチが見つかりません");
     if (!match.isParty(userId)) throw new ForbiddenError("このマッチの当事者ではありません");
     if (!CHATTABLE.has(match.status))
@@ -71,10 +73,12 @@ export class MessageUseCase {
       location: input.location ? new Location(input.location).toJSON() : undefined,
     });
 
-    await this.messageRepo.save(message);
     match.recordMessage(userId, message.createdAt, message.preview());
-    await this.matchRepo.save(match);
-    await this.matchRepo.markRead(matchId, userId, message.createdAt);
+    await Promise.all([
+      this.messageRepo.save(message),
+      this.matchRepo.save(match),
+      this.matchRepo.markRead(matchId, userId, message.createdAt),
+    ]);
 
     return { message, notified: false };
   }
@@ -105,8 +109,10 @@ export class MessageUseCase {
     userId: string,
     input: { text?: string; imageKey?: string; location?: LocationProps },
   ) {
-    await this.assertNotSuspended(userId);
-    const group = await this.groupRepo.findById(groupId);
+    const [, group] = await Promise.all([
+      this.assertNotSuspended(userId),
+      this.groupRepo.findById(groupId),
+    ]);
     if (!group) throw new NotFoundError("グループが見つかりません");
     if (!group.isMember(userId)) throw new ForbiddenError("このグループの参加者ではありません");
     if (!group.isChattable()) throw new ConflictError("成立したグループでのみトークできます");
@@ -122,10 +128,12 @@ export class MessageUseCase {
       location: input.location ? new Location(input.location).toJSON() : undefined,
     });
 
-    await this.messageRepo.save(message);
     group.recordMessage(userId, message.createdAt, message.preview());
-    await this.groupRepo.update(group);
-    await this.groupRepo.markRead(groupId, userId, message.createdAt);
+    await Promise.all([
+      this.messageRepo.save(message),
+      this.groupRepo.update(group),
+      this.groupRepo.markRead(groupId, userId, message.createdAt),
+    ]);
 
     return { message };
   }

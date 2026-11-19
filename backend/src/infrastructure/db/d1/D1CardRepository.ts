@@ -85,9 +85,11 @@ export class D1CardRepository implements ICardRepository {
   }
 
   async findById(id: string): Promise<Card | null> {
-    const cardRow = await this.db.select().from(cards).where(eq(cards.id, id)).get();
+    const [cardRow, { tags, tagLabels }] = await Promise.all([
+      this.db.select().from(cards).where(eq(cards.id, id)).get(),
+      this.loadTags(id),
+    ]);
     if (!cardRow) return null;
-    const { tags, tagLabels } = await this.loadTags(id);
     return this.mapRowToCard(cardRow, tags, tagLabels);
   }
 
